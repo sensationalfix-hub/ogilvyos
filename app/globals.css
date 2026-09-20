@@ -798,3 +798,27 @@ button, input { letter-spacing: -.01em; }
   background: #d7ddd4;
   border-radius: 999px;
 }
+
+
+/* Team view: whole page scrolls; roster is the operational active team only */
+.team-view-complete {
+  display: block !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.team-view-complete .people-summary {
+  margin-bottom: 12px;
+}
+.team-view-complete .team-layout {
+  height: auto !important;
+  min-height: min-content !important;
+  overflow: visible !important;
+  align-items: start;
+}
+.team-view-complete .team-grid {
+  overflow: visible !important;
+  min-height: auto !important;
+  padding-right: 4px;
+}
