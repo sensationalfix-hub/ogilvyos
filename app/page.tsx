@@ -48,10 +48,11 @@ type LiveSchema = {
 
 type Task = {
   id: string; name: string; status: TaskStatus; priority: Priority; project: string;
-  account: string; date: string; people: string[]; url: string;
+  account: string; date: string; dateStart?: string | null; people: string[]; url: string;
 };
 type Project = {
   id: string; name: string; status: ProjectStatus; account: string; timing: string;
+  timingStart?: string | null; timingEnd?: string | null;
   type: string; people: string[]; priority: Priority; url: string;
 };
 type Detail = ({ kind: "task" } & Task) | ({ kind: "project" } & Project) | null;
@@ -102,7 +103,7 @@ const navigation = [
 ] as const;
 
 const viewCopy: Record<View, { eyebrow: string; title: string; description: string }> = {
-  dashboard: { eyebrow: "VIERNES · 28 AGOSTO", title: "Todo bajo control. Más o menos.", description: "El pulso real de cuentas, equipo y fechas sin bucear por seis bases de datos." },
+  dashboard: { eyebrow: "HOY · NOTION LIVE", title: "Todo bajo control. Más o menos.", description: "El pulso real de cuentas, equipo y fechas sin bucear por seis bases de datos." },
   calendar: { eyebrow: "AGENDA MAESTRA", title: "Calendario", description: "Entregas, presentaciones y ausencias ordenadas en el tiempo. Por fin, septiembre con subtítulos." },
   accounts: { eyebrow: "VISIÓN MACRO", title: "Cuentas", description: "Prioridad, volumen y temperatura creativa en una sola vista." },
   projects: { eyebrow: "PIPELINE", title: "Proyectos", description: "Arrastra cada proyecto a su siguiente fase. El papeleo que se mueva solo, gracias." },
@@ -278,6 +279,14 @@ export default function Home() {
     ? Object.entries(liveSchema.health).flatMap(([source, checks]) => checks.map((check) => ({ ...check, source })))
     : [];
   const schemaIssues = schemaChecks.filter((check) => !check.ok);
+  const upcomingDeadlines = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return tasks
+      .filter((task) => task.dateStart && new Date(task.dateStart).getTime() >= now.getTime())
+      .sort((a, b) => new Date(a.dateStart || 0).getTime() - new Date(b.dateStart || 0).getTime())
+      .slice(0, 3);
+  }, [tasks]);
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
@@ -514,8 +523,8 @@ export default function Home() {
       <TabsList className="nav-list" variant="line" aria-label="Navegación principal">
         {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
-      <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · FALLBACK" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "Hay una lectura local de emergencia; no se presenta como live" : "Leyendo filas, relaciones y schema…"}</small></div></div>
-      <div className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div></div>
+      <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
+      <form action="/api/auth/logout" method="post" className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
     </aside>
 
     <main className={`main-stage main-stage-${activeView}`}>
@@ -570,7 +579,7 @@ export default function Home() {
                   <AccountMark name={project.account} /><span className="dashboard-project-copy"><strong>{project.name}</strong><small>{project.account} · {project.timing}</small></span><span className={`stage-chip stage-${project.status.toLowerCase().replace("-", "")}`}>{project.status}</span><PeopleStack people={project.people} /><GripVertical />
                 </div>)}
               </div>
-              <div className="deadline-ribbon"><span><AlertTriangle />PRÓXIMAS FECHAS</span><button onClick={() => setActiveView("calendar")}><b>10 SEP</b> Mundial Femenino</button><button onClick={() => setActiveView("calendar")}><b>18 SEP</b> PPM 11 del 11</button><button onClick={() => setActiveView("calendar")}><b>21 SEP</b> Rasca Millonario</button></div>
+              <div className="deadline-ribbon"><span><AlertTriangle />PRÓXIMAS FECHAS</span>{upcomingDeadlines.length ? upcomingDeadlines.map((task) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}><b>{task.date}</b> {task.name}</button>) : <small>Sin entregas próximas con fecha en Notion</small>}</div>
             </article>
           </div>
 
@@ -664,7 +673,7 @@ export default function Home() {
         </section>
       </TabsContent>
 
-      <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head"><div><span>31 AGO — 21 OCT 2026</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia</span><span><i className="deadline" /> Entrega</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span><i className="deadline-pin pin-one" title="Presentación Mundial Femenino" /><i className="deadline-pin pin-two" title="PPM 11 del 11" /></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Ausencias sincronizadas</strong>{dataState === "live" ? `${holidays.length} registros recientes o próximos leídos directamente de Notion.` : "Mostrando la última foto local disponible hasta recuperar Notion."}</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
+      <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head"><div><span>VENTANA DE 8 SEMANAS</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia desde Notion</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Ausencias sincronizadas</strong>{dataState === "live" ? `${holidays.length} registros recientes o próximos leídos directamente de Notion.` : "Sin conexión live: no se muestran ausencias antiguas como actuales."}</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
     </main>
 
     <Sheet open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null); }}>
