@@ -159,6 +159,15 @@ function oneDecimal(value: unknown) {
 function StarPicker({ value, onChange, compact = false }: { value: number; onChange: (value: number) => void; compact?: boolean }) {
   return <div className={compact ? "star-picker compact" : "star-picker"}>{[1, 2, 3, 4, 5].map((star) => <button type="button" key={star} className={value >= star ? "active" : ""} aria-label={star + " de 5"} onClick={() => onChange(star)}><Star /></button>)}</div>;
 }
+function accountContrast(color: string) {
+  const hex = color.replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return "#111111";
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.62 ? "#171917" : "#ffffff";
+}
 function AccountMark({ name }: { name: string }) {
   return <span className="account-mark">{name.slice(0, 2).toUpperCase()}</span>;
 }
@@ -665,7 +674,7 @@ export default function Home() {
 
         <section className="account-dock">
           <div className="account-dock-title"><span>CUENTAS</span><small>Arrastra aquí una tarea o proyecto para reasignarlo</small></div>
-          <div className="account-dock-track">{accounts.map((account) => <button key={account.name} className={`account-dock-chip ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "ready" : ""}`} style={{ "--account-color": account.color } as React.CSSProperties}
+          <div className="account-dock-track">{accounts.map((account) => <button key={account.name} className={`account-dock-chip ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "ready" : ""}`} style={{ "--account-color": account.color, "--account-contrast": accountContrast(account.color) } as React.CSSProperties}
             onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)} onClick={() => { setSearch(account.name); setActiveView("projects"); }}>
             <AccountMark name={account.name} /><span><strong>{account.name}</strong><small>{account.projects} proyectos · {account.tasks} tareas</small></span><i />
           </button>)}</div>
