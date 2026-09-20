@@ -33,12 +33,21 @@ function title(page: PageRow, name: string) {
   return plain(value?.title);
 }
 
+function choice(page: PageRow, name: string) {
+  const value = prop(page, name);
+  if (typeof value === "string") return value;
+  if (typeof value?.select?.name === "string") return value.select.name;
+  if (typeof value?.status?.name === "string") return value.status.name;
+  if (typeof value?.name === "string") return value.name;
+  return null;
+}
+
 function select(page: PageRow, name: string) {
-  return prop(page, name)?.select?.name ?? null;
+  return choice(page, name);
 }
 
 function status(page: PageRow, name: string) {
-  return prop(page, name)?.status?.name ?? null;
+  return choice(page, name);
 }
 
 function multiSelect(page: PageRow, name: string) {
@@ -65,9 +74,17 @@ function numeric(page: PageRow, name: string): number | null {
   return null;
 }
 
-function starNumber(value: string | null) {
-  return value ? (value.match(/★/g) || []).length || null : null;
+function starNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(1, Math.min(5, Math.round(value)));
+  if (typeof value !== "string" || !value.trim()) return null;
+  const stars = (value.match(/★/g) || []).length;
+  if (stars) return stars;
+  const numericValue = Number(value.replace(",", "."));
+  return Number.isFinite(numericValue) ? Math.max(1, Math.min(5, Math.round(numericValue))) : null;
 }
+
+const ACTIVE_TASK_STATUSES = new Set(["Pendiente", "En progreso"]);
+const ACTIVE_PROJECT_STATUSES = new Set(["Brief", "Ideas", "Pre-Producción", "Producción", "Seguimiento", "Daily"]);
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("");
@@ -172,8 +189,8 @@ export async function GET(request: Request) {
       };
     });
 
-    const activeProjects = projects.filter((project) => !["Completado", "Cancelado", "Parado"].includes(project.status));
-    const activeTasks = tasks.filter((task) => !["Terminado", "Cancelado"].includes(task.status));
+    const activeProjects = projects.filter((project) => ACTIVE_PROJECT_STATUSES.has(project.status));
+    const activeTasks = tasks.filter((task) => ACTIVE_TASK_STATUSES.has(task.status));
 
     const evaluations = evaluationPages.map((page) => ({
       id: compactId(page.id),
@@ -196,8 +213,8 @@ export async function GET(request: Request) {
         const name = title(page, "Nombre") || "Sin nombre";
         const personTasks = tasks.filter((task) => relation(taskPages.find((row) => compactId(row.id) === task.id)!, "Equipo").includes(id));
         const personProjects = projects.filter((project) => relation(projectPages.find((row) => compactId(row.id) === project.id)!, "Personas").includes(id));
-        const activePersonTasks = personTasks.filter((task) => !["Terminado", "Cancelado"].includes(task.status));
-        const activePersonProjects = personProjects.filter((project) => !["Completado", "Cancelado", "Parado"].includes(project.status));
+        const activePersonTasks = personTasks.filter((task) => ACTIVE_TASK_STATUSES.has(task.status));
+        const activePersonProjects = personProjects.filter((project) => ACTIVE_PROJECT_STATUSES.has(project.status));
         const personEvaluations = evaluations.filter((evaluation) => evaluation.employees.includes(id));
         const generalScores = personEvaluations.map((evaluation) => evaluation.score).filter((value): value is number => typeof value === "number");
         const detailedTaskScores = personEvaluations.filter((evaluation) => evaluation.type === "Tarea").map((evaluation) => evaluation.score).filter((value): value is number => typeof value === "number");
