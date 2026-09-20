@@ -44,23 +44,30 @@ function token() {
 }
 
 export async function notionRequest(path: string, init: RequestInit = {}) {
-  const response = await fetch(`https://api.notion.com/v1${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token()}`,
-      "Notion-Version": NOTION_VERSION,
-      "Content-Type": "application/json",
-      ...(init.headers || {}),
-    },
-    cache: "no-store",
-  });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(`https://api.notion.com/v1${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token()}`,
+        "Notion-Version": NOTION_VERSION,
+        "Content-Type": "application/json",
+        ...(init.headers || {}),
+      },
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
+    if (response.ok) return response.json();
+
     const detail = await response.text();
-    throw new Error(`Notion ${response.status}: ${detail}`);
+    if (response.status !== 429 || attempt === 2) {
+      throw new Error(`Notion ${response.status}: ${detail}`);
+    }
+
+    const retryAfter = Number(response.headers.get("retry-after") || "1");
+    await new Promise((resolve) => setTimeout(resolve, Math.max(250, retryAfter * 1000)));
   }
 
-  return response.json();
+  throw new Error("Notion request failed");
 }
 
 export async function retrieveDataSource(id: string) {
