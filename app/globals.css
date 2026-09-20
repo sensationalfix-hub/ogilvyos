@@ -1066,3 +1066,182 @@ button, input { letter-spacing: -.01em; }
 .view-content.board-scroll:has(.active-task-board) {
   overflow-x: hidden !important;
 }
+
+
+/* Account overview */
+.account-overview-sheet {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow-y: auto !important;
+  background: #fbfcf9;
+}
+.account-overview-header {
+  margin: -24px -24px 0;
+  padding: 28px 24px 24px !important;
+  background: var(--account-color) !important;
+  color: var(--account-contrast) !important;
+}
+.account-overview-header [data-slot="sheet-description"] {
+  color: color-mix(in srgb, var(--account-contrast) 72%, transparent) !important;
+}
+.account-overview-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.account-overview-brand .account-mark {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--account-contrast) 14%, transparent) !important;
+  color: var(--account-contrast) !important;
+  border: 1px solid color-mix(in srgb, var(--account-contrast) 20%, transparent);
+  font-size: 12px;
+}
+.account-overview-brand > div > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  opacity: .72;
+}
+.account-overview-brand h2 {
+  color: var(--account-contrast) !important;
+}
+.account-overview-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px 0 34px;
+}
+.account-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 8px;
+}
+.account-overview-metrics article {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #e1e6de;
+  border-radius: 13px;
+  background: #fff;
+}
+.account-overview-metrics span {
+  display: block;
+  color: #8a938a;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+.account-overview-metrics strong {
+  display: block;
+  margin-top: 7px;
+  color: #282f28;
+  font-size: 22px;
+}
+.account-overview-section {
+  padding: 14px;
+  border: 1px solid #e1e6de;
+  border-radius: 14px;
+  background: #fff;
+}
+.account-overview-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.account-overview-title > span {
+  color: #7c867d;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+.account-overview-title button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: #555f56;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.account-overview-title button svg { width: 12px; }
+.account-overview-list {
+  display: grid;
+  gap: 6px;
+}
+.account-overview-list > button {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 11px;
+  border: 1px solid #e7ebe5;
+  border-radius: 10px;
+  background: #f8faf6;
+  color: #303730;
+  text-align: left;
+  cursor: pointer;
+}
+.account-overview-list > button:hover {
+  border-color: #d7ddd4;
+  background: #f3f6f1;
+}
+.account-overview-list strong,
+.account-overview-list small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-overview-list strong { font-size: 10px; }
+.account-overview-list small {
+  margin-top: 2px;
+  color: #899289;
+  font-size: 8px;
+}
+.account-overview-list > button > span {
+  color: #6f786f;
+  font-size: 8px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.account-overview-list > p,
+.account-overview-people > p {
+  margin: 0;
+  color: #929a92;
+  font-size: 9px;
+}
+.account-overview-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.account-overview-people > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 8px 4px 5px;
+  border: 1px solid #e0e5dd;
+  border-radius: 999px;
+  background: #f7f9f5;
+}
+.account-overview-people .avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 7px;
+  font-style: normal;
+}
+.account-overview-people b {
+  font-size: 9px;
+  color: #3b433b;
+}
