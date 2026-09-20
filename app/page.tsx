@@ -329,12 +329,37 @@ export default function Home() {
     setDetail(null); setEvaluation(target); setScore(0); setStrengths([]); setFrictions([]); setEvaluationNote("");
     setDetailedMode(false); setDimensionScores({}); setIndividualMode(false); setIndividualScores(Object.fromEntries(target.people.map((name) => [name, 0])));
   }
-  function submitEvaluation() {
+  async function submitEvaluation() {
     if (!evaluation || !score) return;
     const assigned = evaluation.people.filter((name) => name !== "Por asignar");
     const activeDimensions: DimensionKey[] = evaluation.kind === "task" ? ["quality", "timing", "collaboration", "autonomy"] : ["quality", "timing", "collaboration", "impact"];
     const detailedValues = activeDimensions.map((key) => dimensionScores[key]).filter((value): value is number => Boolean(value));
     const detailedAverage = detailedValues.length ? detailedValues.reduce((sum, value) => sum + value, 0) / detailedValues.length : null;
+    try {
+      const response = await fetch("/api/notion/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: evaluation.kind,
+          id: evaluation.id,
+          name: evaluation.name,
+          people: assigned,
+          score,
+          individualScores: individualMode ? individualScores : {},
+          dimensions: dimensionScores,
+          strengths,
+          frictions,
+          note: evaluationNote,
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "No se pudo guardar la evaluación");
+      }
+    } catch (error) {
+      toast.error("No se pudo cerrar y evaluar en Notion", { description: error instanceof Error ? error.message : "Error desconocido" });
+      return;
+    }
     setRatingBoosts((current) => {
       const next = { ...current };
       assigned.forEach((name) => {
@@ -373,7 +398,6 @@ export default function Home() {
     });
     if (evaluation.kind === "task") setTasks((items) => items.filter((item) => item.id !== evaluation.id));
     else setProjects((items) => items.filter((item) => item.id !== evaluation.id));
-    setQueuedChanges((count) => count + 1);
     toast.success((evaluation.kind === "task" ? "Tarea" : "Proyecto") + " cerrado y evaluado", {
       description: assigned.length ? `La nota ya afecta a ${assigned.length} perfil${assigned.length === 1 ? "." : "es."}${detailedValues.length ? " También guarda el desglose." : ""}` : "Calidad guardada; falta asignar equipo para afectar ratios.",
     });
@@ -457,12 +481,51 @@ export default function Home() {
       toast.error("No se pudo cambiar la cuenta en Notion");
     }
   }
-  function createQuickItem() {
-    if (!quickName.trim()) return;
-    if (quickType === "task") setTasks((items) => [{ id: `local-${Date.now()}`, name: quickName, status: "Pendiente", priority: "Media", project: "Por asignar", account: "Ogilvy", date: "SIN FECHA", people: ["Por asignar"], url: "https://app.notion.com" }, ...items]);
-    else setProjects((items) => [{ id: `local-${Date.now()}`, name: quickName, status: "Brief", account: "Ogilvy", timing: "SIN FECHA", type: "Proyecto", people: ["Por asignar"], priority: "Media", url: "https://app.notion.com" }, ...items]);
-    setQueuedChanges((count) => count + 1); setQuickName(""); setDialogOpen(false);
-    toast.success("Añadido al borrador", { description: "La conexión en vivo lo enviará a Notion." });
+  async function createQuickItem() {
+    const name = quickName.trim();
+    if (!name) return;
+    try {
+      const response = await fetch("/api/notion/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: quickType, name }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body?.error || "No se pudo crear en Notion");
+
+      if (quickType === "task") {
+        setTasks((items) => [{
+          id: body.id,
+          name,
+          status: "Pendiente",
+          priority: "Media",
+          project: "Por asignar",
+          account: "Sin cuenta",
+          date: "SIN FECHA",
+          dateStart: null,
+          people: ["Por asignar"],
+          url: body.url || "https://www.notion.so",
+        }, ...items]);
+      } else {
+        setProjects((items) => [{
+          id: body.id,
+          name,
+          status: "Brief",
+          account: "Sin cuenta",
+          timing: "SIN FECHA",
+          timingStart: null,
+          timingEnd: null,
+          type: "Proyecto",
+          people: ["Por asignar"],
+          priority: "Media",
+          url: body.url || "https://www.notion.so",
+        }, ...items]);
+      }
+      setQuickName(""); setDialogOpen(false);
+      toast.success("Creado en Notion", { description: quickType === "task" ? "Tarea real creada." : "Proyecto real creado." });
+    } catch (error) {
+      toast.error("No se pudo crear", { description: error instanceof Error ? error.message : "Error desconocido" });
+    }
   }
   function updateDetailField(field: string, value: unknown) {
     setDetail((currentDetail) => currentDetail ? ({ ...currentDetail, [field]: value } as Detail) : currentDetail);
@@ -471,7 +534,7 @@ export default function Home() {
     if (!detail) return;
     const kind = detail.kind;
     if (kind === "task") {
-      const nextTask: Task = { id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, people: detail.people, url: detail.url };
+      const nextTask: Task = { id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, people: detail.people, url: detail.url };
       setTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
       try {
         await syncNotion("task", detail.id, {
@@ -481,13 +544,14 @@ export default function Home() {
           project: detail.project,
           account: detail.account,
           people: detail.people,
+          dateStart: detail.dateStart,
         });
         toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
       } catch {
         toast.error("No se pudieron guardar los cambios en Notion");
       }
     } else {
-      const nextProject: Project = { id: detail.id, name: detail.name, status: detail.status, account: detail.account, timing: detail.timing, type: detail.type, people: detail.people, priority: detail.priority, url: detail.url };
+      const nextProject: Project = { id: detail.id, name: detail.name, status: detail.status, account: detail.account, timing: detail.timing, timingStart: detail.timingStart, timingEnd: detail.timingEnd, type: detail.type, people: detail.people, priority: detail.priority, url: detail.url };
       setProjects((items) => items.map((project) => project.id === nextProject.id ? nextProject : project));
       try {
         await syncNotion("project", detail.id, {
@@ -497,6 +561,8 @@ export default function Home() {
           type: detail.type,
           account: detail.account,
           people: detail.people,
+          timingStart: detail.timingStart,
+          timingEnd: detail.timingEnd,
         });
         toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
       } catch {
@@ -681,7 +747,7 @@ export default function Home() {
         <SheetHeader>
           <span className="sheet-kicker">{detail.kind === "task" ? "EDITAR TAREA" : "EDITAR PROYECTO"}</span>
           <SheetTitle>{detail.name}</SheetTitle>
-          <SheetDescription>Cambia cualquier campo y guarda el borrador para sincronizarlo con Notion.</SheetDescription>
+          <SheetDescription>Cambia cualquier campo y guárdalo directamente en Notion.</SheetDescription>
         </SheetHeader>
         <div className="sheet-body detail-editor">
           <label className="editor-field full"><span>Nombre</span><input value={detail.name} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
@@ -693,7 +759,9 @@ export default function Home() {
           {detail.kind === "task"
   ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
   : <div className="editor-field"><span>Tipo</span><Select value={detail.type} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
-          <label className="editor-field"><span>{detail.kind === "task" ? "Fecha" : "Timing"}</span><input value={detail.kind === "task" ? detail.date : detail.timing} onChange={(event) => updateDetailField(detail.kind === "task" ? "date" : "timing", event.target.value.toUpperCase())} placeholder={detail.kind === "task" ? "10 SEP" : "1 SEP — 30 SEP"} /></label>
+          {detail.kind === "task"
+            ? <label className="editor-field"><span>Fecha</span><input type="date" value={detail.dateStart || ""} onChange={(event) => { updateDetailField("dateStart", event.target.value || null); updateDetailField("date", event.target.value ? new Date(event.target.value + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "") : "SIN FECHA"); }} /></label>
+            : <div className="editor-field full"><span>Timing</span><div className="date-range-fields"><label><small>Inicio</small><input type="date" value={detail.timingStart || ""} onChange={(event) => updateDetailField("timingStart", event.target.value || null)} /></label><label><small>Fin</small><input type="date" min={detail.timingStart || undefined} value={detail.timingEnd || ""} onChange={(event) => updateDetailField("timingEnd", event.target.value || null)} /></label></div></div>}
           <label className="editor-field"><span>Equipo</span><input value={detail.people.join(", ")} onChange={(event) => updateDetailField("people", event.target.value.split(",").map((person) => person.trim()).filter(Boolean))} /></label>
           <div className="sheet-note"><Sparkles /><p><strong>Lectura rápida</strong>{detail.priority === "Alta" ? "Está en zona de atención. Revisa fecha y responsables antes de cerrar." : "Parece controlado. No le añadamos épica administrativa."}</p></div>
         </div>
