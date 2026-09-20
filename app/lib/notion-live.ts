@@ -67,6 +67,43 @@ export async function retrieveDataSource(id: string) {
   return notionRequest(`/data_sources/${id}`);
 }
 
+export async function queryDataSource(id: string, body: Record<string, unknown>) {
+  return notionRequest(`/data_sources/${id}/query`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function resolvePageIdByTitle(dataSourceId: string, titleProperty: string, value: string) {
+  const response = await queryDataSource(dataSourceId, {
+    page_size: 2,
+    filter: {
+      property: titleProperty,
+      title: { equals: value },
+    },
+  });
+  const results = Array.isArray(response?.results) ? response.results : [];
+  const exact = results.find((item: any) => {
+    const title = item?.properties?.[titleProperty]?.title;
+    const text = Array.isArray(title) ? title.map((part: any) => part?.plain_text || part?.text?.content || "").join("") : "";
+    return text === value;
+  });
+  return exact?.id || results[0]?.id || null;
+}
+
+export async function resolveRelation(
+  dataSourceId: string,
+  titleProperty: string,
+  values: string[]
+) {
+  const ids: string[] = [];
+  for (const value of values.filter(Boolean)) {
+    const id = await resolvePageIdByTitle(dataSourceId, titleProperty, value);
+    if (id) ids.push(id);
+  }
+  return ids.map((id) => ({ id }));
+}
+
 function optionKey(option: NotionOption) {
   return option.id || option.name;
 }
