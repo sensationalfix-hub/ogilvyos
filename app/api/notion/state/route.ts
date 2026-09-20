@@ -99,6 +99,7 @@ function starNumber(value: unknown) {
 
 const ACTIVE_TASK_STATUSES = new Set(["Pendiente", "En progreso"]);
 const ACTIVE_PROJECT_STATUSES = new Set(["Brief", "Ideas", "Pre-Producción", "Producción", "Seguimiento", "Daily"]);
+const VISIBLE_PROJECT_STATUSES = new Set(["Standby", ...ACTIVE_PROJECT_STATUSES]);
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("");
@@ -204,6 +205,7 @@ export async function GET(request: Request) {
     });
 
     const activeProjects = projects.filter((project) => ACTIVE_PROJECT_STATUSES.has(project.status));
+    const visibleProjects = projects.filter((project) => VISIBLE_PROJECT_STATUSES.has(project.status));
     const activeTasks = tasks.filter((task) => ACTIVE_TASK_STATUSES.has(task.status));
 
     const evaluations = evaluationPages.map((page) => ({
@@ -357,7 +359,7 @@ export async function GET(request: Request) {
         ratedProjects: projects.filter((project) => project.rating != null).length,
       },
       accounts,
-      projects: activeProjects,
+      projects: visibleProjects,
       tasks: activeTasks,
       allTasks: tasks,
       team,
