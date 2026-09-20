@@ -1,7 +1,8 @@
 export const WORKOS_SESSION_COOKIE = "workos_session";
 
 function configuredPassword() {
-  return process.env.WORKOS_PASSWORD
+  return process.env.APP_ACCESS_PASSWORD
+    || process.env.WORKOS_PASSWORD
     || process.env.OGILVYOS_PASSWORD
     || process.env.APP_PASSWORD
     || process.env.SITE_PASSWORD
