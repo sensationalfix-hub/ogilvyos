@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requestIsAuthorized } from "@/app/lib/workos-auth";
 import {
   DATA_SOURCES,
   extractOptions,
@@ -9,7 +10,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!await requestIsAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const [accounts, projects, tasks, team, holidays, evaluations] = await Promise.all([
       retrieveDataSource(DATA_SOURCES.accounts),
