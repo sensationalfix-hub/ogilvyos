@@ -284,7 +284,8 @@ export default function Home() {
   const taskPriorityOptions = liveSchema?.tasks.priority.map((option) => option.name) ?? Array.from(new Set(tasks.map((task) => task.priority).filter(Boolean)));
   const projectPriorityOptions = liveSchema?.projects.priority.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.priority).filter(Boolean)));
   const projectTypeOptions = liveSchema?.projects.type.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.type).filter(Boolean)));
-  const taskBoardStatuses = taskStatusOptions.filter((status) => tasks.some((task) => task.status === status));
+  const desiredTaskBoardOrder = ["En progreso", "Pausa", "Pendiente"];
+  const taskBoardStatuses = desiredTaskBoardOrder.filter((status) => taskStatusOptions.includes(status));
   const desiredProjectBoardOrder = ["Standby", "Brief", "Ideas", "Pre-Producción", "Producción", "Seguimiento"];
   const projectBoardStatuses = desiredProjectBoardOrder.filter((status) => projectStatusOptions.includes(status));
   const schemaChecks = liveSchema
