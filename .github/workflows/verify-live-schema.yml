@@ -1,3 +1,4 @@
+# WorkOS live schema CI
 name: Verify WorkOS live schema
 
 on:
