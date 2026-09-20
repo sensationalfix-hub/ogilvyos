@@ -200,15 +200,23 @@ export async function GET(request: Request) {
         const activePersonProjects = personProjects.filter((project) => !["Completado", "Cancelado", "Parado"].includes(project.status));
         const personEvaluations = evaluations.filter((evaluation) => evaluation.employees.includes(id));
         const generalScores = personEvaluations.map((evaluation) => evaluation.score).filter((value): value is number => typeof value === "number");
-        const taskScores = personEvaluations.filter((evaluation) => evaluation.type === "Tarea").map((evaluation) => evaluation.score).filter((value): value is number => typeof value === "number");
-        const projectScores = personEvaluations.filter((evaluation) => evaluation.type === "Proyecto").map((evaluation) => evaluation.score).filter((value): value is number => typeof value === "number");
-        const score = evaluationAverage(generalScores);
+        const detailedTaskScores = personEvaluations.filter((evaluation) => evaluation.type === "Tarea").map((evaluation) => evaluation.score).filter((value): value is number => typeof value === "number");
+        const detailedProjectScores = personEvaluations.filter((evaluation) => evaluation.type === "Proyecto").map((evaluation) => evaluation.score).filter((value): value is number => typeof value === "number");
+        const ratedTaskScores = personTasks.map((task) => task.rating).filter((value): value is number => typeof value === "number");
+        const ratedProjectScores = personProjects.map((project) => project.rating).filter((value): value is number => typeof value === "number");
+        const taskScore = evaluationAverage(detailedTaskScores.length ? detailedTaskScores : ratedTaskScores);
+        const projectScore = evaluationAverage(detailedProjectScores.length ? detailedProjectScores : ratedProjectScores);
+        const score = taskScore != null && projectScore != null
+          ? taskScore * 0.6 + projectScore * 0.4
+          : taskScore ?? projectScore ?? evaluationAverage(generalScores);
+        const evidence = ratedTaskScores.length + ratedProjectScores.length + generalScores.length;
         const values = (key: "quality" | "timing" | "collaboration" | "autonomy" | "impact") =>
           personEvaluations.map((evaluation) => evaluation[key]).filter((value): value is number => typeof value === "number");
         const joined = dateValue(page, "Incorporación")?.start ?? null;
         const load = Math.min(100, activePersonTasks.length * 8 + activePersonProjects.length * 12);
         const distribution = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
-        for (const value of generalScores) {
+        const distributionScores = generalScores.length ? generalScores : [...ratedTaskScores, ...ratedProjectScores];
+        for (const value of distributionScores) {
           const rounded = Math.max(1, Math.min(5, Math.round(value))) as 1 | 2 | 3 | 4 | 5;
           distribution[String(rounded) as keyof typeof distribution] += 1;
         }
@@ -233,9 +241,12 @@ export async function GET(request: Request) {
           completedTasks: personTasks.filter((task) => task.status === "Terminado").length,
           completedProjects: personProjects.filter((project) => project.status === "Completado").length,
           score,
-          taskScore: evaluationAverage(taskScores),
-          projectScore: evaluationAverage(projectScores),
+          taskScore,
+          projectScore,
           evaluations: generalScores.length,
+          evidence,
+          ratedTasks: ratedTaskScores.length,
+          ratedProjects: ratedProjectScores.length,
           ratio: score == null ? null : Math.round(score * 20),
           distribution,
           dimensions: {
