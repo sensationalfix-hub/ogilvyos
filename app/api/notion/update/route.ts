@@ -21,6 +21,11 @@ function select(value: unknown) {
 function status(value: unknown) {
   return value ? { status: { name: String(value) } } : { status: null };
 }
+function date(start: unknown, end?: unknown) {
+  const value = start ? String(start) : "";
+  if (!value) return { date: null };
+  return { date: { start: value, ...(end ? { end: String(end) } : {}) } };
+}
 
 async function taskProperties(changes: Record<string, unknown>) {
   const properties: Record<string, unknown> = {};
@@ -28,6 +33,7 @@ async function taskProperties(changes: Record<string, unknown>) {
   if ("status" in changes) properties["Status"] = status(changes.status);
   if ("priority" in changes) properties["Prioridad"] = select(changes.priority);
   if ("rating" in changes) properties["Rating"] = select(changes.rating);
+  if ("dateStart" in changes) properties["Fecha"] = date(changes.dateStart);
 
   if ("account" in changes) {
     const relation = await resolveRelation(DATA_SOURCES.accounts, "Nombre", changes.account ? [String(changes.account)] : []);
@@ -56,6 +62,7 @@ async function projectProperties(changes: Record<string, unknown>) {
   if ("type" in changes) properties["Tipo de Proyecto"] = select(changes.type);
   if ("complexity" in changes) properties["Complejidad"] = select(changes.complexity);
   if ("rating" in changes) properties["Rating"] = select(changes.rating);
+  if ("timingStart" in changes || "timingEnd" in changes) properties["Timming"] = date(changes.timingStart, changes.timingEnd);
 
   if ("account" in changes) {
     const relation = await resolveRelation(DATA_SOURCES.accounts, "Nombre", changes.account ? [String(changes.account)] : []);
