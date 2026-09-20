@@ -685,3 +685,25 @@ button, input { letter-spacing: -.01em; }
   cursor: pointer;
 }
 .user-chip-logout:hover { opacity: .9; }
+
+
+.date-range-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.date-range-fields label {
+  display: grid;
+  gap: 6px;
+}
+.date-range-fields small {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .55;
+}
+.detail-editor input[type="date"] {
+  min-height: 42px;
+  cursor: pointer;
+}
