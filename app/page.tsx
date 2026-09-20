@@ -71,7 +71,8 @@ type TeamPerson = {
   load: number; activeTasks: number; activeProjects: number; projects: number;
   activeProjectNames: string[]; activeTaskNames: string[];
   completedTasks: number; completedProjects: number; score: number | null;
-  taskScore: number | null; projectScore: number | null; evaluations: number; ratio: number | null;
+  taskScore: number | null; projectScore: number | null; evaluations: number;
+  evidence: number; ratedTasks: number; ratedProjects: number; ratio: number | null;
   distribution: Record<"1" | "2" | "3" | "4" | "5", number>;
   dimensions: Record<DimensionKey, number | null>;
 };
@@ -786,7 +787,7 @@ export default function Home() {
               <article><span>ÍNDICE</span><strong>{performance.ratio ?? "—"}<small>/100</small></strong><p>{confidence(performance.count)}</p></article>
               <article><span>TAREAS</span><strong>{oneDecimal(selectedPerson.taskScore)}<small>/5</small></strong><p>Ejecución</p></article>
               <article><span>PROYECTOS</span><strong>{oneDecimal(selectedPerson.projectScore)}<small>/5</small></strong><p>Calidad final</p></article>
-              <article><span>EVIDENCIA</span><strong>{performance.count}</strong><p>Evaluaciones</p></article>
+              <article><span>EVIDENCIA</span><strong>{selectedPerson.evidence}</strong><p>{selectedPerson.evaluations ? `${selectedPerson.evaluations} detalladas` : "Ratings históricos"}</p></article>
             </section>
             <section className="employee-section"><div className="employee-section-title"><CircleGauge /><div><span>TRABAJO ACTIVO</span><h3>Carga, sin mezclarla con desempeño</h3></div></div><div className="workload-big"><strong>{selectedPerson.load}%</strong><div><Progress value={selectedPerson.load} className={selectedPerson.load >= 75 ? "load-progress hot" : selectedPerson.load >= 45 ? "load-progress warm" : "load-progress cool"} /><span>{selectedPerson.activeProjects} proyectos · {selectedPerson.activeTasks} tareas activas</span></div></div>{selectedPerson.activeProjectNames.length > 0 && <div className="active-project-list"><span>PROYECTOS ACTIVOS</span>{selectedPerson.activeProjectNames.map((project) => <b key={project}>{project}</b>)}</div>}</section>
             <section className="employee-section"><div className="employee-section-title"><TrendingUp /><div><span>HISTÓRICO</span><h3>Distribución de puntuaciones</h3></div></div><div className="rating-distribution">{[5, 4, 3, 2, 1].map((rating) => { const count = selectedPerson.distribution[String(rating) as keyof typeof selectedPerson.distribution] ?? 0; return <div key={rating}><span>{rating}<Star /></span><i><b style={{ width: (count / maxDistribution) * 100 + "%" }} /></i><strong>{count}</strong></div>; })}</div><p className="history-caption">{selectedPerson.completedTasks} tareas y {selectedPerson.completedProjects} proyectos completados vinculados.</p></section>
