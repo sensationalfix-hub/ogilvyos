@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requestIsAuthorized } from "@/app/lib/workos-auth";
 import { DATA_SOURCES, queryDataSource } from "@/app/lib/notion-live";
 
 export const dynamic = "force-dynamic";
@@ -119,7 +120,8 @@ function evaluationAverage(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!await requestIsAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     // Sequential on purpose: Notion's API is rate-limited and the task data source paginates.
     const accountPages = await queryAll(DATA_SOURCES.accounts);
