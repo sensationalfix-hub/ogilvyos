@@ -26,7 +26,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-type View = "dashboard" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "holidays";
+type View = "dashboard" | "week" | "timeline" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "holidays";
 type Priority = string;
 type TaskStatus = string;
 type ProjectStatus = string;
@@ -85,7 +85,7 @@ type LiveState = {
     accounts: number; projects: number; activeProjects: number; tasks: number; activeTasks: number;
     team: number; holidays: number; evaluations: number; ratedTasks?: number; ratedProjects?: number;
   };
-  accounts: Account[]; projects: Project[]; tasks: Task[]; team: TeamPerson[]; holidays: Holiday[];
+  accounts: Account[]; projects: Project[]; tasks: Task[]; allTasks: Task[]; team: TeamPerson[]; holidays: Holiday[];
 };
 
 const initialProjects: Project[] = [];
@@ -96,6 +96,8 @@ const fallbackHolidays: Holiday[] = [];
 
 const navigation = [
   { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { value: "week", label: "Mi semana", icon: CalendarDays },
+  { value: "timeline", label: "Timeline", icon: TrendingUp },
   { value: "calendar", label: "Calendario", icon: CalendarRange },
   { value: "accounts", label: "Cuentas", icon: BriefcaseBusiness },
   { value: "projects", label: "Proyectos", icon: FolderKanban },
@@ -106,6 +108,8 @@ const navigation = [
 
 const viewCopy: Record<View, { eyebrow: string; title: string; description: string }> = {
   dashboard: { eyebrow: "HOY · NOTION LIVE", title: "Todo bajo control. Más o menos.", description: "El pulso real de cuentas, equipo y fechas sin bucear por seis bases de datos." },
+  week: { eyebrow: "FOCO · ESTA SEMANA", title: "Mi semana", description: "Entregas, hitos, ausencias y carga crítica. Lo que merece atención antes de que sea tarde." },
+  timeline: { eyebrow: "MAPA TEMPORAL", title: "Timeline", description: "Todo lo activo colocado en el tiempo sin obligarte a viajar horizontalmente hasta noviembre." },
   calendar: { eyebrow: "AGENDA MAESTRA", title: "Calendario", description: "Entregas, presentaciones y ausencias ordenadas en el tiempo. Por fin, septiembre con subtítulos." },
   accounts: { eyebrow: "VISIÓN MACRO", title: "Cuentas", description: "Prioridad, volumen y temperatura creativa en una sola vista." },
   projects: { eyebrow: "PIPELINE", title: "Proyectos", description: "Arrastra cada proyecto a su siguiente fase. El papeleo que se mueva solo, gracias." },
@@ -204,6 +208,7 @@ function EmptyDrop() { return <div className="empty-drop">Suelta aquí</div>; }
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("dashboard");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [allTasks, setAllTasks] = useState<Task[]>(initialTasks);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [accounts, setAccounts] = useState<Account[]>(fallbackAccounts);
   const [team, setTeam] = useState<TeamPerson[]>(fallbackTeam);
@@ -223,6 +228,9 @@ export default function Home() {
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
   const [selectedPerson, setSelectedPerson] = useState<TeamPerson | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
+  const [timelineWeeks, setTimelineWeeks] = useState(8);
+  const [projectTaskName, setProjectTaskName] = useState("");
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [score, setScore] = useState(0);
   const [strengths, setStrengths] = useState<string[]>([]);
@@ -268,6 +276,7 @@ export default function Home() {
         setAccounts(state.accounts.filter((account) => account.status === "Activa"));
         setProjects(state.projects);
         setTasks(state.tasks);
+        setAllTasks(state.allTasks || state.tasks);
         setTeam(state.team);
         setHolidays(state.holidays);
         setLiveCounts(state.counts);
