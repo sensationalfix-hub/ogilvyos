@@ -997,3 +997,33 @@ button, input { letter-spacing: -.01em; }
   color: #8c958c;
   font-size: 9px;
 }
+
+
+/* Solid account dock cards using each account's assigned color */
+.account-dock-chip {
+  border-color: color-mix(in srgb, var(--account-color) 72%, #000 12%) !important;
+  background: var(--account-color) !important;
+  color: var(--account-contrast) !important;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--account-color) 22%, transparent);
+}
+.account-dock-chip:hover,
+.account-dock-chip.ready:hover {
+  border-color: color-mix(in srgb, var(--account-color) 55%, #000 20%) !important;
+  background: var(--account-color) !important;
+  filter: saturate(1.05) brightness(.98);
+}
+.account-dock-chip .account-mark {
+  border: 1px solid color-mix(in srgb, var(--account-contrast) 22%, transparent);
+  background: color-mix(in srgb, var(--account-contrast) 12%, transparent) !important;
+  color: var(--account-contrast) !important;
+}
+.account-dock-chip strong,
+.account-dock-chip small {
+  color: var(--account-contrast) !important;
+}
+.account-dock-chip small {
+  opacity: .72;
+}
+.account-dock-chip > i {
+  display: none !important;
+}
