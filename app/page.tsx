@@ -308,6 +308,10 @@ export default function Home() {
   const projectTypeOptions = liveSchema?.projects.type.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.type).filter(Boolean)));
   const taskBoardStatuses = taskStatusOptions.filter((status) => tasks.some((task) => task.status === status));
   const projectBoardStatuses = projectStatusOptions.filter((status) => projects.some((project) => project.status === status));
+  const schemaChecks = liveSchema
+    ? Object.entries(liveSchema.health).flatMap(([source, checks]) => checks.map((check) => ({ ...check, source })))
+    : [];
+  const schemaIssues = schemaChecks.filter((check) => !check.ok);
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
@@ -690,7 +694,7 @@ export default function Home() {
               <div className="team-footer"><span>{confidence(performance.count)}</span><span>Ver ficha <ChevronRight /></span></div>
             </button>;
           })}</div>
-          <aside className="capacity-note data-health-card"><Sparkles /><span>AUDITORÍA DE NOTION</span><h2>La foto real ya está dentro. Ahora sabemos exactamente dónde cojea.</h2><ul><li><Check /> {notionSnapshot.sourceCounts.tasks} tareas auditadas</li><li><Check /> {notionSnapshot.sourceCounts.projects} proyectos y {notionSnapshot.sourceCounts.team} perfiles</li><li><Check /> {notionSnapshot.sourceCounts.ratedTasks + notionSnapshot.sourceCounts.ratedProjects} ratings históricos</li><li><AlertTriangle /> Esfuerzo vacío en {notionSnapshot.dataQuality.missingTaskEffort} tareas</li><li><AlertTriangle /> Complejidad vacía en {notionSnapshot.dataQuality.missingProjectComplexity} proyectos</li><li><AlertTriangle /> Base detallada preparada: {notionSnapshot.sourceCounts.evaluations} evaluaciones</li></ul><p>El ratio enseña siempre tamaño de muestra y mantiene la carga fuera de la nota.</p></aside>
+          <aside className="capacity-note data-health-card"><Sparkles /><span>SCHEMA HEALTH · NOTION</span><h2>{schemaState === "live" ? (schemaIssues.length ? `${schemaIssues.length} propiedades requieren atención` : "Estructura sincronizada y sana") : schemaState === "error" ? "No se pudo leer el schema en vivo" : "Comprobando la estructura real…"}</h2><ul><li><Check /> {taskStatusOptions.length} estados de tarea leídos</li><li><Check /> {projectStatusOptions.length} estados de proyecto leídos</li><li><Check /> {projectTypeOptions.length} tipos de proyecto leídos</li><li><Check /> {taskPriorityOptions.length} prioridades de tarea · {projectPriorityOptions.length} de proyecto</li>{schemaIssues.slice(0, 3).map((issue) => <li key={`${issue.source}-${issue.name}`}><AlertTriangle /> {issue.source}: falta {issue.name}</li>)}</ul><p>{schemaState === "live" ? "WorkOS usa estas opciones directamente. Los cambios de schema en Notion se detectan al cargar." : "Mientras Notion no responda, la interfaz conserva un fallback local y bloquea la falsa sensación de sincronía."}</p></aside>
         </section>
       </TabsContent>
 
