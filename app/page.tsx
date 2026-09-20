@@ -25,7 +25,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { notionSnapshot } from "@/app/notion-snapshot";
 
 type View = "dashboard" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "holidays";
 type Priority = string;
@@ -86,102 +85,11 @@ type LiveState = {
   accounts: Account[]; projects: Project[]; tasks: Task[]; team: TeamPerson[]; holidays: Holiday[];
 };
 
-const legacyAccounts = [
-  { name: "Iberdrola", priority: "Alta", contract: "Fee", color: "#8fe94f", projects: 3, pulse: 88 },
-  { name: "ONCE", priority: "Alta", contract: "Fee", color: "#f97382", projects: 3, pulse: 94 },
-  { name: "Leroy Merlin", priority: "Alta", contract: "Fee", color: "#52c988", projects: 3, pulse: 76 },
-  { name: "Banca March", priority: "Media", contract: "Fee", color: "#f2ca52", projects: 1, pulse: 42 },
-  { name: "ING", priority: "Baja", contract: "Proyecto", color: "#ff8d43", projects: 1, pulse: 31 },
-  { name: "Carmen", priority: "Baja", contract: "NNBB", color: "#ac8cff", projects: 1, pulse: 18 },
-  { name: "Ogilvy", priority: "Baja", contract: "Interno", color: "#7e8b86", projects: 1, pulse: 25 },
-] as const;
-
-const legacyProjects: Project[] = [
-  { id: "p1", name: "Ferrero 2026", status: "Brief", account: "Banca March", timing: "16 AGO — 17 SEP", type: "Proyecto", people: ["Alberto", "Iñaki"], priority: "Media", url: "https://app.notion.com/3bf4f145f5cf8099ad19e954817244b9" },
-  { id: "p2", name: "Proyectos II", status: "Brief", account: "Leroy Merlin", timing: "24 AGO — 30 SEP", type: "Campaña", people: ["Por asignar"], priority: "Alta", url: "https://app.notion.com/3b54f145f5cf804cb59fd935315f20a8" },
-  { id: "p3", name: "Decoración", status: "Brief", account: "Leroy Merlin", timing: "DESDE 1 SEP", type: "Campaña", people: ["Iñaki"], priority: "Media", url: "https://app.notion.com/3b54f145f5cf803d8e53fc920e236604" },
-  { id: "p4", name: "Mundial Femenino", status: "Ideas", account: "Iberdrola", timing: "PRESENTACIÓN 10 SEP", type: "Proyecto", people: ["Alberto", "Lucero", "Iñaki"], priority: "Alta", url: "https://app.notion.com/3b44f145f5cf81b2b076f769733741c5" },
-  { id: "p5", name: "11 del 11 / 26", status: "Pre-Producción", account: "ONCE", timing: "12 MAY — 11 NOV", type: "Campaña", people: ["Jorge", "Ramiro", "Alberto", "Iñaki"], priority: "Alta", url: "https://app.notion.com/35e4f145f5cf80a7b09cf3daad068217" },
-  { id: "p6", name: "Extra Navidad", status: "Pre-Producción", account: "ONCE", timing: "16 ABR — 31 DIC", type: "Campaña", people: ["Alberto", "Iñaki", "Santiago"], priority: "Media", url: "https://app.notion.com/3444f145f5cf808a9425dcea4dadf8c1" },
-  { id: "p7", name: "Rasca Familia Millonario", status: "Seguimiento", account: "ONCE", timing: "10 MAY — 21 SEP", type: "Campaña", people: ["Alberto", "Iñaki", "Santiago"], priority: "Media", url: "https://app.notion.com/35e4f145f5cf807ca5cffe82e3af21ba" },
-  { id: "p8", name: "Cuota Fija", status: "Seguimiento", account: "Iberdrola", timing: "29 ABR — 15 SEP", type: "Pitch", people: ["Santiago", "Jorge"], priority: "Media", url: "https://app.notion.com/3504f145f5cf809a9d3efbdafc2f6740" },
-  { id: "p9", name: "GFDLC 26", status: "Seguimiento", account: "Leroy Merlin", timing: "ON AIR 29 SEP", type: "Campaña", people: ["Alberto", "Iñaki", "Santiago"], priority: "Baja", url: "https://app.notion.com/3264f145f5cf80b89390f17352809a66" },
-];
-
-const legacyTasks: Task[] = [
-  { id: "t1", name: "Sonorización", status: "Pendiente", priority: "Baja", project: "Rasca Familia Millonario", account: "ONCE", date: "26 AGO", people: ["Santiago"], url: "https://app.notion.com/3c64f145f5cf8013a38add7b1fe64a52" },
-  { id: "t2", name: "Presentación cliente", status: "En progreso", priority: "Alta", project: "Mundial Femenino", account: "Iberdrola", date: "10 SEP", people: ["Alberto", "Lucero", "Iñaki"], url: "https://app.notion.com/3c64f145f5cf80edb2e1c5f7afb538ba" },
-  { id: "t3", name: "Primera línea de arte", status: "En progreso", priority: "Media", project: "Ferrero 2026", account: "Banca March", date: "17 SEP", people: ["Iñaki"], url: "https://app.notion.com/3c64f145f5cf80b98876e98b8f64af5e" },
-  { id: "t4", name: "Presentación agencia", status: "Pausa", priority: "Media", project: "Proyectos II", account: "Leroy Merlin", date: "23 SEP", people: ["Por asignar"], url: "https://app.notion.com/3c64f145f5cf8047a97de4cb6a236ed0" },
-  { id: "t5", name: "Cerrar ideas", status: "En progreso", priority: "Alta", project: "Mundial Femenino", account: "Iberdrola", date: "SIN FECHA", people: ["Alberto", "Lucero", "Iñaki"], url: "https://app.notion.com/3b84f145f5cf8112b557c0d540877dc0" },
-  { id: "t6", name: "Subida de copias", status: "En progreso", priority: "Media", project: "Rasca Familia Millonario", account: "ONCE", date: "16 SEP", people: ["Alberto", "Santiago"], url: "https://app.notion.com/3914f145f5cf803da544e416f4f52714" },
-  { id: "t7", name: "PPM agencia", status: "Pendiente", priority: "Alta", project: "11 del 11 / 26", account: "ONCE", date: "18 SEP", people: ["Alberto", "Santiago"], url: "https://app.notion.com/3914f145f5cf80559871ee7f77893753" },
-  { id: "t8", name: "PPM cliente", status: "Pendiente", priority: "Alta", project: "11 del 11 / 26", account: "ONCE", date: "21 SEP", people: ["Alberto", "Santiago"], url: "https://app.notion.com/3914f145f5cf807dba0ec944c5d5164a" },
-  { id: "t9", name: "Offline agencia", status: "Pendiente", priority: "Media", project: "Extra Navidad", account: "ONCE", date: "13 OCT", people: ["Alberto", "Santiago"], url: "https://app.notion.com/3914f145f5cf800bb681ff2b42d139ad" },
-  { id: "t10", name: "Online final", status: "Terminado", priority: "Media", project: "Cuota Fija", account: "Iberdrola", date: "27 AGO", people: ["Jorge"], url: "https://app.notion.com/3504f145f5cf809a9d3efbdafc2f6740" },
-];
-
-const legacyTeam = [
-  { name: "Alberto Gómez", role: "Copywriter", load: 96, projects: 5, initials: "AG", tone: "pink" },
-  { name: "Iñaki", role: "Director de Arte", load: 91, projects: 5, initials: "IÑ", tone: "violet" },
-  { name: "Santiago Fiz", role: "Copywriter", load: 84, projects: 4, initials: "SF", tone: "orange" },
-  { name: "Lucero Soria", role: "Directora de Arte", load: 68, projects: 2, initials: "LS", tone: "green" },
-  { name: "Myriam Cuervo", role: "Directora de Arte", load: 56, projects: 3, initials: "MC", tone: "blue" },
-  { name: "Ainhoa Abreu", role: "Directora de Arte", load: 48, projects: 3, initials: "AA", tone: "yellow" },
-  { name: "Paulina Lavín", role: "Directora de Arte", load: 22, projects: 1, initials: "PL", tone: "cyan" },
-  { name: "Ramiro Alda", role: "Director Creativo", load: 74, projects: 3, initials: "RA", tone: "red" },
-];
-
-void legacyAccounts; void legacyProjects; void legacyTasks; void legacyTeam;
-
-const fallbackAccounts: Account[] = notionSnapshot.accounts.map((account) => ({
-  ...account,
-  priority: account.priority as Priority,
-  pulse: account.activity,
-}));
-
-const initialProjects: Project[] = notionSnapshot.projects.map((project) => ({
-  id: project.id,
-  name: project.name,
-  status: project.status as ProjectStatus,
-  account: project.account,
-  timing: project.timing,
-  type: project.type,
-  people: [...project.people],
-  priority: project.priority as Priority,
-  url: project.url,
-}));
-
-const initialTasks: Task[] = notionSnapshot.tasks.map((task) => ({
-  id: task.id,
-  name: task.name,
-  status: task.status as TaskStatus,
-  priority: task.priority as Priority,
-  project: task.project,
-  account: task.account,
-  date: task.date,
-  people: [...task.people],
-  url: task.url,
-}));
-
-const fallbackTeam: TeamPerson[] = notionSnapshot.team.map((person) => ({
-  ...person,
-  projects: person.activeProjects,
-  evaluations: person.evaluations,
-  ratio: person.ratio,
-  score: person.score,
-  taskScore: person.taskScore,
-  projectScore: person.projectScore,
-  completedTasks: person.completedTasks,
-  completedProjects: person.completedProjects,
-  skills: [...person.skills],
-  growth: [...person.growth],
-})) as TeamPerson[];
-
-const fallbackHolidays: Holiday[] = notionSnapshot.holidays.map((holiday) => ({
-  ...holiday,
-  id: holiday.url.split("/").pop() || holiday.url,
-}));
+const initialProjects: Project[] = [];
+const initialTasks: Task[] = [];
+const fallbackAccounts: Account[] = [];
+const fallbackTeam: TeamPerson[] = [];
+const fallbackHolidays: Holiday[] = [];
 
 const navigation = [
   { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -631,7 +539,7 @@ export default function Home() {
           <article><span>PROYECTOS ACTIVOS</span><strong>{projects.length.toString().padStart(2, "0")}</strong><small><i className="green" /> datos reales de Notion</small></article>
           <article><span>TAREAS ACTIVAS</span><strong>{tasks.length.toString().padStart(2, "0")}</strong><small><i className="red" /> solo trabajo abierto</small></article>
           <article><span>CARGA ALTA</span><strong>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</strong><small><i className="orange" /> carga relativa</small></article>
-          <article><span>MUESTRA EVALUADA</span><strong>{(liveCounts?.ratedTasks ?? notionSnapshot.sourceCounts.ratedTasks) + (liveCounts?.ratedProjects ?? notionSnapshot.sourceCounts.ratedProjects)}</strong><small><i className="blue" /> tareas + proyectos puntuados</small></article>
+          <article><span>MUESTRA EVALUADA</span><strong>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</strong><small><i className="blue" /> tareas + proyectos puntuados</small></article>
         </section>
         <section className="control-room">
           <div className="dashboard-workbench">
@@ -735,7 +643,7 @@ export default function Home() {
 
       <TabsContent value="team" className="view-content team-view-complete">
         <section className="people-summary">
-          <article><Target /><span><b>{(liveCounts?.ratedTasks ?? notionSnapshot.sourceCounts.ratedTasks) + (liveCounts?.ratedProjects ?? notionSnapshot.sourceCounts.ratedProjects)}</b> elementos puntuados</span></article>
+          <article><Target /><span><b>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</b> elementos puntuados</span></article>
           <article><TrendingUp /><span><b>{team.filter((person) => person.evaluations >= 8).length}</b> fichas con muestra alta</span></article>
           <article><AlertTriangle /><span><b>{team.filter((person) => person.evaluations < 3).length}</b> fichas aún frágiles</span></article>
           <div><strong>Índice de desempeño</strong><small>60% ejecución de tareas + 40% calidad de proyectos. La carga va aparte.</small></div>
