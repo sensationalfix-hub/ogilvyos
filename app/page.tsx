@@ -222,6 +222,7 @@ export default function Home() {
   const [calendarMonth, setCalendarMonth] = useState(1);
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
   const [selectedPerson, setSelectedPerson] = useState<TeamPerson | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [score, setScore] = useState(0);
   const [strengths, setStrengths] = useState<string[]>([]);
@@ -676,7 +677,7 @@ export default function Home() {
         <section className="account-dock">
           <div className="account-dock-title"><span>CUENTAS</span><small>Arrastra aquí una tarea o proyecto para reasignarlo</small></div>
           <div className="account-dock-track">{accounts.map((account) => <button key={account.name} className={`account-dock-chip ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "ready" : ""}`} style={{ "--account-color": account.color, "--account-contrast": accountContrast(account.color) } as React.CSSProperties}
-            onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)} onClick={() => { setSearch(account.name); setActiveView("projects"); }}>
+            onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)} onClick={() => setSelectedAccount(account)}>
             <AccountMark name={account.name} /><span><strong>{account.name}</strong><small>{account.projects} proyectos · {account.tasks} tareas</small></span><i />
           </button>)}</div>
         </section>
@@ -723,7 +724,7 @@ export default function Home() {
         </section>
       </TabsContent>
 
-      <TabsContent value="accounts" className="view-content"><section className="accounts-grid">{accounts.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article key={account.name} className={`account-card ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`} style={{ "--account-color": account.color } as React.CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)}><div className="account-card-head"><AccountMark name={account.name} /><span className={`priority-pill ${priorityClass(account.priority)}`}>{account.priority}</span></div><h2>{account.name}</h2><p>{account.contract}</p><div className="account-stats"><span><b>{account.projects}</b> proyectos</span><span><b>{account.pulse}</b> pulso</span></div><div className="account-bar"><i style={{ width: `${account.pulse}%` }} /></div><button onClick={() => { setSearch(account.name); setActiveView("projects"); }}>Ver proyectos <ArrowUpRight /></button></article>)}</section></TabsContent>
+      <TabsContent value="accounts" className="view-content"><section className="accounts-grid">{accounts.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article key={account.name} className={`account-card ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`} style={{ "--account-color": account.color } as React.CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)}><div className="account-card-head"><AccountMark name={account.name} /><span className={`priority-pill ${priorityClass(account.priority)}`}>{account.priority}</span></div><h2>{account.name}</h2><p>{account.contract}</p><div className="account-stats"><span><b>{account.projects}</b> proyectos</span><span><b>{account.pulse}</b> pulso</span></div><div className="account-bar"><i style={{ width: `${account.pulse}%` }} /></div><button onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button></article>)}</section></TabsContent>
 
       <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setDetail({ kind: "project", ...project })} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
@@ -754,6 +755,44 @@ export default function Home() {
 
       <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head"><div><span>VENTANA DE 8 SEMANAS</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia desde Notion</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Ausencias sincronizadas</strong>{dataState === "live" ? `${holidays.length} registros recientes o próximos leídos directamente de Notion.` : "Sin conexión live: no se muestran ausencias antiguas como actuales."}</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
     </main>
+
+    <Sheet open={Boolean(selectedAccount)} onOpenChange={(open) => { if (!open) setSelectedAccount(null); }}>
+      <SheetContent className="detail-sheet account-overview-sheet">{selectedAccount && (() => {
+        const accountProjects = projects.filter((project) => project.account === selectedAccount.name);
+        const accountTasks = tasks.filter((task) => task.account === selectedAccount.name);
+        const people = Array.from(new Set([...accountProjects.flatMap((project) => project.people), ...accountTasks.flatMap((task) => task.people)].filter((name) => name !== "Por asignar")));
+        const datedTasks = accountTasks.filter((task) => task.dateStart).sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart))).slice(0, 5);
+        const contrast = accountContrast(selectedAccount.color);
+        return <>
+          <SheetHeader className="account-overview-header" style={{ "--account-color": selectedAccount.color, "--account-contrast": contrast } as React.CSSProperties}>
+            <div className="account-overview-brand"><AccountMark name={selectedAccount.name} /><div><span>CUENTA</span><SheetTitle>{selectedAccount.name}</SheetTitle><SheetDescription>{selectedAccount.contract} · Prioridad {selectedAccount.priority}</SheetDescription></div></div>
+          </SheetHeader>
+          <div className="account-overview-body">
+            <section className="account-overview-metrics">
+              <article><span>PROYECTOS ACTIVOS</span><strong>{accountProjects.length}</strong></article>
+              <article><span>TAREAS ACTIVAS</span><strong>{accountTasks.length}</strong></article>
+              <article><span>EQUIPO IMPLICADO</span><strong>{people.length}</strong></article>
+              <article><span>PULSO</span><strong>{selectedAccount.pulse}%</strong></article>
+            </section>
+
+            <section className="account-overview-section">
+              <div className="account-overview-title"><span>PROYECTOS</span><button onClick={() => { setSearch(selectedAccount.name); setSelectedAccount(null); setActiveView("projects"); }}>Ver pipeline <ArrowUpRight /></button></div>
+              <div className="account-overview-list">{accountProjects.slice(0, 6).map((project) => <button key={project.id} onClick={() => setDetail({ kind: "project", ...project })}><div><strong>{project.name}</strong><small>{project.status} · {project.type}</small></div><span>{project.timing}</span></button>)}{accountProjects.length === 0 && <p>Sin proyectos activos.</p>}</div>
+            </section>
+
+            <section className="account-overview-section">
+              <div className="account-overview-title"><span>PRÓXIMAS TAREAS</span><button onClick={() => { setSearch(selectedAccount.name); setSelectedAccount(null); setActiveView("tasks"); }}>Ver tareas <ArrowUpRight /></button></div>
+              <div className="account-overview-list">{datedTasks.map((task) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}><div><strong>{task.name}</strong><small>{task.status} · {task.project}</small></div><span>{task.date}</span></button>)}{datedTasks.length === 0 && <p>Sin tareas fechadas próximas.</p>}</div>
+            </section>
+
+            <section className="account-overview-section">
+              <div className="account-overview-title"><span>EQUIPO</span></div>
+              <div className="account-overview-people">{people.map((name) => { const person = team.find((item) => item.name === name); return <span key={name}>{person ? <i className={`avatar avatar-${person.tone}`}>{person.initials}</i> : null}<b>{name}</b></span>; })}{people.length === 0 && <p>Sin equipo asignado.</p>}</div>
+            </section>
+          </div>
+        </>;
+      })()}</SheetContent>
+    </Sheet>
 
     <Sheet open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null); }}>
       <SheetContent className="detail-sheet">{detail && <>
