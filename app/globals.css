@@ -756,3 +756,45 @@ button, input { letter-spacing: -.01em; }
   font-weight: 800;
   letter-spacing: .08em;
 }
+
+/* Employee sheet: fixed shell + independently scrollable body */
+.employee-sheet {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.employee-sheet > [data-slot="sheet-header"] {
+  position: relative !important;
+  top: auto !important;
+  flex: 0 0 auto;
+  z-index: 4;
+  background: #fbfcf9;
+}
+
+.employee-sheet .employee-body {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 48px !important;
+}
+
+.employee-sheet > .sheet-actions {
+  flex: 0 0 auto;
+  background: #fbfcf9;
+  border-top: 1px solid #e5e9e2;
+}
+
+.employee-sheet .employee-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.employee-sheet .employee-body::-webkit-scrollbar-thumb {
+  background: #d7ddd4;
+  border-radius: 999px;
+}
