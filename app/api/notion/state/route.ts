@@ -12,7 +12,21 @@ type PageRow = {
 };
 
 const tones = ["pink", "violet", "orange", "green", "blue", "yellow", "cyan", "red"];
-const accountColors = ["#8fe94f", "#f97382", "#52c988", "#f2ca52", "#ff8d43", "#ac8cff", "#7e8b86", "#70d6ff", "#ef8ea0", "#ff9f43"];
+const accountColorMap: Record<string, string> = {
+  "Ogilvy": "#E4232A",
+  "Banca March": "#244B3A",
+  "Leroy Merlin": "#78BE20",
+  "ONCE": "#FFD300",
+  "Carmen": "#F18AA6",
+  "ING": "#FF6200",
+  "Iberdrola": "#63B32E",
+};
+
+const fallbackEntityColors = ["#8fe94f", "#f97382", "#52c988", "#f2ca52", "#ff8d43", "#ac8cff", "#7e8b86", "#70d6ff", "#ef8ea0", "#ff9f43"];
+
+function accountColor(name: string) {
+  return accountColorMap[name] || fallbackEntityColors[stableIndex(name, fallbackEntityColors.length)];
+}
 
 function compactId(value: string | undefined | null) {
   return String(value || "").replace(/-/g, "");
@@ -294,7 +308,7 @@ export async function GET(request: Request) {
         status: select(page, "Estado") || "Inactiva",
         priority: select(page, "Prioridad") || "Sin prioridad",
         contract: select(page, "Contrato") || "Otro",
-        color: accountColors[stableIndex(name, accountColors.length)],
+        color: accountColor(name),
         projects: accountProjectIds.length,
         tasks: accountTaskIds.length,
         activeProjects: activeProjectCount,
@@ -320,7 +334,7 @@ export async function GET(request: Request) {
           start,
           end,
           label: rangeLabel(start, end),
-          color: accountColors[stableIndex(name, accountColors.length)],
+          color: fallbackEntityColors[stableIndex(name, fallbackEntityColors.length)],
           url: page.url || `https://www.notion.so/${compactId(page.id)}`,
         };
       })
