@@ -1027,3 +1027,42 @@ button, input { letter-spacing: -.01em; }
 .account-dock-chip > i {
   display: none !important;
 }
+
+
+/* Final overrides: solid account dock cards + fixed task workflow */
+.account-dock-chip {
+  background: var(--account-color) !important;
+  border-color: var(--account-color) !important;
+  color: var(--account-contrast) !important;
+}
+.account-dock-chip:hover,
+.account-dock-chip.ready:hover {
+  background: var(--account-color) !important;
+  border-color: color-mix(in srgb, var(--account-color) 72%, #000 14%) !important;
+  color: var(--account-contrast) !important;
+  filter: brightness(.96) saturate(1.04);
+}
+.account-dock-chip .account-mark {
+  background: color-mix(in srgb, var(--account-contrast) 14%, transparent) !important;
+  color: var(--account-contrast) !important;
+  border-color: color-mix(in srgb, var(--account-contrast) 20%, transparent) !important;
+}
+.account-dock-chip strong,
+.account-dock-chip small {
+  color: var(--account-contrast) !important;
+}
+.account-dock-chip small { opacity: .74; }
+.account-dock-chip > i { display: none !important; }
+
+.active-task-board {
+  min-width: 0 !important;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px;
+}
+.active-task-board .kanban-column {
+  min-width: 0;
+}
+.view-content.board-scroll:has(.active-task-board) {
+  overflow-x: hidden !important;
+}
