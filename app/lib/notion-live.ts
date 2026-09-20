@@ -164,6 +164,16 @@ export function schemaHealth(source: any, required: string[]) {
   }));
 }
 
+export async function createPage(dataSourceId: string, properties: Record<string, unknown>) {
+  return notionRequest("/pages", {
+    method: "POST",
+    body: JSON.stringify({
+      parent: { data_source_id: dataSourceId },
+      properties,
+    }),
+  });
+}
+
 export async function updatePage(pageId: string, properties: Record<string, unknown>) {
   return notionRequest(`/pages/${pageId}`, {
     method: "PATCH",
