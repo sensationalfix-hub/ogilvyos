@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OgilvyOS",
-  description: "Centro de mando visual para cuentas, proyectos, tareas, equipo y vacaciones.",
+  title: "WorkOS",
+  description: "Interfaz visual privada sobre el workspace operativo de Notion.",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
 };
 
