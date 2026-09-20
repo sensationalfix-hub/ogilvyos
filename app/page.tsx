@@ -61,6 +61,30 @@ type CalendarEvent = {
   key: string; month: number; day: number; kind: Exclude<CalendarFilter, "all">;
   title: string; meta: string; account?: string; id?: string;
 };
+type Account = {
+  id?: string; name: string; status?: string; priority: Priority; contract: string;
+  color: string; projects: number; tasks?: number; activity?: number; pulse: number; url: string;
+};
+type TeamPerson = {
+  id: string; url: string; name: string; role: string; assignment: string; tier: string | null;
+  skills: string[]; growth: string[]; joined: string | null; initials: string; tone: string;
+  load: number; activeTasks: number; activeProjects: number; projects: number;
+  completedTasks: number; completedProjects: number; score: number | null;
+  taskScore: number | null; projectScore: number | null; evaluations: number; ratio: number | null;
+  distribution: Record<"1" | "2" | "3" | "4" | "5", number>;
+  dimensions: Record<DimensionKey, number | null>;
+};
+type Holiday = {
+  id?: string; name: string; type: string; start: string; end: string; label: string; color: string; url: string;
+};
+type LiveState = {
+  source: "notion"; loadedAt: string;
+  counts: {
+    accounts: number; projects: number; activeProjects: number; tasks: number; activeTasks: number;
+    team: number; holidays: number; evaluations: number; ratedTasks?: number; ratedProjects?: number;
+  };
+  accounts: Account[]; projects: Project[]; tasks: Task[]; team: TeamPerson[]; holidays: Holiday[];
+};
 
 const legacyAccounts = [
   { name: "Iberdrola", priority: "Alta", contract: "Fee", color: "#8fe94f", projects: 3, pulse: 88 },
@@ -110,7 +134,7 @@ const legacyTeam = [
 
 void legacyAccounts; void legacyProjects; void legacyTasks; void legacyTeam;
 
-const accounts = notionSnapshot.accounts.map((account) => ({
+const fallbackAccounts: Account[] = notionSnapshot.accounts.map((account) => ({
   ...account,
   priority: account.priority as Priority,
   pulse: account.activity,
@@ -140,7 +164,7 @@ const initialTasks: Task[] = notionSnapshot.tasks.map((task) => ({
   url: task.url,
 }));
 
-const team = notionSnapshot.team.map((person) => ({
+const fallbackTeam: TeamPerson[] = notionSnapshot.team.map((person) => ({
   ...person,
   projects: person.activeProjects,
   evaluations: person.evaluations,
@@ -152,6 +176,11 @@ const team = notionSnapshot.team.map((person) => ({
   completedProjects: person.completedProjects,
   skills: [...person.skills],
   growth: [...person.growth],
+})) as TeamPerson[];
+
+const fallbackHolidays: Holiday[] = notionSnapshot.holidays.map((holiday) => ({
+  ...holiday,
+  id: holiday.url.split("/").pop() || holiday.url,
 }));
 
 const navigation = [
@@ -256,6 +285,11 @@ export default function Home() {
   const [activeView, setActiveView] = useState<View>("dashboard");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [accounts, setAccounts] = useState<Account[]>(fallbackAccounts);
+  const [team, setTeam] = useState<TeamPerson[]>(fallbackTeam);
+  const [holidays, setHolidays] = useState<Holiday[]>(fallbackHolidays);
+  const [liveCounts, setLiveCounts] = useState<LiveState["counts"] | null>(null);
+  const [dataState, setDataState] = useState<"loading" | "live" | "error">("loading");
   const [liveSchema, setLiveSchema] = useState<LiveSchema | null>(null);
   const [schemaState, setSchemaState] = useState<"loading" | "live" | "error">("loading");
   const [detail, setDetail] = useState<Detail>(null);
@@ -267,7 +301,7 @@ export default function Home() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(1);
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
-  const [selectedPerson, setSelectedPerson] = useState<(typeof team)[number] | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<TeamPerson | null>(null);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [score, setScore] = useState(0);
   const [strengths, setStrengths] = useState<string[]>([]);
@@ -301,6 +335,30 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    fetch("/api/notion/state", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await response.text());
+        return response.json() as Promise<LiveState>;
+      })
+      .then((state) => {
+        if (!active) return;
+        setAccounts(state.accounts.filter((account) => account.status === "Activa"));
+        setProjects(state.projects);
+        setTasks(state.tasks);
+        setTeam(state.team);
+        setHolidays(state.holidays);
+        setLiveCounts(state.counts);
+        setDataState("live");
+      })
+      .catch(() => {
+        if (!active) return;
+        setDataState("error");
+      });
+    return () => { active = false; };
+  }, []);
+
   const taskStatusOptions = liveSchema?.tasks.status.map((option) => option.name) ?? Array.from(new Set(tasks.map((task) => task.status).filter(Boolean)));
   const projectStatusOptions = liveSchema?.projects.status.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.status).filter(Boolean)));
   const taskPriorityOptions = liveSchema?.tasks.priority.map((option) => option.name) ?? Array.from(new Set(tasks.map((task) => task.priority).filter(Boolean)));
@@ -326,19 +384,19 @@ export default function Home() {
       if (!match) return [];
       return [{ key: `project-${project.id}`, month: monthIndexByCode[match[2].toUpperCase()], day: Number(match[1]), kind: "project" as const, title: project.name, meta: "Inicio de proyecto", account: project.account, id: project.id }];
     });
-    const holidayEvents: CalendarEvent[] = notionSnapshot.holidays.flatMap((holiday) => {
+    const holidayEvents: CalendarEvent[] = holidays.flatMap((holiday) => {
       const date = new Date(holiday.start + "T00:00:00Z");
       const month = date.getUTCMonth() - 7;
       if (month < 0 || month > 2) return [];
       return [{ key: `holiday-${holiday.url}`, month, day: date.getUTCDate(), kind: "holiday", title: holiday.name, meta: `${holiday.type} · ${holiday.label}` }];
     });
     return [...taskEvents, ...projectEvents, ...holidayEvents].sort((a, b) => a.month - b.month || a.day - b.day || a.title.localeCompare(b.title));
-  }, [tasks, projects]);
+  }, [tasks, projects, holidays]);
   const visibleCalendarEvents = calendarEvents.filter((event) => event.month === calendarMonth && (calendarFilter === "all" || event.kind === calendarFilter));
   const visibleEventDays = Array.from(new Set(visibleCalendarEvents.map((event) => event.day))).sort((a, b) => a - b);
-  const holidayTimelineNames = Array.from(new Set(notionSnapshot.holidays.map((holiday) => holiday.name)));
+  const holidayTimelineNames = Array.from(new Set(holidays.map((holiday) => holiday.name)));
 
-  function personPerformance(person: (typeof team)[number]) {
+  function personPerformance(person: TeamPerson) {
     const boost = ratingBoosts[person.name];
     const baseCount = person.evaluations;
     const baseSum = (person.score ?? 0) * baseCount;
@@ -548,7 +606,7 @@ export default function Home() {
       <TabsList className="nav-list" variant="line" aria-label="Navegación principal">
         {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
-      <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" ? "NOTION EN VIVO" : schemaState === "error" ? "NOTION SIN CONEXIÓN" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" ? "Opciones leídas del schema real" : schemaState === "error" ? "Mostrando fallback local" : "Leyendo propiedades y opciones…"}</small></div></div>
+      <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · FALLBACK" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "Hay una lectura local de emergencia; no se presenta como live" : "Leyendo filas, relaciones y schema…"}</small></div></div>
       <div className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div></div>
     </aside>
 
@@ -573,7 +631,7 @@ export default function Home() {
           <article><span>PROYECTOS ACTIVOS</span><strong>{projects.length.toString().padStart(2, "0")}</strong><small><i className="green" /> datos reales de Notion</small></article>
           <article><span>TAREAS ACTIVAS</span><strong>{tasks.length.toString().padStart(2, "0")}</strong><small><i className="red" /> solo trabajo abierto</small></article>
           <article><span>CARGA ALTA</span><strong>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</strong><small><i className="orange" /> carga relativa</small></article>
-          <article><span>MUESTRA EVALUADA</span><strong>{notionSnapshot.sourceCounts.ratedTasks + notionSnapshot.sourceCounts.ratedProjects}</strong><small><i className="blue" /> tareas + proyectos</small></article>
+          <article><span>MUESTRA EVALUADA</span><strong>{(liveCounts?.ratedTasks ?? notionSnapshot.sourceCounts.ratedTasks) + (liveCounts?.ratedProjects ?? notionSnapshot.sourceCounts.ratedProjects)}</strong><small><i className="blue" /> tareas + proyectos puntuados</small></article>
         </section>
         <section className="control-room">
           <div className="dashboard-workbench">
@@ -677,7 +735,7 @@ export default function Home() {
 
       <TabsContent value="team" className="view-content team-view-complete">
         <section className="people-summary">
-          <article><Target /><span><b>{notionSnapshot.sourceCounts.ratedTasks + notionSnapshot.sourceCounts.ratedProjects}</b> elementos puntuados</span></article>
+          <article><Target /><span><b>{(liveCounts?.ratedTasks ?? notionSnapshot.sourceCounts.ratedTasks) + (liveCounts?.ratedProjects ?? notionSnapshot.sourceCounts.ratedProjects)}</b> elementos puntuados</span></article>
           <article><TrendingUp /><span><b>{team.filter((person) => person.evaluations >= 8).length}</b> fichas con muestra alta</span></article>
           <article><AlertTriangle /><span><b>{team.filter((person) => person.evaluations < 3).length}</b> fichas aún frágiles</span></article>
           <div><strong>Índice de desempeño</strong><small>60% ejecución de tareas + 40% calidad de proyectos. La carga va aparte.</small></div>
@@ -698,7 +756,7 @@ export default function Home() {
         </section>
       </TabsContent>
 
-      <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head"><div><span>31 AGO — 21 OCT 2026</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia</span><span><i className="deadline" /> Entrega</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = notionSnapshot.holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span><i className="deadline-pin pin-one" title="Presentación Mundial Femenino" /><i className="deadline-pin pin-two" title="PPM 11 del 11" /></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Solape a vigilar</strong>Alberto está ausente hasta el 4 de septiembre y Myriam del 7 al 15. El riesgo se cruza con Mundial Femenino y el arranque de septiembre.</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
+      <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head"><div><span>31 AGO — 21 OCT 2026</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia</span><span><i className="deadline" /> Entrega</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span><i className="deadline-pin pin-one" title="Presentación Mundial Femenino" /><i className="deadline-pin pin-two" title="PPM 11 del 11" /></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Ausencias sincronizadas</strong>{dataState === "live" ? `${holidays.length} registros recientes o próximos leídos directamente de Notion.` : "Mostrando la última foto local disponible hasta recuperar Notion."}</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
     </main>
 
     <Sheet open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null); }}>
