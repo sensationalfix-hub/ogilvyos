@@ -359,6 +359,7 @@ export async function GET(request: Request) {
       accounts,
       projects: activeProjects,
       tasks: activeTasks,
+      allTasks: tasks,
       team,
       holidays,
     }, {
