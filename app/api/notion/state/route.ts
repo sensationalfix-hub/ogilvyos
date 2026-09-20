@@ -207,7 +207,13 @@ export async function GET(request: Request) {
     }));
 
     const team = teamPages
-      .filter((page) => select(page, "Contrato") !== "Rescindido")
+      .filter((page) => {
+        const contract = select(page, "Contrato");
+        const assignment = select(page, "Asignacion");
+        const role = (select(page, "Rol") || "").toLocaleLowerCase("es");
+        const isCreativeDirector = role.includes("director creativo") || role.includes("creative director");
+        return contract === "Activo" && assignment !== "Freelance" && !isCreativeDirector;
+      })
       .map((page, index) => {
         const id = compactId(page.id);
         const name = title(page, "Nombre") || "Sin nombre";
