@@ -601,9 +601,9 @@ export default function Home() {
           {queuedChanges > 0 && <button className="draft-chip" onClick={() => toast.info("Cambios de prototipo", { description: "Los conectaremos a Notion en la siguiente capa." })}>{queuedChanges} cambio{queuedChanges > 1 ? "s" : ""}</button>}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild><Button className="add-button"><Plus /> Añadir</Button></DialogTrigger>
-            <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto rápido. Ya habrá tiempo de ponerle diecisiete propiedades.</DialogDescription></DialogHeader>
+            <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto real en Notion y completa después el resto de propiedades.</DialogDescription></DialogHeader>
               <div className="quick-form"><Select value={quickType} onValueChange={setQuickType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="task">Tarea</SelectItem><SelectItem value="project">Proyecto</SelectItem></SelectContent></Select><input autoFocus value={quickName} onChange={(event) => setQuickName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createQuickItem(); }} placeholder={quickType === "task" ? "¿Qué hay que hacer?" : "Nombre del proyecto"} /></div>
-              <DialogFooter><Button onClick={createQuickItem}>Crear borrador</Button></DialogFooter>
+              <DialogFooter><Button onClick={createQuickItem}>Crear en Notion</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
