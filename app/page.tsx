@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
@@ -28,11 +28,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { notionSnapshot } from "@/app/notion-snapshot";
 
 type View = "dashboard" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "holidays";
-type Priority = "Urgente" | "Alta" | "Media" | "Baja" | "Sin prioridad";
-type TaskStatus = "Pendiente" | "En progreso" | "Pausa" | "Terminado";
-type ProjectStatus = "Brief" | "Ideas" | "Pre-Producción" | "Producción" | "Seguimiento" | "Daily" | "Standby" | "Parado" | "Completado";
+type Priority = string;
+type TaskStatus = string;
+type ProjectStatus = string;
 type CalendarFilter = "all" | "task" | "project" | "holiday";
 type DimensionKey = "quality" | "timing" | "collaboration" | "autonomy" | "impact";
+
+type LiveOption = { id: string; name: string; color: string; group?: string };
+type LiveSchema = {
+  source: "notion";
+  loadedAt: string;
+  accounts: { status: LiveOption[]; priority: LiveOption[]; contract: LiveOption[] };
+  projects: { status: LiveOption[]; priority: LiveOption[]; type: LiveOption[]; complexity: LiveOption[]; rating: LiveOption[] };
+  tasks: { status: LiveOption[]; priority: LiveOption[]; effort: LiveOption[]; rating: LiveOption[] };
+  team: { role: LiveOption[]; rating: LiveOption[]; assignment: LiveOption[]; contract: LiveOption[]; skills: LiveOption[]; weaknesses: LiveOption[] };
+  holidays: { year: LiveOption[]; segment: LiveOption[]; absenceType: LiveOption[] };
+  evaluations: { type: LiveOption[] };
+  health: Record<string, Array<{ name: string; ok: boolean; type: string | null }>>;
+};
 
 type Task = {
   id: string; name: string; status: TaskStatus; priority: Priority; project: string;
@@ -240,6 +253,8 @@ export default function Home() {
   const [activeView, setActiveView] = useState<View>("dashboard");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [liveSchema, setLiveSchema] = useState<LiveSchema | null>(null);
+  const [schemaState, setSchemaState] = useState<"loading" | "live" | "error">("loading");
   const [detail, setDetail] = useState<Detail>(null);
   const [search, setSearch] = useState("");
   const [queuedChanges, setQueuedChanges] = useState(0);
@@ -263,6 +278,33 @@ export default function Home() {
   const [signalBoosts, setSignalBoosts] = useState<Record<string, { positive: Record<string, number>; negative: Record<string, number> }>>({});
   const [dimensionBoosts, setDimensionBoosts] = useState<Record<string, Partial<Record<DimensionKey, { sum: number; count: number }>>>>({});
   const current = viewCopy[activeView];
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/notion/schema", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await response.text());
+        return response.json() as Promise<LiveSchema>;
+      })
+      .then((schema) => {
+        if (!active) return;
+        setLiveSchema(schema);
+        setSchemaState("live");
+      })
+      .catch(() => {
+        if (!active) return;
+        setSchemaState("error");
+      });
+    return () => { active = false; };
+  }, []);
+
+  const taskStatusOptions = liveSchema?.tasks.status.map((option) => option.name) ?? Array.from(new Set(tasks.map((task) => task.status).filter(Boolean)));
+  const projectStatusOptions = liveSchema?.projects.status.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.status).filter(Boolean)));
+  const taskPriorityOptions = liveSchema?.tasks.priority.map((option) => option.name) ?? Array.from(new Set(tasks.map((task) => task.priority).filter(Boolean)));
+  const projectPriorityOptions = liveSchema?.projects.priority.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.priority).filter(Boolean)));
+  const projectTypeOptions = liveSchema?.projects.type.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.type).filter(Boolean)));
+  const taskBoardStatuses = taskStatusOptions.filter((status) => tasks.some((task) => task.status === status));
+  const projectBoardStatuses = projectStatusOptions.filter((status) => projects.some((project) => project.status === status));
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
@@ -359,35 +401,78 @@ export default function Home() {
     setter(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
   }
 
-  function moveTask(id: string, status: TaskStatus) {
-    setTasks((items) => items.map((task) => task.id === id ? { ...task, status } : task));
-    setQueuedChanges((count) => count + 1); setDragging(null);
-    toast.success(`Tarea movida a ${status}`, { description: "Cambio guardado en este prototipo." });
+  async function syncNotion(kind: "task" | "project", id: string, changes: Record<string, unknown>) {
+    const response = await fetch("/api/notion/update", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind, id, changes }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body?.error || "No se pudo sincronizar con Notion");
+    }
   }
-  function moveProject(id: string, status: ProjectStatus) {
+
+  async function moveTask(id: string, status: TaskStatus) {
+    const previous = tasks.find((task) => task.id === id);
+    setTasks((items) => items.map((task) => task.id === id ? { ...task, status } : task));
+    setDragging(null);
+    try {
+      await syncNotion("task", id, { status });
+      toast.success(`Tarea movida a ${status}`, { description: "Sincronizado con Notion." });
+    } catch {
+      if (previous) setTasks((items) => items.map((task) => task.id === id ? previous : task));
+      toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
+    }
+  }
+  async function moveProject(id: string, status: ProjectStatus) {
+    const previous = projects.find((project) => project.id === id);
     setProjects((items) => items.map((project) => project.id === id ? { ...project, status } : project));
-    setQueuedChanges((count) => count + 1); setDragging(null);
-    toast.success(`Proyecto movido a ${status}`, { description: "Listo para sincronizar con Notion." });
+    setDragging(null);
+    try {
+      await syncNotion("project", id, { status });
+      toast.success(`Proyecto movido a ${status}`, { description: "Sincronizado con Notion." });
+    } catch {
+      if (previous) setProjects((items) => items.map((project) => project.id === id ? previous : project));
+      toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
+    }
   }
   function handleDrop(event: React.DragEvent, destination: TaskStatus | ProjectStatus) {
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind === "task") moveTask(id, destination as TaskStatus);
     if (kind === "project") moveProject(id, destination as ProjectStatus);
   }
-  function assignPerson(kind: "task" | "project", id: string, person: string) {
-    const addPerson = (people: string[]) => people.includes(person) ? people : [...people.filter((name) => name !== "Por asignar"), person];
-    if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, people: addPerson(task.people) } : task));
-    else setProjects((items) => items.map((project) => project.id === id ? { ...project, people: addPerson(project.people) } : project));
-    setQueuedChanges((count) => count + 1); setDragging(null);
-    toast.success(`${person} asignado`, { description: kind === "task" ? "Añadido a la tarea." : "Añadido al proyecto." });
+  async function assignPerson(kind: "task" | "project", id: string, person: string) {
+    const currentItem = kind === "task" ? tasks.find((task) => task.id === id) : projects.find((project) => project.id === id);
+    if (!currentItem) return;
+    const nextPeople = currentItem.people.includes(person) ? currentItem.people : [...currentItem.people.filter((name) => name !== "Por asignar"), person];
+    if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, people: nextPeople } : task));
+    else setProjects((items) => items.map((project) => project.id === id ? { ...project, people: nextPeople } : project));
+    setDragging(null);
+    try {
+      await syncNotion(kind, id, { people: nextPeople });
+      toast.success(`${person} asignado`, { description: "Relación actualizada en Notion." });
+    } catch {
+      if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, people: currentItem.people } : task));
+      else setProjects((items) => items.map((project) => project.id === id ? { ...project, people: currentItem.people } : project));
+      toast.error("No se pudo asignar en Notion");
+    }
   }
-  function moveToAccount(event: React.DragEvent, account: string) {
+  async function moveToAccount(event: React.DragEvent, account: string) {
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
+    if (kind !== "task" && kind !== "project") return;
+    const previous = kind === "task" ? tasks.find((task) => task.id === id) : projects.find((project) => project.id === id);
+    if (!previous) return;
     if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, account } : task));
-    if (kind === "project") setProjects((items) => items.map((project) => project.id === id ? { ...project, account } : project));
-    if (kind === "task" || kind === "project") {
-      setQueuedChanges((count) => count + 1); setDragging(null);
-      toast.success(`Movido a ${account}`, { description: "Cambio preparado para Notion." });
+    else setProjects((items) => items.map((project) => project.id === id ? { ...project, account } : project));
+    setDragging(null);
+    try {
+      await syncNotion(kind, id, { account });
+      toast.success(`Movido a ${account}`, { description: "Relación actualizada en Notion." });
+    } catch {
+      if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, account: previous.account } : task));
+      else setProjects((items) => items.map((project) => project.id === id ? { ...project, account: previous.account } : project));
+      toast.error("No se pudo cambiar la cuenta en Notion");
     }
   }
   function createQuickItem() {
@@ -400,17 +485,42 @@ export default function Home() {
   function updateDetailField(field: string, value: unknown) {
     setDetail((currentDetail) => currentDetail ? ({ ...currentDetail, [field]: value } as Detail) : currentDetail);
   }
-  function saveDetail() {
+  async function saveDetail() {
     if (!detail) return;
-    if (detail.kind === "task") {
+    const kind = detail.kind;
+    if (kind === "task") {
       const nextTask: Task = { id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, people: detail.people, url: detail.url };
       setTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
+      try {
+        await syncNotion("task", detail.id, {
+          name: detail.name,
+          status: detail.status,
+          priority: detail.priority,
+          project: detail.project,
+          account: detail.account,
+          people: detail.people,
+        });
+        toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
+      } catch {
+        toast.error("No se pudieron guardar los cambios en Notion");
+      }
     } else {
       const nextProject: Project = { id: detail.id, name: detail.name, status: detail.status, account: detail.account, timing: detail.timing, type: detail.type, people: detail.people, priority: detail.priority, url: detail.url };
       setProjects((items) => items.map((project) => project.id === nextProject.id ? nextProject : project));
+      try {
+        await syncNotion("project", detail.id, {
+          name: detail.name,
+          status: detail.status,
+          priority: detail.priority,
+          type: detail.type,
+          account: detail.account,
+          people: detail.people,
+        });
+        toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
+      } catch {
+        toast.error("No se pudieron guardar los cambios en Notion");
+      }
     }
-    setQueuedChanges((count) => count + 1);
-    toast.success("Cambios guardados", { description: "Preparados para sincronizar con Notion." });
   }
   function openCalendarEvent(event: CalendarEvent) {
     if (event.kind === "task") {
@@ -431,7 +541,7 @@ export default function Home() {
       <TabsList className="nav-list" variant="line" aria-label="Navegación principal">
         {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
-      <div className="sync-card"><span className="sync-dot" /><div><strong>NOTION REAL</strong><small>{notionSnapshot.sourceCounts.activeTasks} activas · {notionSnapshot.sourceCounts.team} personas</small></div></div>
+      <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" ? "NOTION EN VIVO" : schemaState === "error" ? "NOTION SIN CONEXIÓN" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" ? "Opciones leídas del schema real" : schemaState === "error" ? "Mostrando fallback local" : "Leyendo propiedades y opciones…"}</small></div></div>
       <div className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div></div>
     </aside>
 
@@ -463,7 +573,7 @@ export default function Home() {
             <article className="ops-panel tasks-overview">
               <div className="ops-head"><div><span>OPERATIVA EN VIVO</span><h2>Tareas</h2></div><button onClick={() => setActiveView("tasks")}>Abrir tablero <ArrowUpRight /></button></div>
               <div className="mini-task-board">
-                {(["Pendiente", "En progreso", "Pausa"] as TaskStatus[]).map((status) => {
+                {taskBoardStatuses.map((status) => {
                   const total = tasks.filter((task) => task.status === status).length;
                   const items = tasks.filter((task) => task.status === status).slice(0, 2);
                   return <div key={status} className={`mini-task-lane ${dragging?.startsWith("task") ? "ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}>
@@ -554,9 +664,9 @@ export default function Home() {
 
       <TabsContent value="accounts" className="view-content"><section className="accounts-grid">{accounts.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article key={account.name} className={`account-card ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`} style={{ "--account-color": account.color } as React.CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)}><div className="account-card-head"><AccountMark name={account.name} /><span className={`priority-pill ${priorityClass(account.priority)}`}>{account.priority}</span></div><h2>{account.name}</h2><p>{account.contract}</p><div className="account-stats"><span><b>{account.projects}</b> proyectos</span><span><b>{account.pulse}</b> pulso</span></div><div className="account-bar"><i style={{ width: `${account.pulse}%` }} /></div><button onClick={() => { setSearch(account.name); setActiveView("projects"); }}>Ver proyectos <ArrowUpRight /></button></article>)}</section></TabsContent>
 
-      <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{(["Brief", "Ideas", "Pre-Producción", "Producción", "Seguimiento", "Daily", "Standby", "Parado"] as ProjectStatus[]).map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setDetail({ kind: "project", ...project })} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
+      <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setDetail({ kind: "project", ...project })} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
-      <TabsContent value="tasks" className="view-content board-scroll"><section className="kanban-board task-board active-task-board">{(["Pendiente", "En progreso", "Pausa"] as TaskStatus[]).map((status) => { const items = filteredTasks.filter((task) => task.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("task") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
+      <TabsContent value="tasks" className="view-content board-scroll"><section className="kanban-board task-board active-task-board">{taskBoardStatuses.map((status) => { const items = filteredTasks.filter((task) => task.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("task") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
       <TabsContent value="team" className="view-content team-view-complete">
         <section className="people-summary">
@@ -594,11 +704,13 @@ export default function Home() {
         <div className="sheet-body detail-editor">
           <label className="editor-field full"><span>Nombre</span><input value={detail.name} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
           <div className="editor-grid">
-            <div className="editor-field"><span>Estado</span><Select value={detail.status} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? ["Pendiente", "En progreso", "Pausa"] : ["Brief", "Ideas", "Pre-Producción", "Producción", "Seguimiento", "Daily", "Standby", "Parado"]).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></div>
-            <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["Urgente", "Alta", "Media", "Baja", "Sin prioridad"].map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
+            <div className="editor-field"><span>Estado</span><Select value={detail.status} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskStatusOptions : projectStatusOptions).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></div>
+            <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskPriorityOptions : projectPriorityOptions).map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div className="editor-field"><span>Cuenta</span><Select value={detail.account} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accounts.map((account) => <SelectItem key={account.name} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
-          <label className="editor-field"><span>{detail.kind === "task" ? "Proyecto" : "Tipo"}</span><input value={detail.kind === "task" ? detail.project : detail.type} onChange={(event) => updateDetailField(detail.kind === "task" ? "project" : "type", event.target.value)} /></label>
+          {detail.kind === "task"
+  ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
+  : <div className="editor-field"><span>Tipo</span><Select value={detail.type} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
           <label className="editor-field"><span>{detail.kind === "task" ? "Fecha" : "Timing"}</span><input value={detail.kind === "task" ? detail.date : detail.timing} onChange={(event) => updateDetailField(detail.kind === "task" ? "date" : "timing", event.target.value.toUpperCase())} placeholder={detail.kind === "task" ? "10 SEP" : "1 SEP — 30 SEP"} /></label>
           <label className="editor-field"><span>Equipo</span><input value={detail.people.join(", ")} onChange={(event) => updateDetailField("people", event.target.value.split(",").map((person) => person.trim()).filter(Boolean))} /></label>
           <div className="sheet-note"><Sparkles /><p><strong>Lectura rápida</strong>{detail.priority === "Alta" ? "Está en zona de atención. Revisa fecha y responsables antes de cerrar." : "Parece controlado. No le añadamos épica administrativa."}</p></div>
