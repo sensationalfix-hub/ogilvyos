@@ -707,3 +707,52 @@ button, input { letter-spacing: -.01em; }
   min-height: 42px;
   cursor: pointer;
 }
+
+
+.employee-sheet {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+.employee-sheet > [data-slot="sheet-header"] {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fbfcf9;
+}
+.employee-body {
+  padding-bottom: 36px !important;
+}
+.employee-projects-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.employee-projects-inline span,
+.active-project-list b {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 9px;
+  border: 1px solid #dfe5dc;
+  border-radius: 999px;
+  background: #f4f7f1;
+  color: #4f5a50;
+  font-size: 10px;
+  font-weight: 700;
+}
+.active-project-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+}
+.active-project-list > span {
+  width: 100%;
+  color: #9ba39a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
