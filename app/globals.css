@@ -669,3 +669,19 @@ button, input { letter-spacing: -.01em; }
   color: #ff9c9c;
   line-height: 1.4;
 }
+
+
+.user-chip-logout {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .45;
+  cursor: pointer;
+}
+.user-chip-logout:hover { opacity: .9; }
