@@ -799,6 +799,64 @@ export default function Home() {
         </section>
       </TabsContent>
 
+      <TabsContent value="week" className="view-content week-view">
+        <section className="week-summary">
+          <article><span>ENTREGAS</span><strong>{weeklyTasks.length}</strong><small>Tareas con fecha</small></article>
+          <article><span>HITOS</span><strong>{weeklyProjectMilestones.length}</strong><small>Arranques y cierres</small></article>
+          <article><span>AUSENCIAS</span><strong>{weeklyHolidays.length}</strong><small>Personas fuera</small></article>
+          <article><span>ALTA / URGENTE</span><strong>{weeklyTasks.filter((task) => ["Alta", "Urgente"].includes(task.priority)).length}</strong><small>Necesitan ojo</small></article>
+        </section>
+        <section className="week-board">
+          {operationalWeekDays.map((day) => {
+            const key = isoDate(day);
+            const dayTasks = weeklyTasks.filter((task) => task.dateStart === key);
+            const dayProjects = weeklyProjectMilestones.filter((event) => event.date === key);
+            const dayHolidays = weeklyHolidays.filter((holiday) => holiday.start <= key && holiday.end >= key);
+            return <article key={key} className="week-day">
+              <header><span>{day.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase()}</span><strong>{day.getDate()}</strong><small>{day.toLocaleDateString("es-ES", { month: "short" }).replace(".", "").toUpperCase()}</small></header>
+              <div className="week-day-body">
+                {dayProjects.map((event) => <button key={event.id} className="week-item project" onClick={() => setSelectedProjectPage(event.project)}><i /><span><strong>{event.project.name}</strong><small>{event.label} · {event.project.account}</small></span><ChevronRight /></button>)}
+                {dayTasks.map((task) => <button key={task.id} className={"week-item task " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")} onClick={() => setDetail({ kind: "task", ...task })}><i /><span><strong>{task.name}</strong><small>{task.project} · {task.account}</small></span><ChevronRight /></button>)}
+                {dayHolidays.map((holiday) => <button key={holiday.id || holiday.name} className="week-item holiday" onClick={() => setActiveView("holidays")}><i /><span><strong>{holiday.name}</strong><small>{holiday.type}</small></span><ChevronRight /></button>)}
+                {dayTasks.length + dayProjects.length + dayHolidays.length === 0 && <div className="week-empty">Sin hitos. Milagro administrativo.</div>}
+              </div>
+            </article>;
+          })}
+        </section>
+      </TabsContent>
+
+      <TabsContent value="timeline" className="view-content global-timeline-view">
+        <section className="global-timeline-shell">
+          <header className="global-timeline-toolbar">
+            <div><span>VENTANA</span><strong>{globalTimelineStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {globalTimelineEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</strong></div>
+            <div>{[4, 8, 12].map((weeks) => <button key={weeks} className={timelineWeeks === weeks ? "active" : ""} onClick={() => setTimelineWeeks(weeks)}>{weeks} sem</button>)}</div>
+          </header>
+          <div className="global-timeline-scale">{Array.from({ length: timelineWeeks + 1 }, (_, index) => <span key={index} style={{ left: `${(index / timelineWeeks) * 100}%` }}>{addDays(globalTimelineStart, index * 7).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>)}</div>
+          <div className="global-timeline-groups">
+            {accounts.map((account) => {
+              const accountProjects = projects.filter((project) => project.account === account.name);
+              if (!accountProjects.length) return null;
+              return <section key={account.name} className="timeline-account-group">
+                <header style={{ "--account-color": account.color, "--account-contrast": accountContrast(account.color) } as React.CSSProperties}><AccountMark name={account.name} /><strong>{account.name}</strong><small>{accountProjects.length}</small></header>
+                <div>{accountProjects.map((project) => {
+                  const left = timelinePercent(project.timingStart, globalTimelineStart, globalTimelineEnd);
+                  const right = timelinePercent(project.timingEnd || project.timingStart, globalTimelineStart, globalTimelineEnd);
+                  const visible = left != null && right != null && right >= 0 && left <= 100;
+                  const projectTasks = allTasks.filter((task) => task.project === project.name && task.dateStart);
+                  return <button key={project.id} className="global-project-row" onClick={() => setSelectedProjectPage(project)}>
+                    <span className="global-project-name"><strong>{project.name}</strong><small>{project.status}</small></span>
+                    <span className="global-project-track">
+                      {visible ? <i className="global-project-bar" style={{ left: `${clamp(left!)}%`, width: `${Math.max(2, clamp(right!) - clamp(left!))}%` }} /> : <em>Sin fechas en ventana</em>}
+                      {projectTasks.map((task) => { const pos = timelinePercent(task.dateStart, globalTimelineStart, globalTimelineEnd); return pos != null && pos >= 0 && pos <= 100 ? <b key={task.id} title={task.name} className={"global-task-marker status-" + task.status.toLowerCase().replaceAll(" ", "-")} style={{ left: `${pos}%` }} /> : null; })}
+                    </span>
+                  </button>;
+                })}</div>
+              </section>;
+            })}
+          </div>
+        </section>
+      </TabsContent>
+
       <TabsContent value="calendar" className="view-content calendar-view">
         <section className="calendar-shell">
           <header className="calendar-toolbar">
