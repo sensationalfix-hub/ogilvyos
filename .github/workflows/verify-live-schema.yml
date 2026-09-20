@@ -6,8 +6,6 @@ on:
     branches:
       - notion-live-schema
   pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
