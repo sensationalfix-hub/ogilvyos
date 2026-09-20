@@ -577,3 +577,95 @@ button, input { letter-spacing: -.01em; }
   .chronology-list { max-height: none; overflow: visible; }
   .editor-grid { grid-template-columns: 1fr; }
 }
+
+
+/* WorkOS private access */
+.workos-login-shell {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.07), transparent 34%),
+    #111315;
+  color: #f5f5f2;
+}
+.workos-login-card {
+  width: min(440px, 100%);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 24px;
+  padding: 34px;
+  background: rgba(24,27,29,.92);
+  box-shadow: 0 24px 80px rgba(0,0,0,.35);
+}
+.workos-login-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 28px;
+  border-radius: 13px;
+  background: #f5f5f2;
+  color: #111315;
+  font-weight: 900;
+  font-size: 20px;
+}
+.workos-login-card > span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  opacity: .55;
+}
+.workos-login-card h1 {
+  margin: 0;
+  font-size: clamp(36px, 8vw, 58px);
+  line-height: .95;
+  letter-spacing: -.055em;
+}
+.workos-login-card > p {
+  max-width: 34ch;
+  margin: 18px 0 28px;
+  color: rgba(245,245,242,.68);
+  line-height: 1.55;
+}
+.workos-login-card form {
+  display: grid;
+  gap: 10px;
+}
+.workos-login-card label {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: .72;
+}
+.workos-login-card input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 12px;
+  padding: 0 14px;
+  background: rgba(255,255,255,.055);
+  color: inherit;
+  outline: none;
+}
+.workos-login-card input:focus {
+  border-color: rgba(255,255,255,.44);
+  box-shadow: 0 0 0 3px rgba(255,255,255,.06);
+}
+.workos-login-card button {
+  min-height: 48px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: #f5f5f2;
+  color: #111315;
+  font-weight: 850;
+  cursor: pointer;
+}
+.workos-login-error {
+  display: block;
+  margin-top: 14px;
+  color: #ff9c9c;
+  line-height: 1.4;
+}
