@@ -38,7 +38,7 @@ export type LiveOption = {
 };
 
 function token() {
-  const value = process.env.NOTION_TOKEN || process.env.NOTION_API_KEY || process.env.NOTION_KEY;
+  const value = process.env.NOTION_API_TOKEN || process.env.NOTION_TOKEN || process.env.NOTION_API_KEY || process.env.NOTION_KEY;
   if (!value) throw new Error("NOTION_TOKEN_MISSING");
   return value;
 }
