@@ -228,6 +228,8 @@ export async function GET(request: Request) {
           activeTasks: activePersonTasks.length,
           activeProjects: activePersonProjects.length,
           projects: activePersonProjects.length,
+          activeProjectNames: activePersonProjects.map((project) => project.name),
+          activeTaskNames: activePersonTasks.map((task) => task.name),
           completedTasks: personTasks.filter((task) => task.status === "Terminado").length,
           completedProjects: personProjects.filter((project) => project.status === "Completado").length,
           score,
