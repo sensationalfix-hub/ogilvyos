@@ -301,6 +301,8 @@ export async function GET() {
         team: team.length,
         holidays: holidays.length,
         evaluations: evaluations.length,
+        ratedTasks: tasks.filter((task) => task.rating != null).length,
+        ratedProjects: projects.filter((project) => project.rating != null).length,
       },
       accounts,
       projects: activeProjects,
