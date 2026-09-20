@@ -715,7 +715,7 @@ export default function Home() {
   return <Tabs value={activeView} onValueChange={(value) => setActiveView(value as View)} orientation="vertical" className="os-shell">
     <aside className="sidebar-shell">
       <div className="brand-lockup"><span>O</span><strong>OGILVY<br />OS</strong></div>
-      <div className="nav-section-label"><span>ESPACIOS</span><small>7 vistas</small></div>
+      <div className="nav-section-label"><span>ESPACIOS</span><small>9 vistas</small></div>
       <TabsList className="nav-list" variant="line" aria-label="Navegación principal">
         {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
