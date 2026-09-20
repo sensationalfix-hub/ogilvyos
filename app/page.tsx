@@ -204,6 +204,32 @@ function ProjectCard({ project, onOpen, onDragStart, onAssignPerson }: { project
   </article>;
 }
 function EmptyDrop() { return <div className="empty-drop">Suelta aquí</div>; }
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+function mondayForOperationalWeek(base = new Date()) {
+  const date = new Date(base);
+  date.setHours(0, 0, 0, 0);
+  const day = date.getDay();
+  const delta = day === 0 ? 1 : 1 - day;
+  date.setDate(date.getDate() + delta);
+  return date;
+}
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+function clamp(value: number, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, value));
+}
+function timelinePercent(value: string | null | undefined, start: Date, end: Date) {
+  if (!value) return null;
+  const date = new Date(value + "T00:00:00");
+  const total = end.getTime() - start.getTime();
+  if (!total) return 0;
+  return clamp(((date.getTime() - start.getTime()) / total) * 100);
+}
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("dashboard");
@@ -302,6 +328,21 @@ export default function Home() {
     ? Object.entries(liveSchema.health).flatMap(([source, checks]) => checks.map((check) => ({ ...check, source })))
     : [];
   const schemaIssues = schemaChecks.filter((check) => !check.ok);
+  const operationalWeekStart = useMemo(() => mondayForOperationalWeek(), []);
+  const operationalWeekDays = useMemo(() => Array.from({ length: 5 }, (_, index) => addDays(operationalWeekStart, index)), [operationalWeekStart]);
+  const operationalWeekEnd = useMemo(() => addDays(operationalWeekStart, 4), [operationalWeekStart]);
+  const weeklyTasks = useMemo(() => allTasks.filter((task) => task.dateStart && task.dateStart >= isoDate(operationalWeekStart) && task.dateStart <= isoDate(operationalWeekEnd)), [allTasks, operationalWeekStart, operationalWeekEnd]);
+  const weeklyProjectMilestones = useMemo(() => projects.flatMap((project) => {
+    const events: Array<{ id: string; date: string; label: string; project: Project; kind: "start" | "end" }> = [];
+    if (project.timingStart && project.timingStart >= isoDate(operationalWeekStart) && project.timingStart <= isoDate(operationalWeekEnd)) events.push({ id: project.id + "-start", date: project.timingStart, label: "Arranque", project, kind: "start" });
+    if (project.timingEnd && project.timingEnd >= isoDate(operationalWeekStart) && project.timingEnd <= isoDate(operationalWeekEnd)) events.push({ id: project.id + "-end", date: project.timingEnd, label: "Cierre", project, kind: "end" });
+    return events;
+  }), [projects, operationalWeekStart, operationalWeekEnd]);
+  const weeklyHolidays = useMemo(() => holidays.filter((holiday) => holiday.start <= isoDate(operationalWeekEnd) && holiday.end >= isoDate(operationalWeekStart)), [holidays, operationalWeekStart, operationalWeekEnd]);
+
+  const globalTimelineStart = operationalWeekStart;
+  const globalTimelineEnd = useMemo(() => addDays(globalTimelineStart, timelineWeeks * 7), [globalTimelineStart, timelineWeeks]);
+
   const upcomingDeadlines = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -553,6 +594,72 @@ export default function Home() {
   function updateDetailField(field: string, value: unknown) {
     setDetail((currentDetail) => currentDetail ? ({ ...currentDetail, [field]: value } as Detail) : currentDetail);
   }
+  async function updateProjectWorkspace(changes: Record<string, unknown>) {
+    if (!selectedProjectPage) return;
+    const previous = selectedProjectPage;
+    const next = { ...selectedProjectPage, ...changes } as Project;
+    setSelectedProjectPage(next);
+    setProjects((items) => items.map((project) => project.id === next.id ? next : project));
+    try {
+      await syncNotion("project", next.id, changes);
+      toast.success("Proyecto actualizado", { description: "Guardado directamente en Notion." });
+    } catch (error) {
+      setSelectedProjectPage(previous);
+      setProjects((items) => items.map((project) => project.id === previous.id ? previous : project));
+      toast.error("No se pudo actualizar el proyecto");
+    }
+  }
+
+  async function updateWorkspaceTask(task: Task, changes: Record<string, unknown>) {
+    const next = { ...task, ...changes } as Task;
+    setAllTasks((items) => items.map((item) => item.id === task.id ? next : item));
+    setTasks((items) => items.map((item) => item.id === task.id ? next : item));
+    try {
+      await syncNotion("task", task.id, changes);
+    } catch {
+      setAllTasks((items) => items.map((item) => item.id === task.id ? task : item));
+      setTasks((items) => items.map((item) => item.id === task.id ? task : item));
+      toast.error("No se pudo actualizar la tarea");
+    }
+  }
+
+  async function createTaskForSelectedProject() {
+    if (!selectedProjectPage || !projectTaskName.trim()) return;
+    const name = projectTaskName.trim();
+    try {
+      const response = await fetch("/api/notion/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "task", name }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body?.error || "No se pudo crear la tarea");
+      const task: Task = {
+        id: body.id,
+        name,
+        status: "Pendiente",
+        priority: "Media",
+        project: selectedProjectPage.name,
+        account: selectedProjectPage.account,
+        date: "SIN FECHA",
+        dateStart: null,
+        people: selectedProjectPage.people.length ? selectedProjectPage.people : ["Por asignar"],
+        url: body.url || "https://www.notion.so",
+      };
+      await syncNotion("task", task.id, {
+        project: selectedProjectPage.name,
+        account: selectedProjectPage.account,
+        people: task.people,
+      });
+      setAllTasks((items) => [task, ...items]);
+      setTasks((items) => [task, ...items]);
+      setProjectTaskName("");
+      toast.success("Tarea creada dentro del proyecto");
+    } catch (error) {
+      toast.error("No se pudo crear la tarea", { description: error instanceof Error ? error.message : "Error desconocido" });
+    }
+  }
+
   async function saveDetail() {
     if (!detail) return;
     const kind = detail.kind;
@@ -599,7 +706,7 @@ export default function Home() {
       if (task) setDetail({ kind: "task", ...task });
     } else if (event.kind === "project") {
       const project = projects.find((item) => item.id === event.id);
-      if (project) setDetail({ kind: "project", ...project });
+      if (project) setSelectedProjectPage(project);
     } else {
       setActiveView("holidays");
     }
@@ -664,7 +771,7 @@ export default function Home() {
                   onDragStart={(event) => { event.dataTransfer.setData("text/plain", `project:${project.id}`); setDragging(`project:${project.id}`); }}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => { const [kind, person] = event.dataTransfer.getData("text/plain").split(":"); if (kind === "person") { event.preventDefault(); assignPerson("project", project.id, person); } }}
-                  onClick={() => setDetail({ kind: "project", ...project })}>
+                  onClick={() => setSelectedProjectPage(project)}>
                   <AccountMark name={project.account} /><span className="dashboard-project-copy"><strong>{project.name}</strong><small>{project.account} · {project.timing}</small></span><span className={`stage-chip stage-${project.status.toLowerCase().replace("-", "")}`}>{project.status}</span><PeopleStack people={project.people} /><GripVertical />
                 </div>)}
               </div>
@@ -735,7 +842,7 @@ export default function Home() {
 
       <TabsContent value="accounts" className="view-content"><section className="accounts-grid">{accounts.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article key={account.name} className={`account-card ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`} style={{ "--account-color": account.color } as React.CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)}><div className="account-card-head"><AccountMark name={account.name} /><span className={`priority-pill ${priorityClass(account.priority)}`}>{account.priority}</span></div><h2>{account.name}</h2><p>{account.contract}</p><div className="account-stats"><span><b>{account.projects}</b> proyectos</span><span><b>{account.pulse}</b> pulso</span></div><div className="account-bar"><i style={{ width: `${account.pulse}%` }} /></div><button onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button></article>)}</section></TabsContent>
 
-      <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setDetail({ kind: "project", ...project })} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
+      <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelectedProjectPage(project)} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
       <TabsContent value="tasks" className="view-content board-scroll"><section className="kanban-board task-board active-task-board">{taskBoardStatuses.map((status) => { const items = filteredTasks.filter((task) => task.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("task") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
@@ -786,7 +893,7 @@ export default function Home() {
 
             <section className="account-overview-section">
               <div className="account-overview-title"><span>PROYECTOS</span><button onClick={() => { setSearch(selectedAccount.name); setSelectedAccount(null); setActiveView("projects"); }}>Ver pipeline <ArrowUpRight /></button></div>
-              <div className="account-overview-list">{accountProjects.slice(0, 6).map((project) => <button key={project.id} onClick={() => setDetail({ kind: "project", ...project })}><div><strong>{project.name}</strong><small>{project.status} · {project.type}</small></div><span>{project.timing}</span></button>)}{accountProjects.length === 0 && <p>Sin proyectos activos.</p>}</div>
+              <div className="account-overview-list">{accountProjects.slice(0, 6).map((project) => <button key={project.id} onClick={() => { setSelectedAccount(null); setSelectedProjectPage(project); }}><div><strong>{project.name}</strong><small>{project.status} · {project.type}</small></div><span>{project.timing}</span></button>)}{accountProjects.length === 0 && <p>Sin proyectos activos.</p>}</div>
             </section>
 
             <section className="account-overview-section">
