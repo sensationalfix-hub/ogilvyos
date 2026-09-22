@@ -949,31 +949,85 @@ export default function Home() {
       const contrast = accountContrast(color);
       const completionBase = projectTasks.filter((task) => task.status !== "Cancelado").length;
       const completion = completionBase ? Math.round((completedTasks / completionBase) * 100) : 0;
+      const projectPeople = selectedProjectPage.people.filter((name) => name !== "Por asignar");
+      const endLabel = selectedProjectPage.timingEnd
+        ? new Date(selectedProjectPage.timingEnd + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+        : "Sin fecha";
       return <div className="project-workspace-overlay">
-        <header className="project-workspace-top" style={{ "--account-color": color, "--account-contrast": contrast } as React.CSSProperties}>
-          <button className="workspace-back" onClick={() => setSelectedProjectPage(null)}><ChevronLeft /> Volver</button>
-          <div className="project-workspace-title">
-            <span>{selectedProjectPage.account} · PROYECTO</span>
-            <input defaultValue={selectedProjectPage.name} onBlur={(event) => { const name = event.target.value.trim(); if (name && name !== selectedProjectPage.name) updateProjectWorkspace({ name }); }} />
-            <small>{selectedProjectPage.type} · {selectedProjectPage.status}</small>
+        <div className="project-workspace-chrome">
+          <div className="project-workspace-breadcrumbs">
+            <button onClick={() => setSelectedProjectPage(null)}><ChevronLeft /> Proyectos</button>
+            <span>/</span>
+            <strong>{selectedProjectPage.account}</strong>
+            <span>/</span>
+            <b>{selectedProjectPage.name}</b>
+            <div className="project-workspace-global-actions">
+              <Button variant="outline" onClick={() => startEvaluation({ kind: "project", id: selectedProjectPage.id, name: selectedProjectPage.name, people: selectedProjectPage.people })}><Star /> Cerrar y evaluar</Button>
+              <Button asChild><a href={selectedProjectPage.url} target="_blank" rel="noreferrer">Notion <ArrowUpRight /></a></Button>
+            </div>
           </div>
-          <div className="project-workspace-actions">
-            <Button variant="outline" onClick={() => startEvaluation({ kind: "project", id: selectedProjectPage.id, name: selectedProjectPage.name, people: selectedProjectPage.people })}><Star /> Cerrar y evaluar</Button>
-            <Button asChild><a href={selectedProjectPage.url} target="_blank" rel="noreferrer">Notion <ArrowUpRight /></a></Button>
-          </div>
-        </header>
+
+          <header className="project-workspace-top" style={{ "--account-color": color, "--account-contrast": contrast } as React.CSSProperties}>
+            <div className="project-workspace-title">
+              <span>{selectedProjectPage.account}</span>
+              <input defaultValue={selectedProjectPage.name} onBlur={(event) => { const name = event.target.value.trim(); if (name && name !== selectedProjectPage.name) updateProjectWorkspace({ name }); }} />
+              <small>{selectedProjectPage.type} · {selectedProjectPage.status}</small>
+              <div className="project-hero-tags">
+                <em>{selectedProjectPage.type}</em>
+                <em>{selectedProjectPage.status}</em>
+                <em>{selectedProjectPage.account}</em>
+              </div>
+            </div>
+          </header>
+
+          <nav className="project-workspace-tabs" aria-label="Secciones del proyecto">
+            <a href="#project-summary" className="active">Resumen</a>
+            <a href="#project-tasks">Tareas</a>
+            <a href="#project-timeline">Timeline</a>
+            <a href="#project-details">Detalles</a>
+          </nav>
+        </div>
 
         <div className="project-workspace-scroll">
-          <section className="project-workspace-metrics">
-            <article><span>PROGRESO</span><strong>{completion}%</strong><Progress value={completion} /></article>
-            <article><span>TAREAS</span><strong>{projectTasks.length}</strong><small>{activeProjectTasks.length} activas</small></article>
-            <article><span>TERMINADAS</span><strong>{completedTasks}</strong><small>{cancelledTasks} canceladas</small></article>
-            <article><span>EQUIPO</span><strong>{selectedProjectPage.people.filter((name) => name !== "Por asignar").length}</strong><small>personas</small></article>
+          <section id="project-summary" className="project-workspace-metrics">
+            <article className="project-progress-card">
+              <span>PROGRESO</span>
+              <div className="project-progress-visual">
+                <div className="project-progress-ring" style={{ "--progress": completion } as React.CSSProperties}><strong>{completion}%</strong></div>
+                <div><b>{completedTasks}</b><small>de {completionBase || projectTasks.length || 0} tareas</small><Progress value={completion} /><em>{activeProjectTasks.length ? activeProjectTasks.length + " activas" : "Todo despejado"}</em></div>
+              </div>
+            </article>
+            <article className="project-metric-editable">
+              <span>ESTADO</span>
+              <select value={selectedProjectPage.status} onChange={(event) => updateProjectWorkspace({ status: event.target.value })}>{projectStatusOptions.map((status) => <option key={status}>{status}</option>)}</select>
+              <small>{selectedProjectPage.timingStart ? "Desde " + new Date(selectedProjectPage.timingStart + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) : "Sin fecha de inicio"}</small>
+            </article>
+            <article>
+              <span>FECHA DE ENTREGA</span>
+              <strong className="project-date-value">{endLabel}</strong>
+              <small>{selectedProjectPage.timingEnd ? "Fecha objetivo del proyecto" : "Añade una fecha de fin"}</small>
+            </article>
+            <article className="project-metric-editable">
+              <span>PRIORIDAD</span>
+              <select value={selectedProjectPage.priority} onChange={(event) => updateProjectWorkspace({ priority: event.target.value })}>{projectPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select>
+              <small>Editable directamente</small>
+            </article>
+            <article>
+              <span>EQUIPO</span>
+              <div className="project-people-stack">
+                {projectPeople.slice(0, 5).map((name) => {
+                  const person = team.find((item) => item.name === name);
+                  return <i key={name} className={person ? "avatar avatar-" + person.tone : "avatar"} title={name}>{person?.initials || name.slice(0, 2).toUpperCase()}</i>;
+                })}
+                {projectPeople.length > 5 && <b>+{projectPeople.length - 5}</b>}
+              </div>
+              <small>{projectPeople.length} {projectPeople.length === 1 ? "persona" : "personas"}</small>
+            </article>
           </section>
 
-          <section className="project-workspace-grid">
-            <article className="project-control-panel">
-              <div className="workspace-section-head"><span>CONTROL</span><h2>Edita el proyecto aquí</h2></div>
+          <section className="project-overview-grid">
+            <article id="project-details" className="project-control-panel">
+              <div className="workspace-section-head"><span>PROYECTO</span><h2>Detalles</h2><small>Todo editable</small></div>
               <div className="project-control-grid">
                 <label><span>Estado</span><select value={selectedProjectPage.status} onChange={(event) => updateProjectWorkspace({ status: event.target.value })}>{projectStatusOptions.map((status) => <option key={status}>{status}</option>)}</select></label>
                 <label><span>Prioridad</span><select value={selectedProjectPage.priority} onChange={(event) => updateProjectWorkspace({ priority: event.target.value })}>{projectPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select></label>
@@ -984,41 +1038,56 @@ export default function Home() {
               </div>
               <div className="workspace-team-editor">
                 <span>EQUIPO</span>
-                <div>{selectedProjectPage.people.filter((name) => name !== "Por asignar").map((name) => <button key={name} onClick={() => { const people = selectedProjectPage.people.filter((person) => person !== name && person !== "Por asignar"); updateProjectWorkspace({ people: people.length ? people : ["Por asignar"] }); }}>{name}<b>×</b></button>)}</div>
+                <div>{projectPeople.map((name) => {
+                  const person = team.find((item) => item.name === name);
+                  return <button key={name} onClick={() => { const people = selectedProjectPage.people.filter((personName) => personName !== name && personName !== "Por asignar"); updateProjectWorkspace({ people: people.length ? people : ["Por asignar"] }); }}>{person && <i className={"avatar avatar-" + person.tone}>{person.initials}</i>}<strong>{name}</strong><b>×</b></button>;
+                })}</div>
                 <select value="" onChange={(event) => { const name = event.target.value; if (!name) return; const current = selectedProjectPage.people.filter((person) => person !== "Por asignar"); if (!current.includes(name)) updateProjectWorkspace({ people: [...current, name] }); event.currentTarget.value = ""; }}><option value="">Añadir persona…</option>{team.filter((person) => !selectedProjectPage.people.includes(person.name)).map((person) => <option key={person.id} value={person.name}>{person.name} · {person.role}</option>)}</select>
               </div>
             </article>
 
-            <article className="project-timeline-panel">
-              <div className="workspace-section-head"><span>TIMELINE</span><h2>Hitos y tareas</h2><small>{start.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {end.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small></div>
-              <div className="project-timeline-scale"><span>INICIO</span><i /><span>FIN</span></div>
-              <div className="project-timeline-rows">
-                {datedTasks.map((task) => {
-                  const pos = timelinePercent(task.dateStart, start, end) ?? 0;
-                  return <button key={task.id} className={"project-timeline-row status-" + task.status.toLowerCase().replaceAll(" ", "-")} onClick={() => setDetail({ kind: "task", ...task })}>
-                    <span><strong>{task.name}</strong><small>{task.status}</small></span>
-                    <i className="project-timeline-line"><b style={{ left: `${pos}%` }} /></i>
-                    <em>{task.date}</em>
-                  </button>;
-                })}
-                {datedTasks.length === 0 && <div className="workspace-empty">Añade fechas a las tareas y el timeline se irá pintando solo.</div>}
+            <article id="project-tasks" className="project-task-workspace">
+              <div className="workspace-section-head"><span>TAREAS</span><h2>Tareas del proyecto</h2><small>{projectTasks.length} en total</small></div>
+              <div className="project-task-create"><input value={projectTaskName} onChange={(event) => setProjectTaskName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createTaskForSelectedProject(); }} placeholder="Nueva tarea dentro de este proyecto…" /><button onClick={createTaskForSelectedProject}><Plus /> Crear</button></div>
+              <div className="project-task-table">
+                {projectTasks.map((task) => <div key={task.id} className="project-task-row">
+                  <button className="project-task-name" onClick={() => setDetail({ kind: "task", ...task })}><span className={"project-task-check status-" + task.status.toLowerCase().replaceAll(" ", "-")}>{task.status === "Terminado" ? <Check /> : null}</span><span><strong>{task.name}</strong><small>{task.people.filter((name) => name !== "Por asignar").join(", ") || "Sin asignar"}</small></span></button>
+                  <select value={task.status} onChange={(event) => updateWorkspaceTask(task, { status: event.target.value })}>{taskStatusOptions.map((status) => <option key={status}>{status}</option>)}</select>
+                  <select value={task.priority} onChange={(event) => updateWorkspaceTask(task, { priority: event.target.value })}>{taskPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select>
+                  <input type="date" value={task.dateStart || ""} onChange={(event) => { const value = event.target.value || null; const label = value ? new Date(value + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "") : "SIN FECHA"; updateWorkspaceTask(task, { dateStart: value, date: label }); }} />
+                  <button onClick={() => setDetail({ kind: "task", ...task })}><ChevronRight /></button>
+                </div>)}
+                {projectTasks.length === 0 && <div className="workspace-empty">Este proyecto todavía no tiene tareas vinculadas.</div>}
               </div>
             </article>
-          </section>
 
-          <section className="project-task-workspace">
-            <div className="workspace-section-head"><span>TAREAS</span><h2>Operativa del proyecto</h2><small>{projectTasks.length} en total</small></div>
-            <div className="project-task-create"><input value={projectTaskName} onChange={(event) => setProjectTaskName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createTaskForSelectedProject(); }} placeholder="Nueva tarea dentro de este proyecto…" /><button onClick={createTaskForSelectedProject}><Plus /> Crear</button></div>
-            <div className="project-task-table">
-              {projectTasks.map((task) => <div key={task.id} className="project-task-row">
-                <button className="project-task-name" onClick={() => setDetail({ kind: "task", ...task })}><strong>{task.name}</strong><small>{task.people.filter((name) => name !== "Por asignar").join(", ") || "Sin asignar"}</small></button>
-                <select value={task.status} onChange={(event) => updateWorkspaceTask(task, { status: event.target.value })}>{taskStatusOptions.map((status) => <option key={status}>{status}</option>)}</select>
-                <select value={task.priority} onChange={(event) => updateWorkspaceTask(task, { priority: event.target.value })}>{taskPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select>
-                <input type="date" value={task.dateStart || ""} onChange={(event) => { const value = event.target.value || null; const label = value ? new Date(value + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "") : "SIN FECHA"; updateWorkspaceTask(task, { dateStart: value, date: label }); }} />
-                <button onClick={() => setDetail({ kind: "task", ...task })}><ChevronRight /></button>
-              </div>)}
-              {projectTasks.length === 0 && <div className="workspace-empty">Este proyecto todavía no tiene tareas vinculadas.</div>}
-            </div>
+            <aside className="project-side-stack">
+              <article id="project-timeline" className="project-timeline-panel">
+                <div className="workspace-section-head"><span>TIMELINE</span><h2>Hitos y tareas</h2><small>{start.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {end.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small></div>
+                <div className="project-timeline-scale"><span>INICIO</span><i /><span>FIN</span></div>
+                <div className="project-timeline-rows">
+                  {datedTasks.map((task) => {
+                    const pos = timelinePercent(task.dateStart, start, end) ?? 0;
+                    return <button key={task.id} className={"project-timeline-row status-" + task.status.toLowerCase().replaceAll(" ", "-")} onClick={() => setDetail({ kind: "task", ...task })}>
+                      <span><strong>{task.name}</strong><small>{task.status}</small></span>
+                      <i className="project-timeline-line"><b style={{ left: String(pos) + "%" }} /></i>
+                      <em>{task.date}</em>
+                    </button>;
+                  })}
+                  {datedTasks.length === 0 && <div className="workspace-empty">Añade fechas a las tareas y el timeline se irá pintando solo.</div>}
+                </div>
+              </article>
+
+              <article className="project-glance-card">
+                <div className="workspace-section-head"><span>VISTA RÁPIDA</span><h2>Estado operativo</h2></div>
+                <div className="project-glance-stats">
+                  <span><b>{activeProjectTasks.length}</b><small>Activas</small></span>
+                  <span><b>{completedTasks}</b><small>Terminadas</small></span>
+                  <span><b>{cancelledTasks}</b><small>Canceladas</small></span>
+                </div>
+                <p>{completion >= 75 ? "El proyecto está en fase final. Conviene cerrar flecos, no inventar nuevas reuniones porque la humanidad ya tiene suficientes." : completion >= 35 ? "El proyecto está avanzando. El foco debería estar en desbloquear las tareas activas." : "El proyecto está arrancando. Fechas, responsables y primeras entregas mandan."}</p>
+              </article>
+            </aside>
           </section>
         </div>
       </div>;
