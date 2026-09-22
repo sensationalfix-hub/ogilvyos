@@ -744,7 +744,7 @@ export default function Home() {
           <article><span>PROYECTOS ACTIVOS</span><strong>{projects.length.toString().padStart(2, "0")}</strong><small><i className="green" /> datos reales de Notion</small></article>
           <article><span>TAREAS ACTIVAS</span><strong>{tasks.length.toString().padStart(2, "0")}</strong><small><i className="red" /> solo trabajo abierto</small></article>
           <article><span>CARGA ALTA</span><strong>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</strong><small><i className="orange" /> carga relativa</small></article>
-          <article><span>MUESTRA EVALUADA</span><strong>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</strong><small><i className="blue" /> tareas + proyectos puntuados</small></article>
+          <article><span>EVALUACIONES</span><strong>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</strong><small><i className="blue" /> tareas + proyectos puntuados</small></article>
         </section>
         <section className="control-room">
           <div className="dashboard-workbench">
@@ -780,7 +780,7 @@ export default function Home() {
           </div>
 
           <aside className="team-roster">
-            <div className="roster-head"><div><span>EQUIPO · {team.length}</span><h2>Arrastra o abre ficha</h2></div><Users /></div>
+            <div className="roster-head"><div><span>{team.length} PERSONAS</span><h2>Equipo</h2></div><Users /></div>
             <div className="roster-list">{team.map((person) => { const performance = personPerformance(person); return <button key={person.name} className="roster-person" draggable
               onDragStart={(event) => { event.dataTransfer.setData("text/plain", `person:${person.name}`); setDragging(`person:${person.name}`); }}
               onDragEnd={() => setDragging(null)} onClick={() => setSelectedPerson(person)}>
