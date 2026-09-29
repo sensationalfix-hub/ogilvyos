@@ -3019,3 +3019,39 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[d
   .metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .dashboard-view{overflow:auto!important}
 }
+
+
+/* === Project page isolation fix ===========================================
+   The full project workspace is an exclusive view. Keep the left navigation
+   visible, but remove the underlying main view from painting/hit-testing so
+   translucent glass surfaces can never reveal the dashboard beneath. */
+.main-stage.project-page-open {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.project-workspace-overlay {
+  isolation: isolate !important;
+  contain: paint !important;
+  opacity: 1 !important;
+  background:
+    radial-gradient(circle at 88% -8%, color-mix(in srgb, var(--account-color) 10%, transparent), transparent 24%),
+    var(--ui-bg, #f3f2ec) !important;
+}
+
+.project-workspace-scroll {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.project-workspace-chrome {
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 760px) {
+  .main-stage.project-page-open {
+    visibility: hidden !important;
+  }
+}
