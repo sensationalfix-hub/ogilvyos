@@ -3464,3 +3464,105 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[d
     height: 40px !important;
   }
 }
+
+
+/* === Floating project workspace hotfix v6 ================================
+   Reset legacy takeover rules. The backdrop owns the viewport; the project
+   shell is a distinct floating surface with real breathing room. */
+.project-workspace-overlay {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  grid-template-rows: none !important;
+  grid-template-columns: none !important;
+  box-sizing: border-box !important;
+  padding: 32px !important;
+  background: rgba(18,22,19,.22) !important;
+  backdrop-filter: blur(22px) saturate(.92) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(.92) !important;
+}
+
+.project-workspace-shell {
+  box-sizing: border-box !important;
+  width: min(1440px, calc(100vw - 80px)) !important;
+  height: min(900px, calc(100dvh - 72px)) !important;
+  max-width: 1440px !important;
+  max-height: 900px !important;
+  flex: none !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  border-radius: 30px !important;
+  background:
+    radial-gradient(circle at 88% -10%, color-mix(in srgb, var(--account-color) 9%, transparent), transparent 30%),
+    rgba(248,248,244,.94) !important;
+  box-shadow:
+    0 38px 120px rgba(16,21,18,.30),
+    0 10px 36px rgba(16,21,18,.13),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+  backdrop-filter: blur(30px) saturate(1.04) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(1.04) !important;
+}
+
+.project-workspace-chrome {
+  background: rgba(251,251,248,.88) !important;
+  border-bottom: 1px solid rgba(20,25,20,.055) !important;
+}
+
+.project-workspace-top {
+  min-height: 118px !important;
+  padding: 20px 28px 18px !important;
+}
+
+.project-workspace-title {
+  padding-top: 12px !important;
+}
+
+.project-workspace-title input {
+  font-size: clamp(30px, 3.2vw, 48px) !important;
+}
+
+.project-workspace-scroll {
+  padding: 18px 20px 28px !important;
+}
+
+.project-workspace-metrics {
+  grid-template-columns: 1.45fr .9fr 1.05fr .82fr 1fr !important;
+}
+
+.project-overview-grid {
+  grid-template-columns: minmax(270px,.72fr) minmax(430px,1.3fr) minmax(310px,.86fr) !important;
+}
+
+.project-workspace-close {
+  top: 16px !important;
+  right: 16px !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: rgba(255,255,255,.94) !important;
+}
+
+@media (max-width: 1180px) {
+  .project-workspace-overlay {
+    padding: 22px !important;
+  }
+  .project-workspace-shell {
+    width: calc(100vw - 44px) !important;
+    height: calc(100dvh - 44px) !important;
+  }
+  .project-overview-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .project-workspace-overlay {
+    padding: 10px !important;
+  }
+  .project-workspace-shell {
+    width: calc(100vw - 20px) !important;
+    height: calc(100dvh - 20px) !important;
+    border-radius: 22px !important;
+  }
+  .project-workspace-metrics {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+}
