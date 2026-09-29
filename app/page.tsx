@@ -363,6 +363,11 @@ export default function Home() {
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
+  const dashboardProjects = useMemo(() => projects.filter((project) => {
+    const status = project.status.trim().toLocaleLowerCase("es");
+    const type = project.type.trim().toLocaleLowerCase("es");
+    return status !== "daily" && type !== "daily";
+  }), [projects]);
   const calendarEvents = useMemo<CalendarEvent[]>(() => {
     const taskEvents = tasks.flatMap((task) => {
       const match = task.date.match(/^(\d{1,2})\s+(AGO|SEP|OCT)$/i);
@@ -803,7 +808,7 @@ export default function Home() {
 
       <TabsContent value="dashboard" className="view-content dashboard-view">
         <section className="metric-strip">
-          <article><span>PROYECTOS ACTIVOS</span><strong>{projects.length.toString().padStart(2, "0")}</strong><small><i className="green" /> datos reales de Notion</small></article>
+          <article><span>PROYECTOS ACTIVOS</span><strong>{dashboardProjects.length.toString().padStart(2, "0")}</strong><small><i className="green" /> datos reales de Notion</small></article>
           <article><span>TAREAS ACTIVAS</span><strong>{tasks.length.toString().padStart(2, "0")}</strong><small><i className="red" /> solo trabajo abierto</small></article>
           <article><span>CARGA ALTA</span><strong>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</strong><small><i className="orange" /> carga relativa</small></article>
           <article><span>EVALUACIONES</span><strong>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</strong><small><i className="blue" /> tareas + proyectos puntuados</small></article>
@@ -829,7 +834,7 @@ export default function Home() {
             <article className="ops-panel projects-overview">
               <div className="ops-head"><div><span>MAPA DE TRABAJO</span><h2>Proyectos activos</h2></div><button onClick={() => setActiveView("projects")}>Ver pipeline <ArrowUpRight /></button></div>
               <div className="project-overview-list">
-                {projects.map((project) => <div key={project.id} className="dashboard-project" draggable
+                {dashboardProjects.map((project) => <div key={project.id} className="dashboard-project" draggable
                   onDragStart={(event) => { event.dataTransfer.setData("text/plain", `project:${project.id}`); setDragging(`project:${project.id}`); }}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => { const [kind, person] = event.dataTransfer.getData("text/plain").split(":"); if (kind === "person") { event.preventDefault(); assignPerson("project", project.id, person); } }}
