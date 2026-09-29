@@ -3055,3 +3055,150 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[d
     visibility: hidden !important;
   }
 }
+
+
+/* === Project workspace controls v3 ========================================
+   One control language across project detail: same height, radius, type,
+   padding and interaction as the primary + Crear action. */
+.project-workspace-overlay {
+  --project-control-h: 44px;
+  --project-control-radius: 14px;
+  --project-control-pad: 13px;
+  --project-control-font: 11px;
+  --project-control-weight: 720;
+}
+
+.project-metric-editable select,
+.project-control-grid select,
+.project-control-grid input,
+.workspace-team-editor select,
+.project-task-create input,
+.project-task-row select,
+.project-task-row input {
+  min-height: var(--project-control-h) !important;
+  height: var(--project-control-h) !important;
+  padding-inline: var(--project-control-pad) !important;
+  border: 1px solid rgba(22, 27, 23, .055) !important;
+  border-radius: var(--project-control-radius) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: #202520 !important;
+  font-size: var(--project-control-font) !important;
+  font-weight: var(--project-control-weight) !important;
+  line-height: 1 !important;
+  box-shadow:
+    0 8px 22px rgba(34,43,36,.055),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+
+.project-metric-editable select,
+.project-control-grid select,
+.workspace-team-editor select,
+.project-task-row select {
+  cursor: pointer;
+}
+
+.project-control-grid label > span,
+.workspace-team-editor > span {
+  margin-left: 2px;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  letter-spacing: .055em !important;
+}
+
+.project-control-grid {
+  gap: 11px !important;
+}
+
+.project-control-grid label {
+  gap: 7px !important;
+}
+
+.workspace-team-editor {
+  gap: 8px !important;
+}
+
+.project-task-create {
+  grid-template-columns: minmax(0,1fr) auto !important;
+  gap: 8px !important;
+}
+
+.project-task-create button {
+  min-height: var(--project-control-h) !important;
+  height: var(--project-control-h) !important;
+  padding-inline: 18px !important;
+  border-radius: var(--project-control-radius) !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  box-shadow: 0 10px 24px rgba(20,25,20,.13) !important;
+}
+
+.project-task-row {
+  min-height: 58px !important;
+  padding: 7px 8px !important;
+  gap: 8px !important;
+  border-radius: 16px !important;
+}
+
+.project-task-name strong {
+  font-size: 10.5px !important;
+}
+
+.project-task-name small {
+  font-size: 8px !important;
+}
+
+.project-task-row > button:last-child {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 11px !important;
+}
+
+.project-task-row > button:last-child svg {
+  width: 14px !important;
+}
+
+.project-metric-editable select {
+  margin-top: 12px !important;
+}
+
+.project-workspace-metrics article > span,
+.workspace-section-head > span {
+  font-size: 8.5px !important;
+}
+
+.project-workspace-metrics article > small {
+  font-size: 8.5px !important;
+}
+
+.project-control-panel,
+.project-task-workspace,
+.project-timeline-panel {
+  border-radius: 20px !important;
+}
+
+.project-task-create input::placeholder {
+  color: #9aa19b !important;
+  font-weight: 620 !important;
+}
+
+.project-workspace-overlay select:hover,
+.project-workspace-overlay input:hover {
+  background: #fff !important;
+  box-shadow:
+    0 10px 26px rgba(34,43,36,.075),
+    inset 0 1px 0 rgba(255,255,255,.95) !important;
+}
+
+.project-workspace-overlay select:focus,
+.project-workspace-overlay input:focus {
+  background: #fff !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--account-color) 18%, transparent),
+    0 10px 26px rgba(34,43,36,.07) !important;
+}
+
+@media (max-width: 1100px) {
+  .project-task-row {
+    grid-template-columns: minmax(170px,1fr) 118px 100px 128px 36px !important;
+  }
+}
