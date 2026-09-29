@@ -829,7 +829,7 @@ export default function Home() {
             <article className="ops-panel projects-overview">
               <div className="ops-head"><div><span>MAPA DE TRABAJO</span><h2>Proyectos activos</h2></div><button onClick={() => setActiveView("projects")}>Ver pipeline <ArrowUpRight /></button></div>
               <div className="project-overview-list">
-                {projects.slice(0, 5).map((project) => <div key={project.id} className="dashboard-project" draggable
+                {projects.map((project) => <div key={project.id} className="dashboard-project" draggable
                   onDragStart={(event) => { event.dataTransfer.setData("text/plain", `project:${project.id}`); setDragging(`project:${project.id}`); }}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => { const [kind, person] = event.dataTransfer.getData("text/plain").split(":"); if (kind === "person") { event.preventDefault(); assignPerson("project", project.id, person); } }}
