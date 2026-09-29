@@ -272,6 +272,15 @@ export default function Home() {
   const current = viewCopy[activeView];
 
   useEffect(() => {
+    if (!selectedProjectPage) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedProjectPage(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [selectedProjectPage]);
+
+  useEffect(() => {
     let active = true;
     fetch("/api/notion/schema", { cache: "no-store" })
       .then(async (response) => {
@@ -1009,15 +1018,27 @@ export default function Home() {
       const endLabel = selectedProjectPage.timingEnd
         ? new Date(selectedProjectPage.timingEnd + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
         : "Sin fecha";
-      return <div className="project-workspace-overlay">
-        <button
-          type="button"
-          className="project-workspace-close"
-          aria-label="Cerrar proyecto"
-          title="Cerrar proyecto"
-          onClick={() => setSelectedProjectPage(null)}
-        ><X /></button>
-        <div className="project-workspace-chrome">
+      return <div
+        className="project-workspace-overlay"
+        role="presentation"
+        onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedProjectPage(null); }}
+      >
+        <div
+          className="project-workspace-shell"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Proyecto ${selectedProjectPage.name}`}
+          style={{ "--account-color": color, "--account-contrast": contrast } as React.CSSProperties}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="project-workspace-close"
+            aria-label="Cerrar proyecto"
+            title="Cerrar proyecto"
+            onClick={() => setSelectedProjectPage(null)}
+          ><X /></button>
+          <div className="project-workspace-chrome">
           <div className="project-workspace-breadcrumbs">
             <button onClick={() => setSelectedProjectPage(null)}><ChevronLeft /> Proyectos</button>
             <span>/</span>
@@ -1153,7 +1174,8 @@ export default function Home() {
             </aside>
           </section>
         </div>
-      </div>;
+      </div>
+    </div>;
     })()}
 
     <Sheet open={Boolean(selectedAccount)} onOpenChange={(open) => { if (!open) setSelectedAccount(null); }}>
