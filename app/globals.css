@@ -3847,3 +3847,49 @@ body:has(.project-evaluation-dialog) [data-slot="dialog-overlay"] {
     max-height: calc(100dvh - 28px) !important;
   }
 }
+
+
+/* === Dashboard surface colour consistency v11 ============================ */
+.dashboard-view {
+  --dash-surface: rgba(255,255,255,.62);
+  --dash-surface-soft: rgba(255,255,255,.34);
+  --dash-lane: rgba(238,240,235,.76);
+}
+
+.dashboard-view .ops-panel,
+.dashboard-view .team-roster,
+.dashboard-view .account-dock {
+  background: var(--dash-surface) !important;
+}
+
+.dashboard-view .mini-task-board,
+.dashboard-view .project-overview-list,
+.dashboard-view .roster-list,
+.dashboard-view .deadline-ribbon,
+.dashboard-view .roster-footer,
+.dashboard-view .ops-head,
+.dashboard-view .roster-head {
+  background: transparent !important;
+}
+
+.dashboard-view .mini-task-lane {
+  background: var(--dash-lane) !important;
+}
+
+.dashboard-view .roster-footer {
+  border-top: 1px solid rgba(21,25,20,.045) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.34);
+}
+
+.dashboard-view .deadline-ribbon {
+  border-top: 1px solid rgba(21,25,20,.045) !important;
+}
+
+.dashboard-view .project-overview-list,
+.dashboard-view .roster-list {
+  box-shadow: none !important;
+}
+
+.dashboard-view .account-dock {
+  background: var(--dash-surface) !important;
+}
