@@ -819,13 +819,14 @@ export default function Home() {
               <div className="ops-head"><div><span>OPERATIVA EN VIVO</span><h2>Tareas</h2></div><button onClick={() => setActiveView("tasks")}>Abrir tablero <ArrowUpRight /></button></div>
               <div className="mini-task-board">
                 {taskBoardStatuses.map((status) => {
-                  const total = tasks.filter((task) => task.status === status).length;
-                  const items = tasks.filter((task) => task.status === status).slice(0, 2);
+                  const items = tasks.filter((task) => task.status === status);
+                  const total = items.length;
                   return <div key={status} className={`mini-task-lane ${dragging?.startsWith("task") ? "ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}>
                     <div className="mini-lane-head"><span>{status}</span><b>{total}</b></div>
-                    {items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}
-                    {items.length === 0 && <EmptyDrop />}
-                    {total > items.length && <button className="lane-more" onClick={() => setActiveView("tasks")}>+{total - items.length} más</button>}
+                    <div className="mini-task-lane-scroll">
+                      {items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}
+                      {items.length === 0 && <EmptyDrop />}
+                    </div>
                   </div>;
                 })}
               </div>
