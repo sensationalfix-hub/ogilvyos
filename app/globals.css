@@ -3666,3 +3666,36 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[d
     overflow-x: auto !important;
   }
 }
+
+
+/* === Dashboard active projects scroll v8 ================================= */
+.projects-overview {
+  min-height: 0 !important;
+}
+
+.project-overview-list {
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 6px !important;
+}
+
+.project-overview-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.project-overview-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.project-overview-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(28,34,30,.14);
+}
+
+.project-overview-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(28,34,30,.24);
+}
