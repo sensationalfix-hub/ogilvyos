@@ -507,6 +507,53 @@ export default function Home() {
       toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
   }
+  async function moveWeekItem(event: React.DragEvent, destinationDate: string) {
+    event.preventDefault();
+    const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
+    setDragging(null);
+
+    if (kind === "task") {
+      const previous = allTasks.find((task) => task.id === id);
+      if (!previous || previous.dateStart === destinationDate) return;
+      const label = new Date(destinationDate + "T00:00:00")
+        .toLocaleDateString("es-ES", { day: "2-digit", month: "short" })
+        .toUpperCase()
+        .replace(".", "");
+      const next = { ...previous, dateStart: destinationDate, date: label };
+      setAllTasks((items) => items.map((task) => task.id === id ? next : task));
+      setTasks((items) => items.map((task) => task.id === id ? next : task));
+      try {
+        await syncNotion("task", id, { dateStart: destinationDate });
+        toast.success("Tarea reprogramada", { description: `Movida al ${label} en Notion.` });
+      } catch {
+        setAllTasks((items) => items.map((task) => task.id === id ? previous : task));
+        setTasks((items) => items.map((task) => task.id === id ? previous : task));
+        toast.error("No se pudo cambiar la fecha en Notion");
+      }
+      return;
+    }
+
+    if (kind === "project-start" || kind === "project-end") {
+      const previous = projects.find((project) => project.id === id);
+      if (!previous) return;
+      const field = kind === "project-start" ? "timingStart" : "timingEnd";
+      if (previous[field] === destinationDate) return;
+      const next = { ...previous, [field]: destinationDate } as Project;
+      setProjects((items) => items.map((project) => project.id === id ? next : project));
+      if (selectedProjectPage?.id === id) setSelectedProjectPage(next);
+      try {
+        await syncNotion("project", id, { [field]: destinationDate });
+        toast.success(kind === "project-start" ? "Arranque reprogramado" : "Cierre reprogramado", {
+          description: "Fecha actualizada en Notion.",
+        });
+      } catch {
+        setProjects((items) => items.map((project) => project.id === id ? previous : project));
+        if (selectedProjectPage?.id === id) setSelectedProjectPage(previous);
+        toast.error("No se pudo cambiar la fecha del proyecto en Notion");
+      }
+    }
+  }
+
   function handleDrop(event: React.DragEvent, destination: TaskStatus | ProjectStatus) {
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind === "task") moveTask(id, destination as TaskStatus);
@@ -812,13 +859,22 @@ export default function Home() {
             const dayTasks = weeklyTasks.filter((task) => task.dateStart === key);
             const dayProjects = weeklyProjectMilestones.filter((event) => event.date === key);
             const dayHolidays = weeklyHolidays.filter((holiday) => holiday.start <= key && holiday.end >= key);
-            return <article key={key} className="week-day">
+            const weekDragActive = Boolean(dragging && (dragging.startsWith("task:") || dragging.startsWith("project-start:") || dragging.startsWith("project-end:")));
+            return <article key={key} className={`week-day ${weekDragActive ? "drop-ready" : ""}`}
+              onDragOver={(event) => { if (weekDragActive) event.preventDefault(); }}
+              onDrop={(event) => moveWeekItem(event, key)}>
               <header><span>{day.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase()}</span><strong>{day.getDate()}</strong><small>{day.toLocaleDateString("es-ES", { month: "short" }).replace(".", "").toUpperCase()}</small></header>
               <div className="week-day-body">
-                {dayProjects.map((event) => <button key={event.id} className="week-item project" onClick={() => setSelectedProjectPage(event.project)}><i /><span><strong>{event.project.name}</strong><small>{event.label} · {event.project.account}</small></span><ChevronRight /></button>)}
-                {dayTasks.map((task) => <button key={task.id} className={"week-item task " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")} onClick={() => setDetail({ kind: "task", ...task })}><i /><span><strong>{task.name}</strong><small>{task.project} · {task.account}</small></span><ChevronRight /></button>)}
+                {dayProjects.map((event) => <button key={event.id} draggable className="week-item project"
+                  onDragStart={(dragEvent) => { dragEvent.dataTransfer.setData("text/plain", `project-${event.kind}:${event.project.id}`); dragEvent.dataTransfer.effectAllowed = "move"; setDragging(`project-${event.kind}:${event.project.id}`); }}
+                  onDragEnd={() => setDragging(null)}
+                  onClick={() => setSelectedProjectPage(event.project)}><i /><span><strong>{event.project.name}</strong><small>{event.label} · {event.project.account}</small></span><GripVertical className="week-drag-handle" /></button>)}
+                {dayTasks.map((task) => <button key={task.id} draggable className={"week-item task " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")}
+                  onDragStart={(dragEvent) => { dragEvent.dataTransfer.setData("text/plain", `task:${task.id}`); dragEvent.dataTransfer.effectAllowed = "move"; setDragging(`task:${task.id}`); }}
+                  onDragEnd={() => setDragging(null)}
+                  onClick={() => setDetail({ kind: "task", ...task })}><i /><span><strong>{task.name}</strong><small>{task.project} · {task.account}</small></span><GripVertical className="week-drag-handle" /></button>)}
                 {dayHolidays.map((holiday) => <button key={holiday.id || holiday.name} className="week-item holiday" onClick={() => setActiveView("holidays")}><i /><span><strong>{holiday.name}</strong><small>{holiday.type}</small></span><ChevronRight /></button>)}
-                {dayTasks.length + dayProjects.length + dayHolidays.length === 0 && <div className="week-empty">Sin hitos. Milagro administrativo.</div>}
+                {dayTasks.length + dayProjects.length + dayHolidays.length === 0 && <div className="week-empty">{weekDragActive ? "Suelta aquí para cambiar la fecha" : "Sin hitos. Milagro administrativo."}</div>}
               </div>
             </article>;
           })}
