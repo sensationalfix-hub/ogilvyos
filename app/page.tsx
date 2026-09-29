@@ -723,7 +723,7 @@ export default function Home() {
       <form action="/api/auth/logout" method="post" className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
     </aside>
 
-    <main className={`main-stage main-stage-${activeView}`}>
+    <main className={`main-stage main-stage-${activeView}${selectedProjectPage ? " project-page-open" : ""}`} aria-hidden={selectedProjectPage ? true : undefined}>
       <header className="topbar">
         <div className="page-heading"><span>{current.eyebrow}</span><h1>{current.title}</h1><p>{current.description}</p></div>
         <div className="top-actions">
