@@ -3928,3 +3928,41 @@ body:has(.project-evaluation-dialog) [data-slot="dialog-overlay"] {
 .dashboard-view .dashboard-project:hover {
   box-shadow: 0 8px 20px rgba(34,43,36,.055) !important;
 }
+
+
+/* === Dashboard task lane scrolling v13 =================================== */
+.dashboard-view .mini-task-lane {
+  display: grid !important;
+  grid-template-rows: 30px minmax(0, 1fr) !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .mini-task-lane-scroll {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 0 2px 4px 0;
+}
+
+.dashboard-view .mini-task-lane-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-view .mini-task-lane-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-view .mini-task-lane-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(28,34,30,.13);
+}
+
+.dashboard-view .mini-task-lane-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(28,34,30,.22);
+}
+
+.dashboard-view .mini-task-lane-scroll .work-card:first-child {
+  margin-top: 4px;
+}
