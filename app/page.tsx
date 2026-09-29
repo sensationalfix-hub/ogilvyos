@@ -650,6 +650,12 @@ export default function Home() {
   function updateDetailField(field: string, value: unknown) {
     setDetail((currentDetail) => currentDetail ? ({ ...currentDetail, [field]: value } as Detail) : currentDetail);
   }
+  function scrollProjectSection(id: string) {
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   async function updateProjectWorkspace(changes: Record<string, unknown>) {
     if (!selectedProjectPage) return;
     const previous = selectedProjectPage;
@@ -1039,36 +1045,23 @@ export default function Home() {
             onClick={() => setSelectedProjectPage(null)}
           ><X /></button>
           <div className="project-workspace-chrome">
-          <div className="project-workspace-breadcrumbs">
-            <button onClick={() => setSelectedProjectPage(null)}><ChevronLeft /> Proyectos</button>
-            <span>/</span>
-            <strong>{selectedProjectPage.account}</strong>
-            <span>/</span>
-            <b>{selectedProjectPage.name}</b>
-            <div className="project-workspace-global-actions">
-              <Button variant="outline" onClick={() => startEvaluation({ kind: "project", id: selectedProjectPage.id, name: selectedProjectPage.name, people: selectedProjectPage.people })}><Star /> Cerrar y evaluar</Button>
-              <Button asChild><a href={selectedProjectPage.url} target="_blank" rel="noreferrer">Notion <ArrowUpRight /></a></Button>
-            </div>
-          </div>
-
           <header className="project-workspace-top" style={{ "--account-color": color, "--account-contrast": contrast } as React.CSSProperties}>
             <div className="project-workspace-title">
               <span>{selectedProjectPage.account}</span>
               <input defaultValue={selectedProjectPage.name} onBlur={(event) => { const name = event.target.value.trim(); if (name && name !== selectedProjectPage.name) updateProjectWorkspace({ name }); }} />
               <small>{selectedProjectPage.type} · {selectedProjectPage.status}</small>
-              <div className="project-hero-tags">
-                <em>{selectedProjectPage.type}</em>
-                <em>{selectedProjectPage.status}</em>
-                <em>{selectedProjectPage.account}</em>
-              </div>
+            </div>
+            <div className="project-workspace-global-actions">
+              <Button variant="outline" onClick={() => startEvaluation({ kind: "project", id: selectedProjectPage.id, name: selectedProjectPage.name, people: selectedProjectPage.people })}><Star /> Cerrar y evaluar</Button>
+              <Button asChild><a href={selectedProjectPage.url} target="_blank" rel="noreferrer">Notion <ArrowUpRight /></a></Button>
             </div>
           </header>
 
           <nav className="project-workspace-tabs" aria-label="Secciones del proyecto">
-            <a href="#project-summary" className="active">Resumen</a>
-            <a href="#project-tasks">Tareas</a>
-            <a href="#project-timeline">Timeline</a>
-            <a href="#project-details">Detalles</a>
+            <button type="button" className="active" onClick={() => scrollProjectSection("project-summary")}>Resumen</button>
+            <button type="button" onClick={() => scrollProjectSection("project-tasks")}>Tareas</button>
+            <button type="button" onClick={() => scrollProjectSection("project-timeline")}>Timeline</button>
+            <button type="button" onClick={() => scrollProjectSection("project-details")}>Detalles</button>
           </nav>
         </div>
 
