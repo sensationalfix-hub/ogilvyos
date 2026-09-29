@@ -1266,7 +1266,7 @@ export default function Home() {
     </Sheet>
 
     <Dialog open={Boolean(evaluation)} onOpenChange={(open) => { if (!open) resetEvaluation(); }}>
-      <DialogContent className="evaluation-dialog">{evaluation && <>
+      <DialogContent className={`evaluation-dialog ${selectedProjectPage && evaluation?.kind === "project" ? "project-evaluation-dialog" : ""}`}>{evaluation && <>
         <DialogHeader><span className="sheet-kicker">{evaluation.kind === "task" ? "CIERRE DE TAREA" : "CIERRE DE PROYECTO"}</span><DialogTitle>{evaluation.name}</DialogTitle><DialogDescription>Una nota obligatoria. Si quieres profundidad, activas la rúbrica. Sin comité de evaluación ni velas negras.</DialogDescription></DialogHeader>
         <div className="evaluation-body">
           <section className="score-question"><span>¿Qué tal quedó?</span><StarPicker value={score} onChange={setScore} /><strong>{score ? score + "/5" : "Sin puntuar"}</strong></section>
