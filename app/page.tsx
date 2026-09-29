@@ -5,7 +5,7 @@ import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
   Check, LayoutDashboard, ListTodo, Plus, Save, Search, Sparkles, Star,
-  Target, TrendingUp, Users,
+  Target, TrendingUp, Users, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1010,6 +1010,13 @@ export default function Home() {
         ? new Date(selectedProjectPage.timingEnd + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
         : "Sin fecha";
       return <div className="project-workspace-overlay">
+        <button
+          type="button"
+          className="project-workspace-close"
+          aria-label="Cerrar proyecto"
+          title="Cerrar proyecto"
+          onClick={() => setSelectedProjectPage(null)}
+        ><X /></button>
         <div className="project-workspace-chrome">
           <div className="project-workspace-breadcrumbs">
             <button onClick={() => setSelectedProjectPage(null)}><ChevronLeft /> Proyectos</button>
