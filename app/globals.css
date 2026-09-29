@@ -3202,3 +3202,46 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[d
     grid-template-columns: minmax(170px,1fr) 118px 100px 128px 36px !important;
   }
 }
+
+
+/* === Mi semana: drag & drop =============================================== */
+.week-day {
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease !important;
+}
+.week-day.drop-ready {
+  outline: 1px dashed rgba(21,25,20,.14);
+  outline-offset: -7px;
+}
+.week-day.drop-ready:hover {
+  background: color-mix(in srgb, var(--ui-lime) 8%, white) !important;
+  box-shadow: 0 18px 42px rgba(34,43,36,.09) !important;
+}
+.week-day.drop-ready:hover .week-day-body {
+  background: color-mix(in srgb, var(--ui-lime) 5%, transparent);
+}
+.week-item[draggable="true"] {
+  cursor: grab;
+}
+.week-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+.week-item[draggable="true"]:hover .week-drag-handle {
+  opacity: .62;
+}
+.week-drag-handle {
+  width: 15px !important;
+  height: 15px !important;
+  flex: none;
+  color: #7f8981;
+  opacity: .28;
+  transition: opacity .14s ease, color .14s ease !important;
+}
+.week-item[draggable="true"]:active .week-drag-handle {
+  color: #171a18;
+  opacity: .8;
+}
+.week-day.drop-ready .week-empty {
+  border-color: color-mix(in srgb, var(--ui-lime) 55%, #d9dfd6) !important;
+  background: color-mix(in srgb, var(--ui-lime) 7%, transparent) !important;
+  color: #66705f !important;
+}
