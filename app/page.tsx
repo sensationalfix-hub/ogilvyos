@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageContent } from "@/components/workos/page-content";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader,
@@ -18,9 +19,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
-} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
@@ -274,11 +272,11 @@ export default function Home() {
   useEffect(() => {
     if (!selectedProjectPage) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedProjectPage(null);
+      if (event.key === "Escape" && !event.defaultPrevented && !detail && !evaluation) setSelectedProjectPage(null);
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [selectedProjectPage]);
+  }, [selectedProjectPage, detail, evaluation]);
 
   useEffect(() => {
     let active = true;
@@ -731,7 +729,7 @@ export default function Home() {
     if (!detail) return;
     const kind = detail.kind;
     if (kind === "task") {
-      const nextTask: Task = { id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, people: detail.people, url: detail.url };
+      const nextTask: Task = { ...detail, id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, people: detail.people, url: detail.url };
       setTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
       try {
         await syncNotion("task", detail.id, {
@@ -743,6 +741,7 @@ export default function Home() {
           people: detail.people,
           dateStart: detail.dateStart,
         });
+        setAllTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
         toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
       } catch {
         toast.error("No se pudieron guardar los cambios en Notion");
@@ -798,9 +797,9 @@ export default function Home() {
           {queuedChanges > 0 && <button className="draft-chip" onClick={() => toast.info("Cambios de prototipo", { description: "Los conectaremos a Notion en la siguiente capa." })}>{queuedChanges} cambio{queuedChanges > 1 ? "s" : ""}</button>}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild><Button className="add-button"><Plus /> Añadir</Button></DialogTrigger>
-            <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto real en Notion y completa después el resto de propiedades.</DialogDescription></DialogHeader>
+            <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto y completa después el resto de propiedades.</DialogDescription></DialogHeader>
               <div className="quick-form"><Select value={quickType} onValueChange={setQuickType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="task">Tarea</SelectItem><SelectItem value="project">Proyecto</SelectItem></SelectContent></Select><input autoFocus value={quickName} onChange={(event) => setQuickName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createQuickItem(); }} placeholder={quickType === "task" ? "¿Qué hay que hacer?" : "Nombre del proyecto"} /></div>
-              <DialogFooter><Button onClick={createQuickItem}>Crear en Notion</Button></DialogFooter>
+              <DialogFooter><Button onClick={createQuickItem}>Crear</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
@@ -1032,6 +1031,8 @@ export default function Home() {
         : "Sin fecha";
       return <div
         className="project-workspace-overlay"
+        inert={Boolean(detail || evaluation)}
+        aria-hidden={Boolean(detail || evaluation)}
         role="presentation"
         onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedProjectPage(null); }}
       >
@@ -1059,7 +1060,6 @@ export default function Home() {
             </div>
             <div className="project-workspace-global-actions">
               <Button variant="outline" onClick={() => startEvaluation({ kind: "project", id: selectedProjectPage.id, name: selectedProjectPage.name, people: selectedProjectPage.people })}><Star /> Cerrar y evaluar</Button>
-              <Button asChild><a href={selectedProjectPage.url} target="_blank" rel="noreferrer">Notion <ArrowUpRight /></a></Button>
             </div>
           </header>
 
@@ -1177,17 +1177,17 @@ export default function Home() {
     </div>;
     })()}
 
-    <Sheet open={Boolean(selectedAccount)} onOpenChange={(open) => { if (!open) setSelectedAccount(null); }}>
-      <SheetContent className="detail-sheet account-overview-sheet">{selectedAccount && (() => {
+    <Dialog open={Boolean(selectedAccount)} onOpenChange={(open) => { if (!open) setSelectedAccount(null); }}>
+      <DialogContent className="full-detail-dialog detail-sheet account-overview-sheet">{selectedAccount && (() => {
         const accountProjects = projects.filter((project) => project.account === selectedAccount.name);
         const accountTasks = tasks.filter((task) => task.account === selectedAccount.name);
         const people = Array.from(new Set([...accountProjects.flatMap((project) => project.people), ...accountTasks.flatMap((task) => task.people)].filter((name) => name !== "Por asignar")));
         const datedTasks = accountTasks.filter((task) => task.dateStart).sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart))).slice(0, 5);
         const contrast = accountContrast(selectedAccount.color);
         return <>
-          <SheetHeader className="account-overview-header" style={{ "--account-color": selectedAccount.color, "--account-contrast": contrast } as React.CSSProperties}>
-            <div className="account-overview-brand"><AccountMark name={selectedAccount.name} /><div><span>CUENTA</span><SheetTitle>{selectedAccount.name}</SheetTitle><SheetDescription>{selectedAccount.contract} · Prioridad {selectedAccount.priority}</SheetDescription></div></div>
-          </SheetHeader>
+          <DialogHeader className="account-overview-header" style={{ "--account-color": selectedAccount.color, "--account-contrast": contrast } as React.CSSProperties}>
+            <div className="account-overview-brand"><AccountMark name={selectedAccount.name} /><div><span>CUENTA</span><DialogTitle>{selectedAccount.name}</DialogTitle><DialogDescription>{selectedAccount.contract} · Prioridad {selectedAccount.priority}</DialogDescription></div></div>
+          </DialogHeader>
           <div className="account-overview-body">
             <section className="account-overview-metrics">
               <article><span>PROYECTOS ACTIVOS</span><strong>{accountProjects.length}</strong></article>
@@ -1212,17 +1212,18 @@ export default function Home() {
             </section>
           </div>
         </>;
-      })()}</SheetContent>
-    </Sheet>
+      })()}</DialogContent>
+    </Dialog>
 
-    <Sheet open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null); }}>
-      <SheetContent className="detail-sheet">{detail && <>
-        <SheetHeader>
+    <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null); }}>
+      <DialogContent onEscapeKeyDown={(event) => event.stopPropagation()} className="full-detail-dialog detail-sheet">{detail && <>
+        <DialogHeader>
           <span className="sheet-kicker">{detail.kind === "task" ? "EDITAR TAREA" : "EDITAR PROYECTO"}</span>
-          <SheetTitle>{detail.name}</SheetTitle>
-          <SheetDescription>Cambia cualquier campo y guárdalo directamente en Notion.</SheetDescription>
-        </SheetHeader>
-        <div className="sheet-body detail-editor">
+          <DialogTitle>{detail.name}</DialogTitle>
+          <DialogDescription>Consulta el contenido y edita los datos desde aquí.</DialogDescription>
+        </DialogHeader>
+        <div className="sheet-body detail-editor detail-workspace-body">
+          <div className="detail-properties-editor">
           <label className="editor-field full"><span>Nombre</span><input value={detail.name} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
           <div className="editor-grid">
             <div className="editor-field"><span>Estado</span><Select value={detail.status} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskStatusOptions : projectStatusOptions).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></div>
@@ -1237,22 +1238,24 @@ export default function Home() {
             : <div className="editor-field full"><span>Timing</span><div className="date-range-fields"><label><small>Inicio</small><input type="date" value={detail.timingStart || ""} onChange={(event) => updateDetailField("timingStart", event.target.value || null)} /></label><label><small>Fin</small><input type="date" min={detail.timingStart || undefined} value={detail.timingEnd || ""} onChange={(event) => updateDetailField("timingEnd", event.target.value || null)} /></label></div></div>}
           <div className="editor-field full"><span>Equipo</span><div className="team-chip-editor"><div className="team-selected-chips">{detail.people.filter((name) => name !== "Por asignar").map((name) => { const person = team.find((item) => item.name === name); return <span key={name} className="team-person-chip">{person && <i className={`avatar avatar-${person.tone}`}>{person.initials}</i>}<b>{name}</b><button type="button" aria-label={`Quitar a ${name}`} onClick={() => { const nextPeople = detail.people.filter((personName) => personName !== name && personName !== "Por asignar"); updateDetailField("people", nextPeople.length ? nextPeople : ["Por asignar"]); }}>×</button></span>; })}{detail.people.filter((name) => name !== "Por asignar").length === 0 && <small className="team-empty-selection">Sin equipo asignado</small>}</div><select value="" onChange={(event) => { const name = event.target.value; if (!name) return; const current = detail.people.filter((personName) => personName !== "Por asignar"); if (!current.includes(name)) updateDetailField("people", [...current, name]); event.currentTarget.value = ""; }}><option value="">Añadir persona…</option>{team.filter((person) => !detail.people.includes(person.name)).map((person) => <option key={person.id} value={person.name}>{person.name} · {person.role}</option>)}</select></div></div>
           <div className="sheet-note"><Sparkles /><p><strong>Lectura rápida</strong>{detail.priority === "Alta" ? "Está en zona de atención. Revisa fecha y responsables antes de cerrar." : "Parece controlado. No le añadamos épica administrativa."}</p></div>
+          </div>
+          <PageContent key={detail.id} pageId={detail.id} />
         </div>
-        <div className="sheet-actions sheet-actions-stacked"><Button className="close-evaluate-button" onClick={() => startEvaluation({ kind: detail.kind, id: detail.id, name: detail.name, people: detail.people })}><Star /> Cerrar y evaluar</Button><div><Button onClick={saveDetail} className="notion-button"><Save /> Guardar cambios</Button><Button asChild variant="outline"><a href={detail.url} target="_blank" rel="noreferrer">Abrir en Notion <ArrowUpRight /></a></Button></div></div>
-      </>}</SheetContent>
-    </Sheet>
+        <div className="sheet-actions sheet-actions-stacked"><Button className="close-evaluate-button" onClick={() => startEvaluation({ kind: detail.kind, id: detail.id, name: detail.name, people: detail.people })}><Star /> Cerrar y evaluar</Button><div><Button onClick={saveDetail} className="notion-button"><Save /> Guardar cambios</Button></div></div>
+      </>}</DialogContent>
+    </Dialog>
 
-    <Sheet open={Boolean(selectedPerson)} onOpenChange={(open) => { if (!open) setSelectedPerson(null); }}>
-      <SheetContent className="detail-sheet employee-sheet">{selectedPerson && (() => {
+    <Dialog open={Boolean(selectedPerson)} onOpenChange={(open) => { if (!open) setSelectedPerson(null); }}>
+      <DialogContent className="full-detail-dialog detail-sheet employee-sheet">{selectedPerson && (() => {
         const performance = personPerformance(selectedPerson);
         const maxDistribution = Math.max(1, ...Object.values(selectedPerson.distribution));
         const sessionSignals = signalBoosts[selectedPerson.name];
         const sessionDimensions = dimensionBoosts[selectedPerson.name] ?? {};
         return <>
-          <SheetHeader>
+          <DialogHeader>
             <span className="sheet-kicker">FICHA DE EMPLEADO · DATOS REALES</span>
-            <div className="employee-hero"><div className={`avatar avatar-${selectedPerson.tone}`}>{selectedPerson.initials}</div><div><SheetTitle>{selectedPerson.name}</SheetTitle><SheetDescription>{selectedPerson.role} · {selectedPerson.assignment}</SheetDescription>{selectedPerson.activeProjectNames.length > 0 && <div className="employee-projects-inline">{selectedPerson.activeProjectNames.map((project) => <span key={project}>{project}</span>)}</div>}</div><span className="employee-tier">{selectedPerson.tier ?? "—"}</span></div>
-          </SheetHeader>
+            <div className="employee-hero"><div className={`avatar avatar-${selectedPerson.tone}`}>{selectedPerson.initials}</div><div><DialogTitle>{selectedPerson.name}</DialogTitle><DialogDescription>{selectedPerson.role} · {selectedPerson.assignment}</DialogDescription>{selectedPerson.activeProjectNames.length > 0 && <div className="employee-projects-inline">{selectedPerson.activeProjectNames.map((project) => <span key={project}>{project}</span>)}</div>}</div><span className="employee-tier">{selectedPerson.tier ?? "—"}</span></div>
+          </DialogHeader>
           <div className="sheet-body employee-body">
             <section className="employee-kpis">
               <article><span>ÍNDICE</span><strong>{performance.ratio ?? "—"}<small>/100</small></strong><p>{confidence(performance.count)}</p></article>
@@ -1266,13 +1269,12 @@ export default function Home() {
             <section className="employee-section"><div className="employee-section-title"><Sparkles /><div><span>PERFIL</span><h3>Fortalezas y focos de desarrollo</h3></div></div><div className="skill-columns"><div><span>SKILLS</span><div className="tag-cloud">{selectedPerson.skills.length ? selectedPerson.skills.map((skill) => <b key={skill}>{skill}</b>) : <small>Sin datos</small>}</div></div><div><span>DESARROLLO</span><div className="tag-cloud growth">{selectedPerson.growth.length ? selectedPerson.growth.map((skill) => <b key={skill}>{skill}</b>) : <small>Sin señales registradas</small>}</div></div></div>{sessionSignals && <div className="session-signals"><span>SEÑALES DE ESTA SESIÓN</span><div className="tag-cloud">{Object.entries(sessionSignals.positive).map(([signal, count]) => <b key={signal}>+ {signal} · {count}</b>)}{Object.entries(sessionSignals.negative).map(([signal, count]) => <b className="negative" key={signal}>− {signal} · {count}</b>)}</div></div>}</section>
             <section className="employee-section data-gaps"><div className="employee-section-title"><AlertTriangle /><div><span>CALIDAD DE DATOS</span><h3>Qué falta para una Career Conversation sólida</h3></div></div><ul><li>Esfuerzo u horas por tarea</li><li>Autor y fecha de cada evaluación</li><li>Rol individual dentro del proyecto</li><li>Feedback textual estructurado</li>{!selectedPerson.joined && <li>Fecha de incorporación</li>}</ul></section>
           </div>
-          <div className="sheet-actions"><Button asChild className="notion-button"><a href={selectedPerson.url} target="_blank" rel="noreferrer">Abrir ficha en Notion <ArrowUpRight /></a></Button></div>
         </>;
-      })()}</SheetContent>
-    </Sheet>
+      })()}</DialogContent>
+    </Dialog>
 
     <Dialog open={Boolean(evaluation)} onOpenChange={(open) => { if (!open) resetEvaluation(); }}>
-      <DialogContent className={`evaluation-dialog ${selectedProjectPage && evaluation?.kind === "project" ? "project-evaluation-dialog" : ""}`}>{evaluation && <>
+      <DialogContent onEscapeKeyDown={(event) => event.stopPropagation()} className={`evaluation-dialog ${selectedProjectPage ? "project-evaluation-dialog" : ""}`}>{evaluation && <>
         <DialogHeader><span className="sheet-kicker">{evaluation.kind === "task" ? "CIERRE DE TAREA" : "CIERRE DE PROYECTO"}</span><DialogTitle>{evaluation.name}</DialogTitle><DialogDescription>Una nota obligatoria. Si quieres profundidad, activas la rúbrica. Sin comité de evaluación ni velas negras.</DialogDescription></DialogHeader>
         <div className="evaluation-body">
           <section className="score-question"><span>¿Qué tal quedó?</span><StarPicker value={score} onChange={setScore} /><strong>{score ? score + "/5" : "Sin puntuar"}</strong></section>
