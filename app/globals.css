@@ -14366,3 +14366,172 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     grid-template-columns:130px minmax(0,1fr)!important;
   }
 }
+
+
+/* === People Cockpit evolution chart refinement v59 ====================== */
+.employee-trend-card{
+  min-height:210px!important;
+}
+
+.employee-trend-chart{
+  height:142px!important;
+  margin-top:10px!important;
+  display:grid!important;
+  grid-template-rows:minmax(0,1fr) 22px!important;
+  gap:8px!important;
+}
+
+.employee-trend-plot{
+  position:relative!important;
+  min-height:0!important;
+  overflow:visible!important;
+  border-radius:14px!important;
+}
+
+.employee-trend-plot svg{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  overflow:visible!important;
+  z-index:2!important;
+  pointer-events:none!important;
+}
+
+.employee-trend-plot polyline{
+  fill:none!important;
+  stroke:#111512!important;
+  stroke-width:2.25!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+
+.employee-trend-grid{
+  position:absolute!important;
+  inset:14px 0 12px!important;
+  z-index:1!important;
+  pointer-events:none!important;
+}
+
+.employee-trend-grid>i{
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  height:1px!important;
+  background:rgba(17,21,18,.055)!important;
+}
+
+.employee-trend-grid>i:nth-child(1){top:16%!important}
+.employee-trend-grid>i:nth-child(2){top:50%!important}
+.employee-trend-grid>i:nth-child(3){top:84%!important}
+
+.employee-trend-point{
+  position:absolute!important;
+  z-index:3!important;
+  width:18px!important;
+  height:18px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  transform:translate(-50%,-50%)!important;
+  cursor:default!important;
+}
+
+.employee-trend-dot{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:10px!important;
+  height:10px!important;
+  border-radius:50%!important;
+  background:var(--ui-lime)!important;
+  box-shadow:0 0 0 2px #111512!important;
+  transform:translate(-50%,-50%)!important;
+  transition:transform .16s ease,box-shadow .16s ease!important;
+}
+
+.employee-trend-point:hover .employee-trend-dot,
+.employee-trend-point:focus-visible .employee-trend-dot{
+  transform:translate(-50%,-50%) scale(1.22)!important;
+  box-shadow:0 0 0 3px #111512,0 5px 12px rgba(17,21,18,.16)!important;
+}
+
+.employee-trend-tooltip{
+  position:absolute!important;
+  left:50%!important;
+  bottom:calc(100% + 9px)!important;
+  width:max-content!important;
+  max-width:190px!important;
+  padding:9px 10px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:2px!important;
+  border-radius:11px!important;
+  background:#111512!important;
+  color:#fff!important;
+  box-shadow:0 10px 24px rgba(17,21,18,.18)!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  transform:translate(-50%,5px)!important;
+  transition:opacity .14s ease,transform .14s ease!important;
+}
+
+.employee-trend-tooltip:after{
+  content:""!important;
+  position:absolute!important;
+  left:50%!important;
+  top:100%!important;
+  width:8px!important;
+  height:8px!important;
+  background:#111512!important;
+  transform:translate(-50%,-50%) rotate(45deg)!important;
+}
+
+.employee-trend-point:hover .employee-trend-tooltip,
+.employee-trend-point:focus-visible .employee-trend-tooltip{
+  opacity:1!important;
+  transform:translate(-50%,0)!important;
+}
+
+.employee-trend-tooltip>b{
+  color:var(--ui-lime)!important;
+  font-size:10px!important;
+  line-height:1!important;
+}
+
+.employee-trend-tooltip>strong{
+  max-width:170px!important;
+  overflow:hidden!important;
+  font-size:8px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+
+.employee-trend-tooltip>small{
+  color:rgba(255,255,255,.48)!important;
+  font-size:6.5px!important;
+}
+
+.employee-trend-labels{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  color:#969e97!important;
+  font-size:7px!important;
+}
+
+.employee-trend-labels span:last-child{
+  text-align:right!important;
+}
+
+@media(max-width:760px){
+  .employee-trend-chart{
+    height:132px!important;
+  }
+
+  .employee-trend-tooltip{
+    max-width:150px!important;
+  }
+}
