@@ -8,6 +8,7 @@ type PageRow = {
   object?: string;
   id: string;
   url?: string;
+  created_time?: string;
   properties?: Record<string, any>;
 };
 
