@@ -15443,3 +15443,35 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   position:relative!important;
   z-index:1!important;
 }
+
+
+/* === Headerless desktop views =========================================== */
+/* All primary views start like Dashboard: no page title/header, more room
+   for the actual workspace. The tiny row preserves the same top breathing
+   room without wasting useful height. */
+@media (min-width: 821px){
+  .main-stage,
+  .main-stage-dashboard{
+    grid-template-rows:18px minmax(0,1fr)!important;
+  }
+
+  .topbar.topbar-compact{
+    height:18px!important;
+    min-height:18px!important;
+    padding:0!important;
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    pointer-events:none!important;
+  }
+
+  .topbar.topbar-compact .page-heading{
+    display:none!important;
+  }
+
+  .view-content{
+    padding-top:10px!important;
+  }
+}
