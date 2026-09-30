@@ -6781,3 +6781,171 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     transition:none!important;
   }
 }
+
+
+/* === Dashboard pulse fan + calmer focus motion v27 ======================= */
+
+/* A small accent on the left data block */
+.dashboard-pulse-stats > span:nth-child(1) b {
+  color: var(--ogilvy-lime) !important;
+}
+.dashboard-pulse-stats > span:nth-child(1) small {
+  color: rgba(223,255,43,.58) !important;
+}
+
+/* Pulse cards: fan composition, closer to the approved sketch */
+.dashboard-pulse-hits {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: 136px !important;
+  align-self: center !important;
+  overflow: visible !important;
+}
+
+.dashboard-pulse-hit-card {
+  top: 50% !important;
+  right: 6px !important;
+  width: 57% !important;
+  min-height: 118px !important;
+  padding: 14px !important;
+  border-radius: 20px !important;
+  transform-origin: 50% 85% !important;
+  background:
+    radial-gradient(circle at 82% 14%, rgba(223,255,43,.10), transparent 32%),
+    rgba(255,255,255,.075) !important;
+  backdrop-filter: blur(12px) saturate(1.05) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.05) !important;
+  box-shadow: 0 18px 34px rgba(0,0,0,.20) !important;
+  transition:
+    transform .32s cubic-bezier(.2,.75,.2,1),
+    right .32s cubic-bezier(.2,.75,.2,1),
+    opacity .24s ease,
+    filter .24s ease,
+    border-color .2s ease !important;
+}
+
+.dashboard-pulse-hit-card.pulse-hit-1 {
+  z-index: 4 !important;
+  opacity: 1 !important;
+  transform: translateY(-50%) translateX(-4%) rotate(0deg) !important;
+}
+
+.dashboard-pulse-hit-card.pulse-hit-2 {
+  z-index: 3 !important;
+  right: 34px !important;
+  opacity: .62 !important;
+  filter: brightness(.92) saturate(.88) !important;
+  transform: translateY(-50%) translateX(-34%) rotate(-7deg) scale(.96) !important;
+}
+
+.dashboard-pulse-hit-card.pulse-hit-3 {
+  z-index: 2 !important;
+  right: 60px !important;
+  opacity: .30 !important;
+  filter: brightness(.80) saturate(.72) !important;
+  transform: translateY(-50%) translateX(-68%) rotate(-13deg) scale(.90) !important;
+}
+
+.dashboard-pulse-hits:hover .dashboard-pulse-hit-card {
+  opacity: .45 !important;
+}
+
+.dashboard-pulse-hit-card:hover {
+  z-index: 9 !important;
+  right: 4px !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: translateY(-50%) translateX(-4%) rotate(0deg) scale(1.025) !important;
+  border-color: rgba(223,255,43,.28) !important;
+}
+
+/* Keep copy subtle so the fan reads as object first, data second */
+.dashboard-pulse-hit-card > span {
+  font-size: 6.3px !important;
+}
+.dashboard-pulse-hit-card > strong {
+  font-size: 10.5px !important;
+}
+.dashboard-pulse-hit-card > small {
+  font-size: 6.8px !important;
+}
+
+/* Focus: cleaner horizontal accordion, no drunken-card rotation */
+.dashboard-focus-accordion {
+  gap: 7px !important;
+  perspective: none !important;
+}
+
+.dashboard-focus-accordion-card {
+  transform: none !important;
+  border-radius: 15px !important;
+  transition:
+    flex .3s cubic-bezier(.2,.75,.2,1),
+    transform .22s cubic-bezier(.2,.75,.2,1),
+    opacity .2s ease,
+    box-shadow .2s ease,
+    border-color .2s ease !important;
+}
+
+.dashboard-focus-accordion-card.focus-card-1,
+.dashboard-focus-accordion-card.focus-card-2,
+.dashboard-focus-accordion-card.focus-card-3 {
+  transform: none !important;
+}
+
+.dashboard-focus-accordion:hover .dashboard-focus-accordion-card {
+  flex: .78 !important;
+  opacity: .62 !important;
+  transform: translateY(2px) scale(.985) !important;
+}
+
+.dashboard-focus-accordion .dashboard-focus-accordion-card:hover {
+  flex: 2.45 !important;
+  opacity: 1 !important;
+  transform: translateY(-2px) scale(1) !important;
+  border-color: rgba(21,24,21,.12) !important;
+  box-shadow: 0 15px 28px rgba(31,38,32,.12) !important;
+}
+
+/* The first card is open by default, but not excessively */
+.dashboard-focus-accordion-card.focus-card-1 {
+  flex: 2.05 !important;
+}
+
+.dashboard-focus-accordion-card.focus-card-2,
+.dashboard-focus-accordion-card.focus-card-3 {
+  flex: .86 !important;
+}
+
+/* Reveal text more gracefully */
+.focus-accordion-copy {
+  opacity: .18 !important;
+  transform: translateX(-2px) !important;
+}
+
+.focus-card-1 .focus-accordion-copy,
+.dashboard-focus-accordion-card:hover .focus-accordion-copy {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+}
+
+.dashboard-focus-accordion-card > svg {
+  opacity: .34 !important;
+}
+
+.dashboard-focus-accordion-card:hover > svg {
+  opacity: 1 !important;
+  transform: translate(1px,-1px) !important;
+}
+
+@media (max-width:1180px){
+  .dashboard-pulse-hit-card{
+    width:60%!important;
+  }
+  .dashboard-pulse-hit-card.pulse-hit-2{
+    transform:translateY(-50%) translateX(-30%) rotate(-6deg) scale(.95)!important;
+  }
+  .dashboard-pulse-hit-card.pulse-hit-3{
+    transform:translateY(-50%) translateX(-58%) rotate(-11deg) scale(.89)!important;
+  }
+}
