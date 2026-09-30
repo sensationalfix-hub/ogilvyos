@@ -46,7 +46,7 @@ type LiveSchema = {
 
 type Task = {
   id: string; name: string; status: TaskStatus; priority: Priority; project: string;
-  account: string; date: string; dateStart?: string | null; people: string[]; url: string;
+  account: string; date: string; dateStart?: string | null; dateEnd?: string | null; people: string[]; url: string;
 };
 type Project = {
   id: string; name: string; status: ProjectStatus; account: string; timing: string;
@@ -204,6 +204,27 @@ function ProjectCard({ project, onOpen, onDragStart, onAssignPerson }: { project
 function EmptyDrop() { return <div className="empty-drop">Suelta aquí</div>; }
 function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+function dateOnly(value: string | null | undefined) {
+  return value ? value.slice(0, 10) : null;
+}
+function plannerMinutes(value: string | null | undefined, fallback = 9 * 60) {
+  if (!value || !value.includes("T")) return fallback;
+  const match = value.match(/T(\d{2}):(\d{2})/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : fallback;
+}
+function localPlannerIso(day: string, minutes: number) {
+  const safe = Math.max(0, Math.min(23 * 60 + 59, Math.round(minutes)));
+  const date = new Date(day + "T00:00:00");
+  date.setHours(Math.floor(safe / 60), safe % 60, 0, 0);
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const abs = Math.abs(offset);
+  const tz = sign + String(Math.floor(abs / 60)).padStart(2, "0") + ":" + String(abs % 60).padStart(2, "0");
+  return day + "T" + String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0") + ":00" + tz;
+}
+function plannerTimeLabel(minutes: number) {
+  return String(Math.floor(minutes / 60)).padStart(2, "0") + ":" + String(minutes % 60).padStart(2, "0");
 }
 function mondayForOperationalWeek(base = new Date()) {
   const date = new Date(base);
@@ -426,7 +447,10 @@ export default function Home() {
   const operationalWeekStart = useMemo(() => mondayForOperationalWeek(), []);
   const operationalWeekDays = useMemo(() => Array.from({ length: 5 }, (_, index) => addDays(operationalWeekStart, index)), [operationalWeekStart]);
   const operationalWeekEnd = useMemo(() => addDays(operationalWeekStart, 4), [operationalWeekStart]);
-  const weeklyTasks = useMemo(() => allTasks.filter((task) => task.dateStart && task.dateStart >= isoDate(operationalWeekStart) && task.dateStart <= isoDate(operationalWeekEnd)), [allTasks, operationalWeekStart, operationalWeekEnd]);
+  const weeklyTasks = useMemo(() => allTasks.filter((task) => {
+    const day = dateOnly(task.dateStart);
+    return Boolean(day && day >= isoDate(operationalWeekStart) && day <= isoDate(operationalWeekEnd));
+  }), [allTasks, operationalWeekStart, operationalWeekEnd]);
   const weeklyProjectMilestones = useMemo(() => projects.flatMap((project) => {
     const events: Array<{ id: string; date: string; label: string; project: Project; kind: "start" | "end" }> = [];
     if (project.timingStart && project.timingStart >= isoDate(operationalWeekStart) && project.timingStart <= isoDate(operationalWeekEnd)) events.push({ id: project.id + "-start", date: project.timingStart, label: "Arranque", project, kind: "start" });
@@ -607,6 +631,69 @@ export default function Home() {
       toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
   }
+  async function movePlannerTask(taskId: string, destinationDate: string, startMinutes: number) {
+    const previous = allTasks.find((task) => task.id === taskId);
+    if (!previous) return;
+    const oldStart = plannerMinutes(previous.dateStart);
+    const oldEnd = plannerMinutes(previous.dateEnd, oldStart + 60);
+    const duration = Math.max(30, oldEnd - oldStart);
+    const snappedStart = Math.max(7 * 60, Math.min(20 * 60, Math.round(startMinutes / 15) * 15));
+    const snappedEnd = Math.min(21 * 60, snappedStart + duration);
+    const dateStart = localPlannerIso(destinationDate, snappedStart);
+    const dateEnd = localPlannerIso(destinationDate, snappedEnd);
+    const label = new Date(destinationDate + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
+    const next = { ...previous, dateStart, dateEnd, date: label };
+    setAllTasks((items) => items.map((task) => task.id === taskId ? next : task));
+    setTasks((items) => items.map((task) => task.id === taskId ? next : task));
+    try {
+      await syncNotion("task", taskId, { dateStart, dateEnd });
+      toast.success("Horario actualizado", { description: `${plannerTimeLabel(snappedStart)}–${plannerTimeLabel(snappedEnd)} · guardado en Notion.` });
+    } catch {
+      setAllTasks((items) => items.map((task) => task.id === taskId ? previous : task));
+      setTasks((items) => items.map((task) => task.id === taskId ? previous : task));
+      toast.error("No se pudo guardar el horario en Notion");
+    }
+  }
+
+  function startPlannerResize(task: Task, edge: "start" | "end", event: React.PointerEvent<HTMLSpanElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const initialY = event.clientY;
+    const initialStart = plannerMinutes(task.dateStart);
+    const initialEnd = plannerMinutes(task.dateEnd, initialStart + 60);
+    let latestStart = initialStart;
+    let latestEnd = initialEnd;
+
+    const move = (pointerEvent: PointerEvent) => {
+      const delta = Math.round(((pointerEvent.clientY - initialY) / 48) * 60 / 15) * 15;
+      if (edge === "start") latestStart = Math.max(7 * 60, Math.min(initialEnd - 30, initialStart + delta));
+      else latestEnd = Math.min(21 * 60, Math.max(initialStart + 30, initialEnd + delta));
+      const dateStart = localPlannerIso(dateOnly(task.dateStart) || isoDate(operationalWeekStart), latestStart);
+      const dateEnd = localPlannerIso(dateOnly(task.dateStart) || isoDate(operationalWeekStart), latestEnd);
+      setAllTasks((items) => items.map((item) => item.id === task.id ? { ...item, dateStart, dateEnd } : item));
+      setTasks((items) => items.map((item) => item.id === task.id ? { ...item, dateStart, dateEnd } : item));
+    };
+
+    const up = async () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      const day = dateOnly(task.dateStart) || isoDate(operationalWeekStart);
+      const dateStart = localPlannerIso(day, latestStart);
+      const dateEnd = localPlannerIso(day, latestEnd);
+      try {
+        await syncNotion("task", task.id, { dateStart, dateEnd });
+        toast.success("Duración actualizada", { description: `${plannerTimeLabel(latestStart)}–${plannerTimeLabel(latestEnd)} · guardado en Notion.` });
+      } catch {
+        setAllTasks((items) => items.map((item) => item.id === task.id ? task : item));
+        setTasks((items) => items.map((item) => item.id === task.id ? task : item));
+        toast.error("No se pudo guardar la duración");
+      }
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up, { once: true });
+  }
+
   async function moveWeekItem(event: React.DragEvent, destinationDate: string) {
     event.preventDefault();
     const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
