@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   isWorkOSAuthConfigured,
-  passwordMatches,
+  passwordRole,
   WORKOS_SESSION_COOKIE,
   workOSSessionValue,
 } from "@/app/lib/workos-auth";
@@ -13,11 +13,12 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const password = String(form.get("password") || "");
-  if (!await passwordMatches(password)) {
+  const role = await passwordRole(password);
+  if (!role) {
     return NextResponse.redirect(new URL("/login?error=1", request.url), 303);
   }
 
-  const session = await workOSSessionValue();
+  const session = await workOSSessionValue(role);
   if (!session) {
     return NextResponse.redirect(new URL("/login?setup=1", request.url), 303);
   }
