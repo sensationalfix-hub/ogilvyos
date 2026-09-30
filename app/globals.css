@@ -7907,3 +7907,36 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     transform: translate(-22%,-52%) scale(1.02) !important;
   }
 }
+
+
+/* === Focus inner spacing v33 ============================================== */
+.dashboard-focus-card {
+  padding: 16px !important;
+}
+
+.dashboard-focus-accordion {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.dashboard-focus-accordion-card {
+  min-height: 104px !important;
+  height: 104px !important;
+}
+
+.dashboard-focus-card .module-head {
+  padding: 0 0 12px 0 !important;
+}
+
+.dashboard-focus-card {
+  display: grid !important;
+  grid-template-rows: auto minmax(0,1fr) !important;
+  row-gap: 0 !important;
+}
+
+.dashboard-focus-accordion {
+  align-self: stretch !important;
+  margin-bottom: 0 !important;
+}
