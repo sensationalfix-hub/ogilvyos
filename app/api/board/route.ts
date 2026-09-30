@@ -173,3 +173,38 @@ export async function PATCH(request: Request) {
     ? NextResponse.json({ request: Array.isArray(data) ? data[0] : data })
     : NextResponse.json(data || { error: "Could not update request" }, { status: response.status });
 }
+
+
+export async function DELETE(request: Request) {
+  const ctx = await context(request);
+  if (!ctx || ctx.identity.role !== "editor") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const url = new URL(request.url);
+  const kind = url.searchParams.get("kind");
+  const id = String(url.searchParams.get("id") || "");
+
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
+  const table = kind === "announcement"
+    ? "announcements"
+    : kind === "request"
+      ? "requests"
+      : null;
+
+  if (!table) {
+    return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
+  }
+
+  const response = await rest(ctx.accessToken, `${table}?id=eq.${id}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+
+  return response.ok
+    ? NextResponse.json({ ok: true })
+    : NextResponse.json({ error: "Could not delete item" }, { status: response.status });
+}
