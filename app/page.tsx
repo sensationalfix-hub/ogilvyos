@@ -839,7 +839,13 @@ export default function Home() {
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => { const [kind, person] = event.dataTransfer.getData("text/plain").split(":"); if (kind === "person") { event.preventDefault(); assignPerson("project", project.id, person); } }}
                   onClick={() => setSelectedProjectPage(project)}>
-                  <AccountMark name={project.account} /><span className="dashboard-project-copy"><strong>{project.name}</strong><small>{project.account} · {project.timing}</small></span><span className={`stage-chip stage-${project.status.toLowerCase().replace("-", "")}`}>{project.status}</span><PeopleStack people={project.people} /><GripVertical />
+                  <div className="dashboard-project-top">
+                    <div className="dashboard-project-client"><span className={`priority-dot ${priorityClass(project.priority)}`} /><span className="client-label">{project.account}</span></div>
+                    <span className={`stage-chip stage-${project.status.toLowerCase().replace("-", "")}`}>{project.status}</span>
+                    <GripVertical className="drag-handle" />
+                  </div>
+                  <div className="dashboard-project-copy"><strong>{project.name}</strong><small>{project.type} · {project.timing}</small></div>
+                  <div className="dashboard-project-footer"><PeopleStack people={project.people} /></div>
                 </div>)}
               </div>
               <div className="deadline-ribbon"><span><AlertTriangle />PRÓXIMAS FECHAS</span>{upcomingDeadlines.length ? upcomingDeadlines.map((task) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}><b>{task.date}</b> {task.name}</button>) : <small>Sin entregas próximas con fecha en Notion</small>}</div>
