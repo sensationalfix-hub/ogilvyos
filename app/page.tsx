@@ -1413,7 +1413,7 @@ export default function Home() {
   }
 
   function openCalendarEvent(event: CalendarEvent) {
-    if (!canEdit) return;
+    if (sessionRole === "viewer") return;
     if (event.kind === "task") {
       const task = tasks.find((item) => item.id === event.id);
       if (task) setDetail({ kind: "task", ...task });
@@ -1429,10 +1429,10 @@ export default function Home() {
     value={activeView}
     onValueChange={(value) => setActiveView(value as View)}
     orientation="vertical"
-    className={`os-shell ${canEdit ? "" : "readonly-mode"}`}
+    className={`os-shell ${canEdit ? "" : "readonly-mode"} ${sessionRole === "viewer" ? "viewer-locked" : ""}`}
     onDragStartCapture={(event) => { if (!canEdit) event.preventDefault(); }}
     onClickCapture={(event) => {
-      if (canEdit) return;
+      if (sessionRole !== "viewer") return;
       const target = event.target as HTMLElement;
       const blocked = target.closest([
         ".work-card",
