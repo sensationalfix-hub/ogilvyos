@@ -2631,16 +2631,37 @@ export default function Home() {
               <article className="employee-trend-card">
                 <div className="employee-cockpit-module-head"><div><span>EVOLUCIÓN</span><h3>Índice observado en el tiempo</h3></div><TrendingUp/></div>
                 {trend.length>1 ? <div className="employee-trend-chart">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Evolución de evaluaciones">
-                    <polyline points={trendPoints} fill="none" vectorEffect="non-scaling-stroke"/>
+                  <div className="employee-trend-plot">
+                    <div className="employee-trend-grid" aria-hidden="true"><i/><i/><i/></div>
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Evolución de evaluaciones">
+                      <polyline points={trend.map((item,index)=>{
+                        const x=trend.length<=1?50:(index/(trend.length-1))*100;
+                        const score=typeof item.score==="number"?item.score:0;
+                        const y=82-(Math.max(0,Math.min(5,score))/5)*64;
+                        return `${x},${y}`;
+                      }).join(" ")} fill="none" vectorEffect="non-scaling-stroke"/>
+                    </svg>
                     {trend.map((item,index)=>{
                       const x=trend.length<=1?50:(index/(trend.length-1))*100;
                       const score=typeof item.score==="number"?item.score:0;
-                      const y=88-(Math.max(0,Math.min(5,score))/5)*72;
-                      return <circle key={item.id} cx={x} cy={y} r="1.8"><title>{item.projectName||item.taskName||item.type} · {oneDecimal(item.score)}/5 · {shortDate(item.date)}</title></circle>;
+                      const y=82-(Math.max(0,Math.min(5,score))/5)*64;
+                      return <button
+                        key={item.id}
+                        type="button"
+                        className="employee-trend-point"
+                        style={{left:`${x}%`,top:`${y}%`}}
+                        aria-label={`${item.projectName||item.taskName||item.type}, ${oneDecimal(item.score)} sobre 5, ${shortDate(item.date)}`}
+                      >
+                        <span className="employee-trend-dot"/>
+                        <span className="employee-trend-tooltip">
+                          <b>{oneDecimal(item.score)} / 5</b>
+                          <strong>{item.projectName||item.taskName||item.type}</strong>
+                          <small>{shortDate(item.date)}</small>
+                        </span>
+                      </button>;
                     })}
-                  </svg>
-                  <div className="employee-trend-labels"><span>{shortDate(trend[0]?.date)}</span><b>{oneDecimal(trend.at(-1)?.score)} / 5</b><span>{shortDate(trend.at(-1)?.date)}</span></div>
+                  </div>
+                  <div className="employee-trend-labels"><span>{shortDate(trend[0]?.date)}</span><span>{shortDate(trend.at(-1)?.date)}</span></div>
                 </div> : <div className="employee-trend-empty"><TrendingUp/><strong>Histórico insuficiente</strong><span>Necesitamos al menos dos evaluaciones fechadas para dibujar evolución.</span></div>}
               </article>
 
