@@ -68,6 +68,8 @@ type Account = {
 type TeamPerson = {
   id: string; url: string; name: string; role: string; assignment: string; contract: string | null; tier: string | null;
   email: string | null; salary: number | null; vacationRemaining: number | null;
+  leaveAllowance?: { base: number | null; convenio: number | null; puentes: number | null; semanaSanta: number | null; navidad: number | null };
+  leaveUsage?: { usedVacationDays: number; remainingVacationDays: number | null };
   skills: string[]; growth: string[]; joined: string | null; initials: string; tone: string;
   load: number; activeTasks: number; activeProjects: number; projects: number;
   activeProjectNames: string[]; activeTaskNames: string[];
@@ -82,7 +84,8 @@ type TeamPerson = {
   dimensions: Record<DimensionKey, number | null>;
 };
 type Holiday = {
-  id?: string; name: string; type: string; start: string; end: string; label: string; color: string; url: string;
+  id?: string; name: string; type: string; segment?: "Persona" | "Festivo" | string; category?: "Vacaciones" | "Extra" | "Turno especial" | "Festivo" | "Otra" | string;
+  year?: string | null; start: string; end: string; label: string; color: string; url: string;
 };
 type BoardPresence = { user_id: string; display_name: string; role: "admin" | "viewer_global" | "employee"; last_seen: string };
 type BoardAnnouncement = { id: string; title: string; body: string; priority: "normal" | "important"; pinned: boolean; created_by_name: string; created_at: string; updated_at: string };
@@ -318,6 +321,7 @@ export default function Home() {
   const [accounts, setAccounts] = useState<Account[]>(fallbackAccounts);
   const [team, setTeam] = useState<TeamPerson[]>(fallbackTeam);
   const [holidays, setHolidays] = useState<Holiday[]>(fallbackHolidays);
+  const [holidayFilter, setHolidayFilter] = useState<"Todas" | "Vacaciones" | "Extras" | "Semana Santa" | "Navidad">("Todas");
   const [boardPresence, setBoardPresence] = useState<BoardPresence[]>([]);
   const [boardAnnouncements, setBoardAnnouncements] = useState<BoardAnnouncement[]>([]);
   const [boardRequests, setBoardRequests] = useState<BoardRequest[]>([]);
@@ -985,7 +989,28 @@ export default function Home() {
   }, [tasks, projects, holidays]);
   const visibleCalendarEvents = calendarEvents.filter((event) => event.month === calendarMonth && (calendarFilter === "all" || event.kind === calendarFilter));
   const visibleEventDays = Array.from(new Set(visibleCalendarEvents.map((event) => event.day))).sort((a, b) => a - b);
-  const holidayTimelineNames = Array.from(new Set(holidays.map((holiday) => holiday.name)));
+  const holidayTimelineNames = Array.from(new Set(holidays.filter((holiday) => holiday.segment !== "Festivo").map((holiday) => holiday.name)));
+  const holidayWindowStart = mondayForOperationalWeek(new Date());
+  const holidayWindowEnd = addDays(holidayWindowStart, 55);
+  const holidayWeekLabels = Array.from({ length: 8 }, (_, index) => addDays(holidayWindowStart, index * 7));
+  const peopleHolidayRows = holidays.filter((holiday) => holiday.segment !== "Festivo");
+  const globalHolidayRows = holidays.filter((holiday) => holiday.segment === "Festivo");
+  const filteredHolidayRows = peopleHolidayRows.filter((holiday) => {
+    if (holidayFilter === "Todas") return true;
+    if (holidayFilter === "Vacaciones") return holiday.type === "Libres";
+    if (holidayFilter === "Extras") return holiday.type === "Convenio" || holiday.type === "Puente";
+    return holiday.type === holidayFilter;
+  });
+  const upcomingPeopleAway = Array.from(new Set(filteredHolidayRows
+    .filter((holiday) => holiday.end && new Date(holiday.end + "T23:59:59").getTime() >= Date.now())
+    .map((holiday) => holiday.name)));
+  const teamVacationBase = team.filter((person) => typeof person.leaveAllowance?.base === "number");
+  const avgVacationUsed = teamVacationBase.length
+    ? Math.round(teamVacationBase.reduce((sum, person) => sum + (person.leaveUsage?.usedVacationDays || 0), 0) / teamVacationBase.length)
+    : 0;
+  const avgVacationRemaining = teamVacationBase.length
+    ? Math.round(teamVacationBase.reduce((sum, person) => sum + (person.leaveUsage?.remainingVacationDays || 0), 0) / teamVacationBase.length)
+    : 0;
 
   function personPerformance(person: TeamPerson) {
     const boost = ratingBoosts[person.name];
@@ -2761,7 +2786,103 @@ export default function Home() {
         </section>
       </TabsContent>
 
-      <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head module-head"><div><span>VENTANA DE 8 SEMANAS</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia desde Notion</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Ausencias sincronizadas</strong>{dataState === "live" ? `${holidays.length} registros recientes o próximos leídos directamente de Notion.` : "Sin conexión live: no se muestran ausencias antiguas como actuales."}</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
+      <TabsContent value="holidays" className="view-content holidays-view-redesign">
+        <section className="holidays-shell-redesign">
+          <section className="holidays-hero-grid">
+            <article className="holidays-hero-card dark">
+              <span>DISPONIBILIDAD PRÓXIMA</span>
+              <strong>{Math.max(0, team.length - upcomingPeopleAway.length)}</strong>
+              <small>personas disponibles</small>
+              <b>{upcomingPeopleAway.length} con ausencia próxima</b>
+            </article>
+            <article className="holidays-hero-card light">
+              <span>VACACIONES BASE</span>
+              <div><strong>{avgVacationUsed}</strong><small>días usados de media</small></div>
+              <b>{avgVacationRemaining} restantes de media</b>
+            </article>
+            <article className="holidays-hero-card lime">
+              <span>PRÓXIMOS TURNOS</span>
+              <strong>{holidays.filter((holiday) => holiday.category === "Turno especial" && holiday.end && new Date(holiday.end + "T23:59:59").getTime() >= Date.now()).length}</strong>
+              <small>Semana Santa / Navidad</small>
+              <b>{holidays.filter((holiday) => holiday.category === "Extra" && holiday.end && new Date(holiday.end + "T23:59:59").getTime() >= Date.now()).length} extras registrados</b>
+            </article>
+          </section>
+
+          <section className="holidays-main-panel">
+            <header className="holidays-toolbar-redesign">
+              <div>
+                <span>8 SEMANAS</span>
+                <h2>Ausencias reales del equipo</h2>
+              </div>
+              <div className="holidays-filter-row">
+                {(["Todas","Vacaciones","Extras","Semana Santa","Navidad"] as const).map((filter) => (
+                  <button key={filter} className={holidayFilter === filter ? "active" : ""} onClick={() => setHolidayFilter(filter)}>{filter}</button>
+                ))}
+              </div>
+            </header>
+
+            <div className="holidays-timeline-redesign">
+              <div className="holiday-grid-head">
+                <span>PERSONA</span>
+                {holidayWeekLabels.map((date) => <b key={date.toISOString()}>{date.toLocaleDateString("es-ES",{day:"2-digit",month:"short"}).replace(".","").toUpperCase()}</b>)}
+              </div>
+
+              <div className="holiday-grid-body">
+                {team.map((person) => {
+                  const rows = filteredHolidayRows.filter((holiday) => holiday.name === person.name && holiday.start && holiday.end);
+                  return <div className="holiday-person-row" key={person.id}>
+                    <div className="holiday-person-meta">
+                      <span className={`avatar avatar-${person.tone}`}>{person.initials}</span>
+                      <div><strong>{person.name}</strong><small>{person.role}</small></div>
+                      <b>{person.leaveUsage?.remainingVacationDays ?? "—"}</b>
+                    </div>
+                    <div className="holiday-track-redesign">
+                      {globalHolidayRows.map((holiday) => {
+                        const pos = timelinePercent(holiday.start, holidayWindowStart, holidayWindowEnd);
+                        if (pos == null || pos < 0 || pos > 100) return null;
+                        return <i key={holiday.id || holiday.url} className="global-holiday-marker" style={{ left: `${pos}%` }} title={`${holiday.name} · ${holiday.label}`} />;
+                      })}
+                      {rows.map((holiday) => {
+                        const left = timelinePercent(holiday.start, holidayWindowStart, holidayWindowEnd);
+                        const right = timelinePercent(holiday.end, holidayWindowStart, holidayWindowEnd);
+                        if (left == null || right == null || right < 0 || left > 100) return null;
+                        const width = Math.max(2.2, Math.min(100, right) - Math.max(0, left) + 1.8);
+                        const kind = holiday.type === "Libres" ? "vacation" : holiday.type === "Convenio" || holiday.type === "Puente" ? "extra" : holiday.type === "Semana Santa" ? "easter" : holiday.type === "Navidad" ? "christmas" : "other";
+                        return <span key={holiday.id || holiday.url} className={`holiday-block-redesign ${kind}`} style={{ left: `${Math.max(0,left)}%`, width: `${width}%` }} title={`${holiday.type} · ${holiday.label}`}>
+                          <b>{holiday.type}</b><small>{holiday.label}</small>
+                        </span>;
+                      })}
+                    </div>
+                  </div>;
+                })}
+              </div>
+            </div>
+
+            <footer className="holidays-legend-redesign">
+              <span><i className="vacation" /> Vacaciones</span>
+              <span><i className="extra" /> Convenio / Puente</span>
+              <span><i className="easter" /> Semana Santa</span>
+              <span><i className="christmas" /> Navidad</span>
+              <span><i className="public" /> Festivo común</span>
+              <b>El número junto a cada persona es su saldo de vacaciones base.</b>
+            </footer>
+          </section>
+
+          <section className="holidays-balance-grid">
+            {team.map((person) => <article key={person.id} className="holiday-balance-card">
+              <header><span className={`avatar avatar-${person.tone}`}>{person.initials}</span><div><strong>{person.name}</strong><small>{person.role}</small></div></header>
+              <div className="holiday-balance-main">
+                <strong>{person.leaveUsage?.remainingVacationDays ?? "—"}</strong><span>días base restantes</span>
+              </div>
+              <div className="holiday-balance-meta">
+                <span><b>{person.leaveUsage?.usedVacationDays ?? "—"}</b><small>usados</small></span>
+                <span><b>{person.leaveAllowance?.convenio ?? "—"}</b><small>convenio</small></span>
+                <span><b>{person.leaveAllowance?.puentes ?? "—"}</b><small>puentes</small></span>
+              </div>
+            </article>)}
+          </section>
+        </section>
+      </TabsContent>
     </main>
 
     {selectedProjectPage && (() => {
