@@ -10247,3 +10247,282 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     font-size:30px!important;
   }
 }
+
+
+/* === Account cards stable hover + centered visual metrics v45 ============ */
+.account-card-redesign{
+  min-height:346px!important;
+  padding:18px 20px 20px!important;
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+  text-align:center!important;
+  background:#fff!important;
+  color:var(--ui-ink)!important;
+  transition:background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease!important;
+}
+
+.account-card-redesign:hover{
+  background:#111512!important;
+  color:#fff!important;
+}
+
+.account-card-meta{
+  width:100%!important;
+  grid-template-columns:7px 1fr 7px!important;
+  justify-items:center!important;
+  align-items:center!important;
+}
+
+.account-card-meta>span:nth-child(2){
+  justify-self:center!important;
+  text-align:center!important;
+}
+
+.account-priority{
+  position:absolute!important;
+  top:16px!important;
+  right:18px!important;
+  background:#f1f3ef!important;
+  color:#7f877f!important;
+  transition:background .18s ease,color .18s ease!important;
+}
+
+.account-card-redesign:hover .account-priority{
+  background:rgba(255,255,255,.10)!important;
+  color:rgba(255,255,255,.64)!important;
+}
+
+.account-card-center{
+  width:100%!important;
+  min-width:0!important;
+  padding:14px 0 12px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+
+.account-card-redesign h2{
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+  text-align:center!important;
+  font-size:38px!important;
+  line-height:.96!important;
+  font-weight:820!important;
+  letter-spacing:-.058em!important;
+  color:var(--ui-ink)!important;
+  transition:color .18s ease!important;
+}
+
+.account-card-redesign:hover h2{
+  color:#fff!important;
+}
+
+.account-card-redesign .account-card-center>p{
+  width:100%!important;
+  max-width:100%!important;
+  margin:10px 0 0!important;
+  text-align:center!important;
+  color:#909891!important;
+  font-size:8.5px!important;
+  transition:color .18s ease!important;
+}
+
+.account-card-redesign:hover .account-card-center>p{
+  color:rgba(255,255,255,.48)!important;
+}
+
+.account-next-hit{
+  width:100%!important;
+  max-width:100%!important;
+  margin-top:18px!important;
+  align-items:center!important;
+  text-align:center!important;
+}
+
+.account-next-hit>strong,
+.account-next-hit>small,
+.account-next-hit>span{
+  text-align:center!important;
+}
+
+.account-card-redesign:hover .account-next-hit>span{
+  color:var(--ui-lime)!important;
+}
+
+.account-card-redesign:hover .account-next-hit>strong{
+  color:#fff!important;
+}
+
+.account-card-redesign:hover .account-next-hit>small{
+  color:rgba(255,255,255,.46)!important;
+}
+
+/* project chips appear without moving the title */
+.account-project-chips{
+  min-height:28px!important;
+  margin-top:14px!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:6px!important;
+  opacity:0!important;
+  transform:translateY(4px)!important;
+  transition:opacity .16s ease,transform .16s ease!important;
+}
+
+.account-card-redesign:hover .account-project-chips{
+  opacity:1!important;
+  transform:translateY(0)!important;
+}
+
+.account-project-chips>span{
+  max-width:150px!important;
+  padding:7px 10px!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.08)!important;
+  color:rgba(255,255,255,.72)!important;
+  font-size:7.5px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+/* visual metrics, centered */
+.account-card-bottom{
+  width:100%!important;
+  min-height:96px!important;
+  padding-top:16px!important;
+  display:grid!important;
+  grid-template-rows:auto auto auto!important;
+  justify-items:center!important;
+  align-items:end!important;
+  gap:10px!important;
+  border-top:1px solid rgba(21,25,20,.045)!important;
+  transition:border-color .18s ease!important;
+}
+
+.account-card-redesign:hover .account-card-bottom{
+  border-top-color:rgba(255,255,255,.08)!important;
+}
+
+.account-metrics{
+  width:min(100%,290px)!important;
+  display:grid!important;
+  grid-template-columns:repeat(3,1fr)!important;
+  gap:10px!important;
+  margin:0 auto!important;
+}
+
+.account-metrics>span{
+  min-width:0!important;
+  display:grid!important;
+  justify-items:center!important;
+  gap:4px!important;
+  text-align:center!important;
+}
+
+.account-metrics i{
+  width:32px!important;
+  height:32px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:11px!important;
+  background:#f3f5f1!important;
+  color:#6f786f!important;
+  transition:background .18s ease,color .18s ease!important;
+}
+
+.account-metrics i svg{
+  width:14px!important;
+  height:14px!important;
+  stroke-width:1.8!important;
+}
+
+.account-card-redesign:hover .account-metrics i{
+  background:rgba(255,255,255,.08)!important;
+  color:var(--ui-lime)!important;
+}
+
+.account-metrics b{
+  color:var(--ui-ink)!important;
+  font-size:17px!important;
+  line-height:1!important;
+  transition:color .18s ease!important;
+}
+
+.account-card-redesign:hover .account-metrics b{
+  color:#fff!important;
+}
+
+.account-metrics small{
+  color:#9aa29b!important;
+  font-size:6.5px!important;
+  text-transform:uppercase!important;
+  letter-spacing:.06em!important;
+  transition:color .18s ease!important;
+}
+
+.account-card-redesign:hover .account-metrics small{
+  color:rgba(255,255,255,.42)!important;
+}
+
+.account-card-team{
+  width:100%!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+
+.account-card-team .people-stack{
+  justify-content:center!important;
+  margin:0 auto!important;
+}
+
+.account-card-team>span{
+  text-align:center!important;
+}
+
+.account-card-redesign:hover .account-card-team>span{
+  color:rgba(255,255,255,.40)!important;
+}
+
+.account-open-button{
+  min-height:22px!important;
+  padding:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  border:0!important;
+  background:transparent!important;
+  color:rgba(255,255,255,.0)!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  pointer-events:none!important;
+  transition:color .16s ease!important;
+}
+
+.account-open-button svg{
+  width:12px!important;
+}
+
+.account-card-redesign:hover .account-open-button{
+  color:#fff!important;
+  pointer-events:auto!important;
+}
+
+/* retire the old overlay so hover never shifts composition */
+.account-card-hover{
+  display:none!important;
+}
+
+@media(max-width:1180px){
+  .account-card-redesign{
+    min-height:328px!important;
+  }
+  .account-card-redesign h2{
+    font-size:34px!important;
+  }
+}
