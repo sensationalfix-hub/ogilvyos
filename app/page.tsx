@@ -1674,50 +1674,48 @@ export default function Home() {
         </section>
 
         <section className="accounts-grid accounts-grid-redesign">
-          {accountViewStats.items.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article
-            key={account.name}
-            className={`account-card account-card-redesign ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`}
-            style={{ "--account-color": account.color } as React.CSSProperties}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => moveToAccount(event, account.name)}
-          >
-            <div className="account-card-meta">
-              <span className="account-micro-accent" />
-              <span>{account.contract || "CUENTA"}</span>
-              <span className="account-priority">{account.priority}</span>
-            </div>
+          {accountViewStats.items.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => {
+            const accountProjects = projects.filter((project) => project.account === account.name).slice(0, 3);
+            return <article
+              key={account.name}
+              className={`account-card account-card-redesign ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`}
+              style={{ "--account-color": account.color } as React.CSSProperties}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => moveToAccount(event, account.name)}
+            >
+              <div className="account-card-meta">
+                <span className="account-micro-accent" />
+                <span>{account.contract || "CUENTA"}</span>
+                <span className="account-priority">{account.priority}</span>
+              </div>
 
-            <div className="account-card-center">
-              <h2>{account.name}</h2>
-              <p>{account.activeProjects} proyectos activos · {account.activeTasks} tareas abiertas</p>
-              <div className="account-next-hit">
-                <span>PRÓXIMO</span>
-                <strong>{account.nextDeadline?.name || "Sin fecha próxima"}</strong>
-                <small>{account.nextDeadline ? account.nextDeadline.date : "Calendario despejado"}</small>
-              </div>
-            </div>
+              <div className="account-card-center">
+                <h2>{account.name}</h2>
+                <p>{account.activeProjects} proyectos activos · {account.activeTasks} tareas abiertas</p>
 
-            <div className="account-card-bottom">
-              <div className="account-metrics">
-                <span><b>{account.projects}</b><small>proyectos</small></span>
-                <span><b>{account.tasks ?? account.activeTasks}</b><small>tareas</small></span>
-                <span><b>{account.pulse}</b><small>pulso</small></span>
-              </div>
-              <div className="account-card-team"><span>EQUIPO</span><PeopleStack people={account.people} /></div>
-            </div>
+                <div className="account-next-hit">
+                  <span>PRÓXIMO</span>
+                  <strong>{account.nextDeadline?.name || "Sin fecha próxima"}</strong>
+                  <small>{account.nextDeadline ? account.nextDeadline.date : "Calendario despejado"}</small>
+                </div>
 
-            <div className="account-card-hover">
-              <div>
-                <span>CUENTA</span>
-                <h3>{account.name}</h3>
+                <div className="account-project-chips">
+                  {accountProjects.map((project) => <span key={project.id}>{project.name}</span>)}
+                  {!accountProjects.length && <span>Sin proyectos activos</span>}
+                </div>
               </div>
-              <div className="account-hover-projects">
-                {projects.filter((project) => project.account === account.name).slice(0,2).map((project) => <span key={project.id}>{project.name}</span>)}
-                {!projects.some((project) => project.account === account.name) && <span>Sin proyectos activos</span>}
+
+              <div className="account-card-bottom">
+                <div className="account-metrics">
+                  <span><i><FolderKanban /></i><b>{account.projects}</b><small>proyectos</small></span>
+                  <span><i><ListTodo /></i><b>{account.tasks ?? account.activeTasks}</b><small>tareas</small></span>
+                  <span><i><CircleGauge /></i><b>{account.pulse}</b><small>pulso</small></span>
+                </div>
+                <div className="account-card-team"><span>EQUIPO</span><PeopleStack people={account.people} /></div>
+                <button className="account-open-button" onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button>
               </div>
-              <button onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button>
-            </div>
-          </article>)}
+            </article>;
+          })}
         </section>
       </TabsContent>
 
