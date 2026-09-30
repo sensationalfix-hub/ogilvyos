@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requestIdentity } from "@/app/lib/workos-auth";
 import {
-  isWorkOSAuthConfigured,
-  validSessionValue,
-  WORKOS_SESSION_COOKIE,
-} from "@/app/lib/workos-auth";
+  SUPABASE_ACCESS_COOKIE,
+  SUPABASE_REFRESH_COOKIE,
+} from "@/app/lib/supabase-auth";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -12,15 +12,36 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!isWorkOSAuthConfigured()) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "?setup=1";
-    return NextResponse.redirect(url);
-  }
+  const identity = await requestIdentity(request);
+  if (identity) {
+    const response = NextResponse.next();
 
-  const session = request.cookies.get(WORKOS_SESSION_COOKIE)?.value;
-  if (await validSessionValue(session)) return NextResponse.next();
+    if (identity.refreshedAccessToken) {
+      response.cookies.set({
+        name: SUPABASE_ACCESS_COOKIE,
+        value: identity.refreshedAccessToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 60,
+      });
+    }
+
+    if (identity.refreshedRefreshToken) {
+      response.cookies.set({
+        name: SUPABASE_REFRESH_COOKIE,
+        value: identity.refreshedRefreshToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
+
+    return response;
+  }
 
   const url = request.nextUrl.clone();
   url.pathname = "/login";
