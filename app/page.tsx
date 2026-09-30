@@ -5,7 +5,7 @@ import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
   Check, CircleDot, Inbox, KeyRound, LayoutDashboard, ListTodo, Megaphone, NotebookPen, Plus, Save, Send, Sparkles, Star,
-  Target, TrendingUp, Users, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
+  Target, Trash2, TrendingUp, Users, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -403,6 +403,13 @@ export default function Home() {
       body: JSON.stringify({ id, status, adminReply }),
     });
     if (!response.ok) return toast.error("No se pudo actualizar la petición.");
+    await loadBoard();
+  }
+
+  async function deleteBoardItem(kind: "announcement" | "request", id: string) {
+    const response = await fetch(`/api/board?kind=${kind}&id=${id}`, { method: "DELETE" });
+    if (!response.ok) return toast.error(kind === "announcement" ? "No se pudo borrar el comunicado." : "No se pudo borrar el mensaje.");
+    toast.success(kind === "announcement" ? "Comunicado borrado." : "Mensaje borrado.");
     await loadBoard();
   }
 
@@ -2706,7 +2713,7 @@ export default function Home() {
 
               <div className="inbox-announcement-list">
                 {boardAnnouncements.map((item) => <article key={item.id} className={`inbox-announcement ${item.priority === "important" ? "important" : ""}`}>
-                  <header><span>{item.priority === "important" ? "IMPORTANTE" : "COMUNICADO"}</span><time>{new Date(item.created_at).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</time></header>
+                  <header><span>{item.priority === "important" ? "IMPORTANTE" : "COMUNICADO"}</span><div className="inbox-card-actions"><time>{new Date(item.created_at).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</time>{canEdit && <button type="button" onClick={() => void deleteBoardItem("announcement", item.id)} aria-label="Borrar comunicado"><Trash2 /></button>}</div></header>
                   <h3>{item.title}</h3>
                   <p>{item.body}</p>
                   <footer>{item.created_by_name}</footer>
@@ -2733,7 +2740,7 @@ export default function Home() {
 
               <div className="inbox-request-list">
                 {boardRequests.map((item) => <article key={item.id} className={`inbox-request status-${item.status.toLowerCase()}`}>
-                  <header><span>{item.kind}</span><b>{item.status}</b></header>
+                  <header><span>{item.kind}</span><div className="inbox-card-actions"><b>{item.status}</b>{canEdit && <button type="button" onClick={() => void deleteBoardItem("request", item.id)} aria-label="Borrar mensaje"><Trash2 /></button>}</div></header>
                   <h3>{item.subject}</h3>
                   {canEdit && <small className="inbox-request-author">{item.author_name}</small>}
                   <p>{item.message}</p>
