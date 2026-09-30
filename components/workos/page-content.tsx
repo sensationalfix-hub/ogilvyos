@@ -14,14 +14,14 @@ function RichText({ text }: { text: ContentText[] }) {
     return href ? <a key={index} href={href} target="_blank" rel="noreferrer">{content}</a> : <span key={index}>{content}</span>;
   })}</>;
 }
-function Blocks({ blocks, pending, toggle }: { blocks: ContentBlock[]; pending: Set<string>; toggle: (id: string, checked: boolean) => void }) {
+function Blocks({ blocks, pending, toggle, readOnly }: { blocks: ContentBlock[]; pending: Set<string>; toggle: (id: string, checked: boolean) => void; readOnly: boolean }) {
   return <div className="page-blocks">{blocks.map((block) => {
     const text = <RichText text={block.text} />;
-    const children = block.children.length ? <Blocks blocks={block.children} pending={pending} toggle={toggle} /> : null;
+    const children = block.children.length ? <Blocks blocks={block.children} pending={pending} toggle={toggle} readOnly={readOnly} /> : null;
     const url = safeContentUrl(block.url);
     let content;
     switch (block.type) {
-      case 'to_do': content = <><label className={`content-check ${block.checked ? 'is-checked' : ''}`}><Checkbox checked={Boolean(block.checked)} disabled={pending.has(block.id)} onCheckedChange={(checked) => toggle(block.id, checked === true)} aria-label={block.text.map((part) => part.text).join('') || 'Marcar pendiente'} /><span>{text}</span></label>{children}</>; break;
+      case 'to_do': content = <><label className={`content-check ${block.checked ? 'is-checked' : ''}`}><Checkbox checked={Boolean(block.checked)} disabled={readOnly || pending.has(block.id)} onCheckedChange={(checked) => toggle(block.id, checked === true)} aria-label={block.text.map((part) => part.text).join('') || 'Marcar pendiente'} /><span>{text}</span></label>{children}</>; break;
       case 'heading_1': content = <><h2>{text}</h2>{children}</>; break;
       case 'heading_2': content = <><h3>{text}</h3>{children}</>; break;
       case 'heading_3': content = <><h4>{text}</h4>{children}</>; break;
@@ -48,7 +48,7 @@ function countChecks(blocks: ContentBlock[]): { total: number; done: number } {
 function updateCheck(blocks: ContentBlock[], id: string, checked: boolean): ContentBlock[] {
   return blocks.map((block) => ({ ...block, checked: block.id === id ? checked : block.checked, children: updateCheck(block.children, id, checked) }));
 }
-export function PageContent({ pageId }: { pageId: string }) {
+export function PageContent({ pageId, readOnly = false }: { pageId: string; readOnly?: boolean }) {
   const [data, setData] = useState<PageData | null>(null);
   const [error, setError] = useState(false);
   const [reload, setReload] = useState(0);
@@ -75,8 +75,8 @@ export function PageContent({ pageId }: { pageId: string }) {
   return <section className="task-page-content" aria-label="Contenido de la página">
     <header><h2>Contenido y checklist</h2>{checks && checks.total > 0 && <span>{checks.done} de {checks.total} completados</span>}</header>
     {error ? <div role="alert"><p>No se ha podido cargar el contenido de esta página.</p><Button variant="outline" onClick={() => setReload((value) => value + 1)}>Reintentar</Button></div> : !data ? <p role="status">Cargando contenido…</p> : <>
-      {data.blocks.length ? <Blocks blocks={data.blocks} pending={pending} toggle={toggle} /> : <p className="content-empty">Esta página no tiene contenido ni checklist.</p>}
-      <details className="content-properties"><summary>Todas las propiedades</summary><dl>{data.properties.map((property) => <div key={property.name}><dt>{property.name}</dt><dd>{property.value}{property.files?.map((file, index) => { const url = safeContentUrl(file.url); return url ? <a key={index} href={url} target="_blank" rel="noreferrer">{file.name}</a> : null; })}</dd></div>)}</dl><p>Última actualización: {new Date(data.updatedAt).toLocaleString('es-ES')}</p></details>
+      {data.blocks.length ? <Blocks blocks={data.blocks} pending={pending} toggle={toggle} readOnly={readOnly} /> : <p className="content-empty">Esta página no tiene contenido ni checklist.</p>}
+      {data.properties.length > 0 && <details className="content-properties"><summary>Todas las propiedades</summary><dl>{data.properties.map((property) => <div key={property.name}><dt>{property.name}</dt><dd>{property.value}{property.files?.map((file, index) => { const url = safeContentUrl(file.url); return url ? <a key={index} href={url} target="_blank" rel="noreferrer">{file.name}</a> : null; })}</dd></div>)}</dl><p>Última actualización: {new Date(data.updatedAt).toLocaleString('es-ES')}</p></details>}
     </>}
   </section>;
 }
