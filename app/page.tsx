@@ -1821,7 +1821,6 @@ export default function Home() {
                 onDragEnd={() => setDragging(null)} onClick={() => setSelectedPerson(person)}>
                 <div className={`avatar avatar-${person.tone}`}>{person.initials}</div><span><strong>{person.name}</strong><small>{person.role}</small></span><i className={person.load >= 75 ? "hot" : person.load >= 45 ? "warm" : "cool"} title={`${person.load}% de carga relativa`} /><b className="roster-ratio">{performance.ratio ?? "—"}</b>
               </button>; })}</div>
-              <button className="roster-footer" onClick={() => setActiveView("team")}>Abrir fichas completas <ChevronRight /></button>
             </section>
 
             <section className="dashboard-quick-note">
