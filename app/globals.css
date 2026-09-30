@@ -16847,3 +16847,385 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   background:#fff;
   color:#111512;
 }
+
+
+/* === Vacaciones redesign ================================================= */
+.holidays-view-redesign{
+  overflow:auto!important;
+}
+.holidays-shell-redesign{
+  display:grid;
+  gap:14px;
+  min-height:100%;
+}
+.holidays-hero-grid{
+  display:grid;
+  grid-template-columns:1.1fr 1fr .9fr;
+  gap:12px;
+}
+.holidays-hero-card{
+  min-height:150px;
+  padding:18px;
+  border-radius:24px;
+  box-shadow:0 12px 30px rgba(34,43,36,.055);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.holidays-hero-card>span{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+.holidays-hero-card>strong{
+  font-size:52px;
+  line-height:.88;
+  letter-spacing:-.06em;
+}
+.holidays-hero-card>small,
+.holidays-hero-card>b{
+  font-size:10px;
+}
+.holidays-hero-card.dark{
+  background:#0d120f;
+  color:#fff;
+}
+.holidays-hero-card.dark>span,
+.holidays-hero-card.dark>small,
+.holidays-hero-card.dark>b{
+  color:rgba(255,255,255,.5);
+}
+.holidays-hero-card.light{
+  background:#fff;
+}
+.holidays-hero-card.light>span{
+  color:#8f978f;
+}
+.holidays-hero-card.light>div{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+}
+.holidays-hero-card.light>div strong{
+  font-size:44px;
+  line-height:.9;
+}
+.holidays-hero-card.light>div small{
+  padding-bottom:4px;
+  color:#7f877f;
+}
+.holidays-hero-card.light>b{
+  color:#6d756d;
+}
+.holidays-hero-card.lime{
+  background:var(--ui-lime);
+  color:#171b17;
+}
+.holidays-main-panel{
+  min-height:540px;
+  border-radius:26px;
+  background:rgba(255,255,255,.72);
+  box-shadow:var(--ui-shadow);
+  overflow:hidden;
+}
+.holidays-toolbar-redesign{
+  min-height:78px;
+  padding:16px 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:18px;
+  border-bottom:1px solid rgba(27,33,28,.06);
+}
+.holidays-toolbar-redesign>div:first-child{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.holidays-toolbar-redesign span{
+  color:#949b95;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+.holidays-toolbar-redesign h2{
+  margin:0;
+  font-size:21px;
+  letter-spacing:-.03em;
+}
+.holidays-filter-row{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.holidays-filter-row button{
+  min-height:34px;
+  padding:0 11px;
+  border:0;
+  border-radius:999px;
+  background:#f0f3ee;
+  color:#6d756e;
+  font-size:9px;
+  font-weight:800;
+  cursor:pointer;
+}
+.holidays-filter-row button.active{
+  background:#111512;
+  color:#fff;
+}
+.holidays-timeline-redesign{
+  overflow:auto;
+}
+.holiday-grid-head{
+  min-width:980px;
+  display:grid;
+  grid-template-columns:220px repeat(8,minmax(90px,1fr));
+  align-items:center;
+  min-height:44px;
+  padding:0 16px;
+  border-bottom:1px solid rgba(28,34,29,.05);
+}
+.holiday-grid-head span,
+.holiday-grid-head b{
+  color:#8e968f;
+  font-size:8px;
+  font-weight:850;
+}
+.holiday-grid-head b{
+  text-align:center;
+}
+.holiday-grid-body{
+  min-width:980px;
+}
+.holiday-person-row{
+  display:grid;
+  grid-template-columns:220px minmax(0,1fr);
+  min-height:66px;
+  border-bottom:1px solid rgba(28,34,29,.05);
+}
+.holiday-person-meta{
+  padding:10px 12px 10px 16px;
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  border-right:1px solid rgba(28,34,29,.05);
+  background:rgba(250,251,248,.72);
+}
+.holiday-person-meta .avatar{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-size:10px;
+  font-weight:850;
+}
+.holiday-person-meta>div{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.holiday-person-meta strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:11px;
+}
+.holiday-person-meta small{
+  color:#939b94;
+  font-size:8px;
+}
+.holiday-person-meta>b{
+  min-width:26px;
+  height:26px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#eef1eb;
+  color:#515951;
+  font-size:9px;
+}
+.holiday-track-redesign{
+  position:relative;
+  min-width:0;
+  background:
+    repeating-linear-gradient(to right,transparent 0,transparent calc(12.5% - 1px),rgba(28,34,29,.055) calc(12.5% - 1px),rgba(28,34,29,.055) 12.5%);
+}
+.global-holiday-marker{
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:#ff6c7e;
+  opacity:.72;
+  z-index:1;
+}
+.global-holiday-marker::after{
+  content:"";
+  position:absolute;
+  inset:0 -5px;
+  background:rgba(255,108,126,.07);
+}
+.holiday-block-redesign{
+  position:absolute;
+  top:14px;
+  z-index:2;
+  min-width:28px;
+  height:38px;
+  padding:0 9px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  overflow:hidden;
+  white-space:nowrap;
+  box-shadow:0 6px 16px rgba(26,32,27,.08);
+}
+.holiday-block-redesign b{
+  font-size:9px;
+}
+.holiday-block-redesign small{
+  opacity:.68;
+  font-size:8px;
+}
+.holiday-block-redesign.vacation{
+  background:#111512;
+  color:#fff;
+}
+.holiday-block-redesign.extra{
+  background:#ffb35c;
+  color:#23180d;
+}
+.holiday-block-redesign.easter{
+  background:#9e83ff;
+  color:#17141f;
+}
+.holiday-block-redesign.christmas{
+  background:#ff748e;
+  color:#211318;
+}
+.holiday-block-redesign.other{
+  background:#78dba2;
+  color:#122018;
+}
+.holidays-legend-redesign{
+  min-height:52px;
+  padding:10px 16px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+  border-top:1px solid rgba(28,34,29,.05);
+}
+.holidays-legend-redesign span{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:#727a73;
+  font-size:8px;
+}
+.holidays-legend-redesign i{
+  width:10px;
+  height:10px;
+  border-radius:3px;
+}
+.holidays-legend-redesign i.vacation{background:#111512}
+.holidays-legend-redesign i.extra{background:#ffb35c}
+.holidays-legend-redesign i.easter{background:#9e83ff}
+.holidays-legend-redesign i.christmas{background:#ff748e}
+.holidays-legend-redesign i.public{width:2px;border-radius:0;background:#ff6c7e}
+.holidays-legend-redesign>b{
+  margin-left:auto;
+  color:#9aa19a;
+  font-size:8px;
+  font-weight:700;
+}
+.holidays-balance-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.holiday-balance-card{
+  min-width:0;
+  padding:14px;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 8px 22px rgba(34,43,36,.045);
+}
+.holiday-balance-card header{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+.holiday-balance-card header .avatar{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-size:9px;
+  font-weight:850;
+}
+.holiday-balance-card header>div{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.holiday-balance-card header strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:11px;
+}
+.holiday-balance-card header small{
+  color:#959d96;
+  font-size:8px;
+}
+.holiday-balance-main{
+  margin-top:18px;
+  display:flex;
+  align-items:flex-end;
+  gap:7px;
+}
+.holiday-balance-main strong{
+  font-size:34px;
+  line-height:.9;
+}
+.holiday-balance-main span{
+  padding-bottom:3px;
+  color:#7f877f;
+  font-size:8px;
+}
+.holiday-balance-meta{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+.holiday-balance-meta span{
+  min-width:0;
+  padding:8px;
+  border-radius:12px;
+  background:#f3f5f1;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.holiday-balance-meta b{
+  font-size:12px;
+}
+.holiday-balance-meta small{
+  color:#8f978f;
+  font-size:7px;
+}
+@media(max-width:1180px){
+  .holidays-balance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .holidays-hero-grid{grid-template-columns:1fr}
+  .holidays-balance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .holidays-toolbar-redesign{align-items:flex-start;flex-direction:column}
+}
