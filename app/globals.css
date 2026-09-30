@@ -4542,3 +4542,183 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* === Active project cards v16 =============================================
+   Same visual language as dashboard task cards: account dot + label,
+   compact status, title/meta, team footer. */
+.dashboard-view .project-overview-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: 128px !important;
+  gap: 10px !important;
+  padding: 6px 8px 10px !important;
+  align-content: start !important;
+}
+
+.dashboard-view .dashboard-project {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 128px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 12px !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .dashboard-project-top {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 14px;
+  align-items: center;
+  gap: 7px;
+}
+
+.dashboard-view .dashboard-project-client {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dashboard-view .dashboard-project-client .priority-dot {
+  width: 7px !important;
+  height: 7px !important;
+  flex: none;
+  border-radius: 50%;
+}
+
+.dashboard-view .dashboard-project-client .client-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #778078 !important;
+  font-size: 7.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.dashboard-view .dashboard-project-top .stage-chip {
+  justify-self: end;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 !important;
+  padding: 4px 6px !important;
+  border-radius: 999px !important;
+  font-size: 5.8px !important;
+  letter-spacing: .04em;
+}
+
+.dashboard-view .dashboard-project-top .drag-handle {
+  width: 13px !important;
+  height: 13px !important;
+  color: #aab2ab !important;
+}
+
+.dashboard-view .dashboard-project-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px !important;
+  margin: 0 !important;
+}
+
+.dashboard-view .dashboard-project-copy strong {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  white-space: normal !important;
+  color: #222722 !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+
+.dashboard-view .dashboard-project-copy small {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: #929992 !important;
+  font-size: 7.5px !important;
+  line-height: 1.25 !important;
+}
+
+.dashboard-view .dashboard-project-footer {
+  min-height: 24px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.dashboard-view .dashboard-project-footer .people-stack {
+  justify-content: flex-start !important;
+}
+
+.dashboard-view .dashboard-project-footer .people-stack > span {
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 7px !important;
+}
+
+/* Kill v15's old grid-area assumptions. */
+.dashboard-view .dashboard-project > .account-mark,
+.dashboard-view .dashboard-project > .stage-chip,
+.dashboard-view .dashboard-project > .people-stack,
+.dashboard-view .dashboard-project > svg {
+  grid-area: auto !important;
+}
+
+.dashboard-view .dashboard-project:hover .dashboard-project-client .client-label,
+.dashboard-view .dashboard-project:hover .dashboard-project-copy strong {
+  color: #fff !important;
+}
+
+.dashboard-view .dashboard-project:hover .dashboard-project-copy small {
+  color: rgba(255,255,255,.56) !important;
+}
+
+.dashboard-view .dashboard-project:hover .dashboard-project-top .drag-handle {
+  color: rgba(255,255,255,.5) !important;
+}
+
+.dashboard-view .dashboard-project:hover .dashboard-project-footer .people-stack > span {
+  border-color: var(--dash-ink) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: var(--dash-ink) !important;
+}
+
+@media (max-width: 1240px) {
+  .dashboard-view .project-overview-list {
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: 112px !important;
+  }
+  .dashboard-view .dashboard-project {
+    height: 112px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-view .project-overview-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-rows: 124px !important;
+  }
+  .dashboard-view .dashboard-project {
+    height: 124px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-view .project-overview-list {
+    grid-template-columns: 1fr !important;
+  }
+}
