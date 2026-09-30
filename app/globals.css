@@ -4722,3 +4722,75 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* === Premium active project cards v17 =====================================
+   More vertical breathing room and a stronger centered typographic block. */
+.dashboard-view .project-overview-list {
+  grid-auto-rows: 160px !important;
+}
+
+.dashboard-view .dashboard-project {
+  height: 160px !important;
+  padding: 15px !important;
+  gap: 11px !important;
+}
+
+.dashboard-view .dashboard-project-copy {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 7px !important;
+  margin: 0 !important;
+}
+
+.dashboard-view .dashboard-project-copy strong {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  white-space: normal !important;
+  text-align: center !important;
+  color: #222722 !important;
+  font-size: 15px !important;
+  line-height: 1.16 !important;
+  letter-spacing: -.018em !important;
+}
+
+.dashboard-view .dashboard-project-copy small {
+  display: block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  color: #929992 !important;
+  font-size: 8.5px !important;
+  line-height: 1.3 !important;
+}
+
+.dashboard-view .dashboard-project-footer {
+  min-height: 26px !important;
+}
+
+@media (max-width: 1240px) {
+  .dashboard-view .project-overview-list {
+    grid-auto-rows: 146px !important;
+  }
+  .dashboard-view .dashboard-project {
+    height: 146px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-view .project-overview-list {
+    grid-auto-rows: 154px !important;
+  }
+  .dashboard-view .dashboard-project {
+    height: 154px !important;
+  }
+}
