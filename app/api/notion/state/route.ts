@@ -160,6 +160,26 @@ function evaluationAverage(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 }
 
+function absenceCategory(segment: string | null, type: string | null) {
+  if (segment === "Festivo") return "Festivo";
+  if (type === "Libres") return "Vacaciones";
+  if (type === "Semana Santa" || type === "Navidad") return "Turno especial";
+  if (type === "Convenio" || type === "Puente") return "Extra";
+  return "Otra";
+}
+
+function datesInRange(start: string | null, end: string | null) {
+  if (!start) return [] as string[];
+  const first = new Date(start + "T00:00:00Z");
+  const last = new Date((end || start) + "T00:00:00Z");
+  const values: string[] = [];
+  for (let cursor = new Date(first); cursor <= last; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) values.push(cursor.toISOString().slice(0, 10));
+  }
+  return values;
+}
+
 export async function GET(request: Request) {
   const identity = await requestIdentity(request);
   if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -290,6 +310,13 @@ export async function GET(request: Request) {
           email: emailValue(page, "Email"),
           salary: numeric(page, "Sueldo"),
           vacationRemaining: numeric(page, "Restantes"),
+          leaveAllowance: {
+            base: numeric(page, "Base"),
+            convenio: numeric(page, "Convenio"),
+            puentes: numeric(page, "Puentes"),
+            semanaSanta: numeric(page, "Semana Santa"),
+            navidad: numeric(page, "Navidad"),
+          },
           skills: multiSelect(page, "Skills"),
           growth: multiSelect(page, "Debilidades"),
           joined,
@@ -363,23 +390,53 @@ export async function GET(request: Request) {
 
     const today = Date.now();
     const holidayWindowStart = today - 1000 * 60 * 60 * 24 * 30;
-    const holidays = holidayPages
-      .map((page) => {
-        const dates = dateValue(page, "Fechas");
-        const name = relation(page, "Equipo").map((id) => teamNames.get(id)).find(Boolean) || title(page, "Empleado") || "Sin asignar";
-        const start = dates?.start ?? null;
-        const end = dates?.end ?? dates?.start ?? null;
-        return {
-          id: compactId(page.id),
-          name,
-          type: select(page, "Tipo Ausencia") || "Ausencia",
-          start,
-          end,
-          label: rangeLabel(start, end),
-          color: fallbackEntityColors[stableIndex(name, fallbackEntityColors.length)],
-          url: page.url || `https://www.notion.so/${compactId(page.id)}`,
-        };
-      })
+    const allHolidayRows = holidayPages.map((page) => {
+      const dates = dateValue(page, "Fechas");
+      const segment = select(page, "Segmento");
+      const type = select(page, "Tipo Ausencia") || (segment === "Festivo" ? "Festivo" : "Ausencia");
+      const name = relation(page, "Equipo").map((id) => teamNames.get(id)).find(Boolean) || title(page, "Empleado") || "Sin asignar";
+      const start = dates?.start ?? null;
+      const end = dates?.end ?? dates?.start ?? null;
+      return {
+        id: compactId(page.id),
+        name,
+        segment: segment || "Persona",
+        type,
+        category: absenceCategory(segment, type),
+        year: select(page, "Año"),
+        start,
+        end,
+        label: rangeLabel(start, end),
+        color: fallbackEntityColors[stableIndex(name, fallbackEntityColors.length)],
+        url: page.url || `https://www.notion.so/${compactId(page.id)}`,
+      };
+    });
+
+    const publicHolidayDates = new Set(
+      allHolidayRows
+        .filter((holiday) => holiday.segment === "Festivo")
+        .flatMap((holiday) => datesInRange(holiday.start, holiday.end))
+    );
+
+    const vacationDaysByPerson = new Map<string, Set<string>>();
+    for (const holiday of allHolidayRows) {
+      if (holiday.segment !== "Persona" || holiday.type !== "Libres") continue;
+      const dates = datesInRange(holiday.start, holiday.end).filter((date) => !publicHolidayDates.has(date));
+      const bucket = vacationDaysByPerson.get(holiday.name) || new Set<string>();
+      dates.forEach((date) => bucket.add(date));
+      vacationDaysByPerson.set(holiday.name, bucket);
+    }
+
+    for (const person of team) {
+      const used = vacationDaysByPerson.get(person.name)?.size || 0;
+      const base = person.leaveAllowance?.base;
+      (person as any).leaveUsage = {
+        usedVacationDays: used,
+        remainingVacationDays: typeof base === "number" ? Math.max(0, base - used) : null,
+      };
+    }
+
+    const holidays = allHolidayRows
       .filter((holiday) => holiday.end && new Date(holiday.end).getTime() >= holidayWindowStart)
       .sort((a, b) => String(a.start).localeCompare(String(b.start)));
 
