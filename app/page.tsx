@@ -967,7 +967,7 @@ export default function Home() {
           </article>
 
           <article className="dashboard-focus-card">
-            <header><div><span>EN FOCO</span><h2>Próximos movimientos</h2></div><button onClick={() => setActiveView("calendar")}>Agenda <ArrowUpRight /></button></header>
+            <header className="module-head"><div><span>EN FOCO</span><h2>Próximos movimientos</h2></div><button className="module-action" onClick={() => setActiveView("calendar")}>Agenda <ArrowUpRight /></button></header>
             <div className="dashboard-focus-accordion">
               {upcomingDeadlines.slice(0, 3).map((task, index) => <button
                 key={task.id}
@@ -996,7 +996,7 @@ export default function Home() {
         <section className="control-room">
           <div className="dashboard-workbench">
             <article className="ops-panel tasks-overview">
-              <div className="ops-head"><div><span>OPERATIVA EN VIVO</span><h2>Tareas</h2></div><button onClick={() => setActiveView("tasks")}>Abrir tablero <ArrowUpRight /></button></div>
+              <div className="ops-head module-head"><div><span>OPERATIVA EN VIVO</span><h2>Tareas</h2></div><button className="module-action" onClick={() => setActiveView("tasks")}>Ver tablero <ArrowUpRight /></button></div>
               <div className="mini-task-board">
                 {taskBoardStatuses.map((status) => {
                   const items = tasks.filter((task) => task.status === status);
@@ -1013,7 +1013,7 @@ export default function Home() {
             </article>
 
             <article className="ops-panel projects-overview">
-              <div className="ops-head"><div><span>MAPA DE TRABAJO</span><h2>Proyectos activos</h2></div><button onClick={() => setActiveView("projects")}>Ver pipeline <ArrowUpRight /></button></div>
+              <div className="ops-head module-head"><div><span>MAPA DE TRABAJO</span><h2>Proyectos activos</h2></div><button className="module-action" onClick={() => setActiveView("projects")}>Ver pipeline <ArrowUpRight /></button></div>
               <div className="project-overview-list">
                 {dashboardProjects.map((project) => <div key={project.id} className="dashboard-project" draggable
                   onDragStart={(event) => { event.dataTransfer.setData("text/plain", `project:${project.id}`); setDragging(`project:${project.id}`); }}
@@ -1034,7 +1034,7 @@ export default function Home() {
           </div>
 
           <aside className="team-roster">
-            <div className="roster-head"><div><span>{team.length} PERSONAS</span><h2>Equipo</h2></div><Users /></div>
+            <div className="roster-head module-head"><div><span>{team.length} PERSONAS</span><h2>Equipo</h2></div><button className="module-action" onClick={() => setActiveView("team")}>Ver equipo <ArrowUpRight /></button></div>
             <div className="roster-list">{team.map((person) => { const performance = personPerformance(person); return <button key={person.name} className="roster-person" draggable
               onDragStart={(event) => { event.dataTransfer.setData("text/plain", `person:${person.name}`); setDragging(`person:${person.name}`); }}
               onDragEnd={() => setDragging(null)} onClick={() => setSelectedPerson(person)}>
@@ -1176,7 +1176,7 @@ export default function Home() {
 
           <div className="calendar-layout calendar-layout-v2">
             <section className="calendar-month-board">
-              <div className="calendar-month-head">
+              <div className="calendar-month-head module-head">
                 <div><span>MES</span><h2>{calendarMonths[calendarMonth].name}</h2></div>
                 <div className="calendar-legend"><span><i className="dot-task" />Tarea</span><span><i className="dot-project" />Proyecto</span><span><i className="dot-holiday" />Ausencia</span></div>
               </div>
@@ -1205,7 +1205,7 @@ export default function Home() {
               <article className="calendar-insight compact-insight"><Sparkles /><span>LECTURA RÁPIDA</span><h2>{visibleCalendarEvents.length ? `${visibleCalendarEvents.length} hitos visibles este mes.` : "Mes despejado."}</h2><p>El calendario enseña ahora el trabajo donde ocurre: dentro de cada día. Revolucionario, aparentemente.</p></article>
 
               <section className="chronology-card compact-chronology">
-                <div className="chronology-head"><div><span>AGENDA</span><h2>Fechas clave</h2></div><strong>{visibleCalendarEvents.length}</strong></div>
+                <div className="chronology-head module-head"><div><span>AGENDA</span><h2>Fechas clave</h2></div><strong>{visibleCalendarEvents.length}</strong></div>
                 <div className="chronology-list">
                   {visibleEventDays.slice(0, 8).map((day) => <div className="chronology-day" key={day}>
                     <div className="date-stamp"><strong>{day.toString().padStart(2, "0")}</strong><span>{calendarMonths[calendarMonth].short}</span></div>
@@ -1261,7 +1261,7 @@ export default function Home() {
         </section>
       </TabsContent>
 
-      <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head"><div><span>VENTANA DE 8 SEMANAS</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia desde Notion</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Ausencias sincronizadas</strong>{dataState === "live" ? `${holidays.length} registros recientes o próximos leídos directamente de Notion.` : "Sin conexión live: no se muestran ausencias antiguas como actuales."}</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
+      <TabsContent value="holidays" className="view-content"><section className="holiday-panel"><div className="holiday-head module-head"><div><span>VENTANA DE 8 SEMANAS</span><h2>Ausencias reales próximas</h2></div><div className="legend"><span><i className="holiday" /> Ausencia desde Notion</span></div></div><div className="timeline-head"><span>EQUIPO</span>{["31 AGO", "7 SEP", "14 SEP", "21 SEP", "28 SEP", "5 OCT", "12 OCT", "19 OCT"].map((date) => <b key={date}>{date}</b>)}</div>{holidayTimelineNames.map((name) => { const holiday = holidays.find((item) => item.name === name); if (!holiday) return null; const position = timelinePosition(holiday.start, holiday.end); return <div className="timeline-row" key={name}><strong>{name}</strong><div className="timeline-track"><span className="holiday-block" title={`${holiday.type} · ${holiday.label}`} style={{ left: `${position.left}%`, width: `${position.width}%`, background: holiday.color }}>{holiday.label}</span></div></div>; })}<div className="timeline-callout"><AlertTriangle /><p><strong>Ausencias sincronizadas</strong>{dataState === "live" ? `${holidays.length} registros recientes o próximos leídos directamente de Notion.` : "Sin conexión live: no se muestran ausencias antiguas como actuales."}</p><button onClick={() => setActiveView("team")}>Ver carga <ChevronRight /></button></div></section></TabsContent>
     </main>
 
     {selectedProjectPage && (() => {
@@ -1368,7 +1368,7 @@ export default function Home() {
 
           <section className="project-overview-grid">
             <article id="project-details" className="project-control-panel">
-              <div className="workspace-section-head"><span>PROYECTO</span><h2>Detalles</h2><small>Todo editable</small></div>
+              <div className="workspace-section-head module-head"><span>PROYECTO</span><h2>Detalles</h2><small>Todo editable</small></div>
               <div className="project-control-grid">
                 <label><span>Estado</span><select value={selectedProjectPage.status} onChange={(event) => updateProjectWorkspace({ status: event.target.value })}>{projectStatusOptions.map((status) => <option key={status}>{status}</option>)}</select></label>
                 <label><span>Prioridad</span><select value={selectedProjectPage.priority} onChange={(event) => updateProjectWorkspace({ priority: event.target.value })}>{projectPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select></label>
@@ -1388,7 +1388,7 @@ export default function Home() {
             </article>
 
             <article id="project-tasks" className="project-task-workspace">
-              <div className="workspace-section-head"><span>TAREAS</span><h2>Tareas del proyecto</h2><small>{projectTasks.length} en total</small></div>
+              <div className="workspace-section-head module-head"><span>TAREAS</span><h2>Tareas del proyecto</h2><small>{projectTasks.length} en total</small></div>
               <div className="project-task-create"><input value={projectTaskName} onChange={(event) => setProjectTaskName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createTaskForSelectedProject(); }} placeholder="Nueva tarea dentro de este proyecto…" /><button onClick={createTaskForSelectedProject}><Plus /> Crear</button></div>
               <div className="project-task-table">
                 {projectTasks.map((task) => <div key={task.id} className="project-task-row">
@@ -1404,7 +1404,7 @@ export default function Home() {
 
             <aside className="project-side-stack">
               <article id="project-timeline" className="project-timeline-panel">
-                <div className="workspace-section-head"><span>TIMELINE</span><h2>Hitos y tareas</h2><small>{start.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {end.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small></div>
+                <div className="workspace-section-head module-head"><span>TIMELINE</span><h2>Hitos y tareas</h2><small>{start.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {end.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small></div>
                 <div className="project-timeline-scale"><span>INICIO</span><i /><span>FIN</span></div>
                 <div className="project-timeline-rows">
                   {datedTasks.map((task) => {
@@ -1420,7 +1420,7 @@ export default function Home() {
               </article>
 
               <article className="project-glance-card">
-                <div className="workspace-section-head"><span>VISTA RÁPIDA</span><h2>Estado operativo</h2></div>
+                <div className="workspace-section-head module-head"><span>VISTA RÁPIDA</span><h2>Estado operativo</h2></div>
                 <div className="project-glance-stats">
                   <span><b>{activeProjectTasks.length}</b><small>Activas</small></span>
                   <span><b>{completedTasks}</b><small>Terminadas</small></span>
