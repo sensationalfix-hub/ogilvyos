@@ -950,8 +950,8 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="timeline" className="view-content global-timeline-view">
-        <section className="global-timeline-shell timeline-v2">
-          <header className="global-timeline-toolbar timeline-toolbar-v2">
+        <section className="global-timeline-shell timeline-v3">
+          <header className="global-timeline-toolbar timeline-toolbar-v3">
             <div className="timeline-window">
               <button className="timeline-today" onClick={() => setTimelineWeeks(8)}>Hoy</button>
               <div><span>VENTANA</span><strong>{globalTimelineStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {globalTimelineEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}</strong></div>
@@ -959,50 +959,66 @@ export default function Home() {
             <div className="timeline-range-switch">{[4, 8, 12].map((weeks) => <button key={weeks} className={timelineWeeks === weeks ? "active" : ""} onClick={() => setTimelineWeeks(weeks)}>{weeks} sem</button>)}</div>
           </header>
 
-          <div className="global-timeline-scale timeline-scale-v2">
+          <div className="global-timeline-scale timeline-scale-v3">
             {Array.from({ length: timelineWeeks + 1 }, (_, index) => <span key={index} style={{ left: `${(index / timelineWeeks) * 100}%` }}>{addDays(globalTimelineStart, index * 7).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>)}
           </div>
 
-          <div className="global-timeline-groups timeline-groups-v2">
+          <div className="global-timeline-groups timeline-groups-v3">
             {accounts.map((account) => {
-              const accountProjects = projects.filter((project) => project.account === account.name);
-              if (!accountProjects.length) return null;
+              const visibleAccountProjects = projects
+                .filter((project) => project.account === account.name)
+                .map((project) => {
+                  const left = timelinePercent(project.timingStart, globalTimelineStart, globalTimelineEnd);
+                  const right = timelinePercent(project.timingEnd || project.timingStart, globalTimelineStart, globalTimelineEnd);
+                  const visibleBar = left != null && right != null && right >= 0 && left <= 100;
+
+                  const visibleTasks = allTasks
+                    .filter((task) => task.project === project.name && task.dateStart)
+                    .map((task) => ({ task, pos: timelinePercent(task.dateStart, globalTimelineStart, globalTimelineEnd) }))
+                    .filter(({ pos }) => pos != null && pos >= 0 && pos <= 100) as { task: Task; pos: number }[];
+
+                  if (!visibleBar && !visibleTasks.length) return null;
+                  return { project, left, right, visibleBar, visibleTasks };
+                })
+                .filter(Boolean) as {
+                  project: Project;
+                  left: number | null;
+                  right: number | null;
+                  visibleBar: boolean;
+                  visibleTasks: { task: Task; pos: number }[];
+                }[];
+
+              if (!visibleAccountProjects.length) return null;
+
               return <section key={account.name} className="timeline-account-group timeline-account-card" style={{ "--timeline-color": account.color } as React.CSSProperties}>
                 <header className="timeline-account-head">
                   <span className="timeline-account-dot" />
-                  <div><strong>{account.name}</strong><small>{accountProjects.length} proyecto{accountProjects.length === 1 ? "" : "s"}</small></div>
+                  <div><strong>{account.name}</strong><small>{visibleAccountProjects.length} proyecto{visibleAccountProjects.length === 1 ? "" : "s"}</small></div>
                 </header>
+
                 <div className="timeline-account-projects">
-                  {accountProjects.map((project) => {
-                    const left = timelinePercent(project.timingStart, globalTimelineStart, globalTimelineEnd);
-                    const right = timelinePercent(project.timingEnd || project.timingStart, globalTimelineStart, globalTimelineEnd);
-                    const visible = left != null && right != null && right >= 0 && left <= 100;
-                    const projectTasks = allTasks.filter((task) => task.project === project.name && task.dateStart);
-                    const visibleTasks = projectTasks.filter((task) => {
-                      const pos = timelinePercent(task.dateStart, globalTimelineStart, globalTimelineEnd);
-                      return pos != null && pos >= 0 && pos <= 100;
-                    });
-                    return <button key={project.id} className="global-project-row timeline-project-row" onClick={() => setSelectedProjectPage(project)}>
-                      <span className="global-project-name timeline-project-name"><strong>{project.name}</strong><small>{project.status}</small></span>
-                      <span className="global-project-track timeline-project-track">
-                        {visible
-                          ? <i className="global-project-bar timeline-project-bar" style={{ left: `${clamp(left!)}%`, width: `${Math.max(2, clamp(right!) - clamp(left!))}%` }} />
-                          : <em>Sin fechas en esta ventana</em>}
-                        {visibleTasks.map((task) => {
-                          const pos = timelinePercent(task.dateStart, globalTimelineStart, globalTimelineEnd)!;
-                          return <b key={task.id} className={"global-task-marker status-" + task.status.toLowerCase().replaceAll(" ", "-")} style={{ left: `${pos}%` }}>
-                            <span className="timeline-marker-tooltip"><strong>{task.name}</strong><small>{task.date} · {task.status}</small></span>
-                          </b>;
-                        })}
-                      </span>
-                      <span className="timeline-row-popover" aria-hidden="true">
-                        <strong>{project.name}</strong>
-                        <small>{project.account} · {project.status}</small>
-                        <span><b>{project.timing}</b><b>{visibleTasks.length} hito{visibleTasks.length === 1 ? "" : "s"}</b></span>
-                        <em>Click para abrir el proyecto</em>
-                      </span>
-                    </button>;
-                  })}
+                  {visibleAccountProjects.map(({ project, left, right, visibleBar, visibleTasks }) => <button key={project.id} className="global-project-row timeline-project-row" onClick={() => setSelectedProjectPage(project)}>
+                    <span className="global-project-name timeline-project-name"><strong>{project.name}</strong><small>{project.status}</small></span>
+
+                    <span className="global-project-track timeline-project-track">
+                      {visibleBar && <i className="global-project-bar timeline-project-bar" style={{ left: `${clamp(left!)}%`, width: `${Math.max(2, clamp(right!) - clamp(left!))}%` }} />}
+
+                      {visibleTasks.map(({ task, pos }) => <b
+                        key={task.id}
+                        className={"global-task-marker status-" + task.status.toLowerCase().replaceAll(" ", "-")}
+                        style={{ left: `${pos}%` }}
+                      >
+                        <span className="timeline-marker-tooltip"><strong>{task.name}</strong><small>{task.date} · {task.status}</small></span>
+                      </b>)}
+                    </span>
+
+                    <span className="timeline-row-popover" aria-hidden="true">
+                      <strong>{project.name}</strong>
+                      <small>{project.account} · {project.status}</small>
+                      <span><b>{project.timing}</b><b>{visibleTasks.length} hito{visibleTasks.length === 1 ? "" : "s"}</b></span>
+                      <em>Click para abrir el proyecto</em>
+                    </span>
+                  </button>)}
                 </div>
               </section>;
             })}
