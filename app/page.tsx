@@ -2116,27 +2116,26 @@ export default function Home() {
                   .filter((item)=>typeof item.value==="number");
                 return <button key={person.name} className="team-card employee-card employee-card-redesign" draggable onClick={() => setSelectedPerson(person)}
                   onDragStart={(event) => { event.dataTransfer.setData("text/plain", `person:${person.name}`); setDragging(`person:${person.name}`); }} onDragEnd={() => setDragging(null)}>
-                  <div className="employee-card-head">
-                    <div className={`avatar avatar-${person.tone}`}>{person.initials}</div>
-                    <div><h2>{person.name}</h2><p>{person.role}</p></div>
-                    <span className={`ratio-chip ${performance.ratio == null ? "empty" : ""}`}><b>{performance.ratio ?? "—"}</b><small>/100</small></span>
+                  <div className="employee-profile-main">
+                    <div className={`employee-avatar-large avatar-${person.tone}`}><span>{person.initials}</span></div>
+                    <h2>{person.name}</h2>
+                    <p>{person.role}</p>
+                    <div className="employee-evidence-line">
+                      <span>{confidence(performance.count)}</span>
+                      <small>{performance.count} evaluaciones</small>
+                    </div>
                   </div>
 
-                  <div className="employee-score-context">
-                    <span>{confidence(performance.count)}</span>
-                    <small>{performance.count} evaluaciones</small>
-                  </div>
-
-                  <div className="employee-load">
-                    <div><span>CARGA</span><b>{person.load}%</b></div>
-                    <i><em style={{width:`${person.load}%`}} /></i>
-                    <small>{person.activeProjects} proyectos · {person.activeTasks} tareas</small>
-                  </div>
-
-                  <div className="employee-project-chips">
+                  <div className="employee-project-chips employee-project-chips-profile">
                     {person.activeProjectNames.slice(0,2).map((name)=><span key={name}>{name}</span>)}
                     {person.activeProjectNames.length>2&&<span>+{person.activeProjectNames.length-2}</span>}
                     {!person.activeProjectNames.length&&<span className="muted">Disponible</span>}
+                  </div>
+
+                  <div className="employee-profile-stats">
+                    <span><b>{person.activeProjects}</b><small>proyectos</small></span>
+                    <span><b>{person.load}%</b><small>carga</small></span>
+                    <span><b>{performance.ratio ?? "—"}</b><small>índice</small></span>
                   </div>
 
                   <div className="employee-dimensions" aria-hidden="true">
