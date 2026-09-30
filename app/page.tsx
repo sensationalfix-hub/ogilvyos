@@ -1680,12 +1680,21 @@ export default function Home() {
               key={account.name}
               className={`account-card account-card-redesign ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`}
               style={{ "--account-color": account.color } as React.CSSProperties}
+              onClick={() => setSelectedAccount(account)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setSelectedAccount(account);
+                }
+              }}
+              tabIndex={0}
+              role="button"
               onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => moveToAccount(event, account.name)}
+              onDrop={(event) => { event.stopPropagation(); moveToAccount(event, account.name); }}
             >
               <div className="account-card-meta">
                 <span className="account-micro-accent" />
-                <span>{account.contract || "CUENTA"}</span>
+                <span className="account-contract">{account.contract || "CUENTA"}</span>
                 <span className="account-priority">{account.priority}</span>
               </div>
 
@@ -1693,26 +1702,24 @@ export default function Home() {
                 <h2>{account.name}</h2>
                 <p>{account.activeProjects} proyectos activos · {account.activeTasks} tareas abiertas</p>
 
-                <div className="account-next-hit">
+                {account.nextDeadline && <div className="account-next-hit">
                   <span>PRÓXIMO</span>
-                  <strong>{account.nextDeadline?.name || "Sin fecha próxima"}</strong>
-                  <small>{account.nextDeadline ? account.nextDeadline.date : "Calendario despejado"}</small>
-                </div>
-
-                <div className="account-project-chips">
-                  {accountProjects.map((project) => <span key={project.id}>{project.name}</span>)}
-                  {!accountProjects.length && <span>Sin proyectos activos</span>}
-                </div>
+                  <strong>{account.nextDeadline.name}</strong>
+                  <small>{account.nextDeadline.date}</small>
+                </div>}
               </div>
 
               <div className="account-card-bottom">
+                <div className="account-project-chips">
+                  {accountProjects.map((project) => <span key={project.id}>{project.name}</span>)}
+                  {!accountProjects.length && <span className="muted">Sin proyectos activos</span>}
+                </div>
+
                 <div className="account-metrics">
                   <span><i><FolderKanban /></i><b>{account.projects}</b><small>proyectos</small></span>
                   <span><i><ListTodo /></i><b>{account.tasks ?? account.activeTasks}</b><small>tareas</small></span>
                   <span><i><CircleGauge /></i><b>{account.pulse}</b><small>pulso</small></span>
                 </div>
-                <div className="account-card-team"><span>EQUIPO</span><PeopleStack people={account.people} /></div>
-                <button className="account-open-button" onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button>
               </div>
             </article>;
           })}
