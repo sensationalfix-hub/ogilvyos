@@ -61,7 +61,15 @@ export async function GET(request: Request) {
       }
     }
     const blocks = await loadPageBlocks(id, notionRequest);
-    const properties = Object.entries(page.properties || {}).map(([name, property]) => ({ name, value: propertyValue(property) || 'Sin completar', files: (property as any).type === 'files' ? (property as any).files.map((file: any) => ({ name: file.name, url: file.file?.url || file.external?.url })) : undefined }));
+    const properties = identity.role === "employee"
+      ? []
+      : Object.entries(page.properties || {}).map(([name, property]) => ({
+          name,
+          value: propertyValue(property) || 'Sin completar',
+          files: (property as any).type === 'files'
+            ? (property as any).files.map((file: any) => ({ name: file.name, url: file.file?.url || file.external?.url }))
+            : undefined,
+        }));
     return NextResponse.json({ blocks, properties, createdAt: page.created_time, updatedAt: page.last_edited_time });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Content unavailable' }, { status: 502 });
