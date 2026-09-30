@@ -250,6 +250,8 @@ export default function Home() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(1);
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
+  const [calendarTaskDate, setCalendarTaskDate] = useState<string | null>(null);
+  const [calendarTaskName, setCalendarTaskName] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<TeamPerson | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
@@ -766,6 +768,46 @@ export default function Home() {
       }
     }
   }
+  function calendarIsoDate(day: number) {
+    const month = calendarMonths[calendarMonth];
+    return `${month.year}-${String(calendarMonth + 8).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  async function createCalendarTask() {
+    const name = calendarTaskName.trim();
+    const dateStart = calendarTaskDate;
+    if (!name || !dateStart) return;
+    try {
+      const response = await fetch("/api/notion/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "task", name }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body?.error || "No se pudo crear la tarea");
+      const date = new Date(dateStart + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
+      const task: Task = {
+        id: body.id,
+        name,
+        status: "Pendiente",
+        priority: "Media",
+        project: "Por asignar",
+        account: "Sin cuenta",
+        date,
+        dateStart,
+        people: ["Por asignar"],
+        url: body.url || "https://www.notion.so",
+      };
+      await syncNotion("task", task.id, { dateStart });
+      setTasks((items) => [task, ...items]);
+      setAllTasks((items) => [task, ...items]);
+      setCalendarTaskName("");
+      setCalendarTaskDate(null);
+      toast.success("Tarea añadida al calendario", { description: date });
+    } catch (error) {
+      toast.error("No se pudo crear la tarea", { description: error instanceof Error ? error.message : "Error desconocido" });
+    }
+  }
+
   function openCalendarEvent(event: CalendarEvent) {
     if (event.kind === "task") {
       const task = tasks.find((item) => item.id === event.id);
@@ -940,44 +982,75 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="calendar" className="view-content calendar-view">
-        <section className="calendar-shell">
+        <section className="calendar-shell calendar-shell-v2">
           <header className="calendar-toolbar">
             <div className="month-switcher">
               <button aria-label="Mes anterior" disabled={calendarMonth === 0} onClick={() => setCalendarMonth((month) => Math.max(0, month - 1))}><ChevronLeft /></button>
               <div><span>CRONOLOGÍA</span><strong>{calendarMonths[calendarMonth].name} {calendarMonths[calendarMonth].year}</strong></div>
               <button aria-label="Mes siguiente" disabled={calendarMonth === calendarMonths.length - 1} onClick={() => setCalendarMonth((month) => Math.min(calendarMonths.length - 1, month + 1))}><ChevronRight /></button>
-              <button className="today-button" onClick={() => setCalendarMonth(0)}>Hoy</button>
+              <button className="today-button" onClick={() => setCalendarMonth(1)}>Hoy</button>
             </div>
             <div className="calendar-filters" aria-label="Filtrar calendario">
               {([["all", "Todo"], ["task", "Tareas"], ["project", "Proyectos"], ["holiday", "Ausencias"]] as [CalendarFilter, string][]).map(([value, label]) => <button key={value} className={calendarFilter === value ? "active" : ""} onClick={() => setCalendarFilter(value)}>{label}</button>)}
             </div>
           </header>
-          <div className="calendar-layout">
-            <aside className="mini-calendar-card">
-              <div className="mini-calendar-heading"><CalendarRange /><div><span>MES</span><strong>{calendarMonths[calendarMonth].name}</strong></div></div>
-              <div className="weekday-row">{["L", "M", "X", "J", "V", "S", "D"].map((day) => <span key={day}>{day}</span>)}</div>
-              <div className="month-grid">
-                {Array.from({ length: calendarMonths[calendarMonth].offset }).map((_, index) => <i key={"blank-" + index} />)}
+
+          <div className="calendar-layout calendar-layout-v2">
+            <section className="calendar-month-board">
+              <div className="calendar-month-head">
+                <div><span>MES</span><h2>{calendarMonths[calendarMonth].name}</h2></div>
+                <div className="calendar-legend"><span><i className="dot-task" />Tarea</span><span><i className="dot-project" />Proyecto</span><span><i className="dot-holiday" />Ausencia</span></div>
+              </div>
+              <div className="calendar-weekdays">{["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"].map((day) => <span key={day}>{day}</span>)}</div>
+              <div className="calendar-month-grid">
+                {Array.from({ length: calendarMonths[calendarMonth].offset }).map((_, index) => <div className="calendar-day blank" key={"blank-" + index} />)}
                 {Array.from({ length: calendarMonths[calendarMonth].days }, (_, index) => index + 1).map((day) => {
-                  const dayEvents = calendarEvents.filter((event) => event.month === calendarMonth && event.day === day);
-                  return <button key={day} className={(dayEvents.length ? "has-events " : "") + (calendarMonth === 0 && day === 28 ? "today" : "")} onClick={() => { const first = dayEvents[0]; if (first) openCalendarEvent(first); }}><span>{day}</span>{dayEvents.length > 0 && <small>{dayEvents.slice(0, 3).map((event) => <i key={event.key} className={"dot-" + event.kind} />)}</small>}</button>;
+                  const allDayEvents = calendarEvents.filter((event) => event.month === calendarMonth && event.day === day);
+                  const dayEvents = allDayEvents.filter((event) => calendarFilter === "all" || event.kind === calendarFilter);
+                  const isToday = calendarMonth === 1 && day === 30;
+                  return <div key={day} className={"calendar-day" + (isToday ? " today" : "") + (dayEvents.length ? " has-events" : "")}>
+                    <div className="calendar-day-head">
+                      <span>{day}</span>
+                      <button className="calendar-day-add" title="Añadir tarea" aria-label={`Añadir tarea el día ${day}`} onClick={() => { setCalendarTaskDate(calendarIsoDate(day)); setCalendarTaskName(""); }}><Plus /></button>
+                    </div>
+                    <div className="calendar-day-items">
+                      {dayEvents.slice(0, 4).map((event) => <button key={event.key} className={"calendar-chip chip-" + event.kind} onClick={() => openCalendarEvent(event)} title={event.title}><i /><span>{event.title}</span></button>)}
+                      {dayEvents.length > 4 && <button className="calendar-more" onClick={() => setCalendarFilter("all")}>+{dayEvents.length - 4} más</button>}
+                    </div>
+                  </div>;
                 })}
               </div>
-              <div className="calendar-legend"><span><i className="dot-task" />Tarea</span><span><i className="dot-project" />Proyecto</span><span><i className="dot-holiday" />Ausencia</span></div>
-            </aside>
-            <section className="chronology-card">
-              <div className="chronology-head"><div><span>AGENDA</span><h2>Fechas clave</h2></div><strong>{visibleCalendarEvents.length} hitos</strong></div>
-              <div className="chronology-list">
-                {visibleEventDays.map((day) => <div className="chronology-day" key={day}>
-                  <div className="date-stamp"><strong>{day.toString().padStart(2, "0")}</strong><span>{calendarMonths[calendarMonth].short}</span></div>
-                  <div className="day-events">{visibleCalendarEvents.filter((event) => event.day === day).map((event) => <button key={event.key} className={"calendar-event event-" + event.kind} onClick={() => openCalendarEvent(event)}><i /><span><strong>{event.title}</strong><small>{event.meta}{event.account ? " · " + event.account : ""}</small></span><ChevronRight /></button>)}</div>
-                </div>)}
-                {visibleEventDays.length === 0 && <div className="calendar-empty"><CalendarDays /><strong>Mes despejado</strong><span>No hay fechas con este filtro. Sospechoso, pero agradable.</span></div>}
-              </div>
             </section>
-            <aside className="calendar-insight"><Sparkles /><span>LECTURA RÁPIDA</span><h2>La semana del 14 al 21 de septiembre concentra el riesgo.</h2><p>Hay cinco entregas, dos perfiles por encima del 90% de carga y cero margen para otra “reunión rápida”.</p><button onClick={() => { setCalendarMonth(1); setCalendarFilter("all"); }}>Ver septiembre <ArrowUpRight /></button></aside>
+
+            <aside className="calendar-side-stack">
+              <article className="calendar-insight compact-insight"><Sparkles /><span>LECTURA RÁPIDA</span><h2>{visibleCalendarEvents.length ? `${visibleCalendarEvents.length} hitos visibles este mes.` : "Mes despejado."}</h2><p>El calendario enseña ahora el trabajo donde ocurre: dentro de cada día. Revolucionario, aparentemente.</p></article>
+
+              <section className="chronology-card compact-chronology">
+                <div className="chronology-head"><div><span>AGENDA</span><h2>Fechas clave</h2></div><strong>{visibleCalendarEvents.length}</strong></div>
+                <div className="chronology-list">
+                  {visibleEventDays.slice(0, 8).map((day) => <div className="chronology-day" key={day}>
+                    <div className="date-stamp"><strong>{day.toString().padStart(2, "0")}</strong><span>{calendarMonths[calendarMonth].short}</span></div>
+                    <div className="day-events">{visibleCalendarEvents.filter((event) => event.day === day).slice(0, 2).map((event) => <button key={event.key} className={"calendar-event event-" + event.kind} onClick={() => openCalendarEvent(event)}><i /><span><strong>{event.title}</strong><small>{event.meta}{event.account ? " · " + event.account : ""}</small></span></button>)}</div>
+                  </div>)}
+                  {visibleEventDays.length === 0 && <div className="calendar-empty compact"><CalendarDays /><strong>Sin fechas clave</strong></div>}
+                </div>
+              </section>
+            </aside>
           </div>
         </section>
+
+        <Dialog open={Boolean(calendarTaskDate)} onOpenChange={(open) => { if (!open) { setCalendarTaskDate(null); setCalendarTaskName(""); } }}>
+          <DialogContent className="calendar-create-dialog">
+            <DialogHeader>
+              <DialogTitle>Nueva tarea</DialogTitle>
+              <DialogDescription>{calendarTaskDate ? new Date(calendarTaskDate + "T00:00:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }) : ""}</DialogDescription>
+            </DialogHeader>
+            <div className="calendar-create-form">
+              <input autoFocus value={calendarTaskName} onChange={(event) => setCalendarTaskName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createCalendarTask(); }} placeholder="Nombre de la tarea…" />
+            </div>
+            <DialogFooter><Button onClick={createCalendarTask}><Plus /> Crear tarea</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
       </TabsContent>
 
       <TabsContent value="accounts" className="view-content"><section className="accounts-grid">{accounts.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article key={account.name} className={`account-card ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`} style={{ "--account-color": account.color } as React.CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)}><div className="account-card-head"><AccountMark name={account.name} /><span className={`priority-pill ${priorityClass(account.priority)}`}>{account.priority}</span></div><h2>{account.name}</h2><p>{account.contract}</p><div className="account-stats"><span><b>{account.projects}</b> proyectos</span><span><b>{account.pulse}</b> pulso</span></div><div className="account-bar"><i style={{ width: `${account.pulse}%` }} /></div><button onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button></article>)}</section></TabsContent>
