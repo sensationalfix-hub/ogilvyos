@@ -686,6 +686,31 @@ export default function Home() {
     return { highLoad, available, enoughEvidence, fragile, spotlight, capacity, highestLoad, lowestEvidence };
   }, [team]);
 
+  const projectViewStats = useMemo(() => {
+    const now = Date.now();
+    const active = projects.filter((project) => !["Terminado","Cancelado"].includes(project.status));
+    const byStatus = Object.fromEntries(desiredProjectBoardOrder.map((status) => [status, active.filter((project) => project.status === status).length])) as Record<string, number>;
+    const enriched = active.map((project) => {
+      const projectTasks = allTasks.filter((task) => task.project === project.name && !["Terminado","Cancelado"].includes(task.status));
+      const datedTasks = projectTasks
+        .filter((task) => task.dateStart && new Date(task.dateStart).getTime() >= now)
+        .sort((a,b) => new Date(a.dateStart || 0).getTime() - new Date(b.dateStart || 0).getTime());
+      const nextTask = datedTasks[0] ?? null;
+      const riskScore = (project.priority === "Alta" ? 100 : project.priority === "Media" ? 40 : 10)
+        + projectTasks.length * 8
+        + (nextTask ? Math.max(0, 40 - Math.floor((new Date(nextTask.dateStart || 0).getTime() - now) / 86400000) * 4) : 0);
+      return { project, projectTasks, nextTask, riskScore };
+    });
+    const attention = [...enriched].sort((a,b) => b.riskScore - a.riskScore).slice(0,3);
+    const milestones = enriched
+      .filter((item) => item.nextTask)
+      .sort((a,b) => new Date(a.nextTask?.dateStart || 0).getTime() - new Date(b.nextTask?.dateStart || 0).getTime())
+      .slice(0,3);
+    const highPriority = enriched.filter((item) => item.project.priority === "Alta");
+    const busy = [...enriched].sort((a,b) => b.projectTasks.length - a.projectTasks.length);
+    return { active, byStatus, enriched, attention, milestones, highPriority, busy };
+  }, [projects, allTasks]);
+
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
@@ -1931,7 +1956,54 @@ export default function Home() {
         </section>
       </TabsContent>
 
-      <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelectedProjectPage(project)} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
+      <TabsContent value="projects" className="view-content projects-view">
+        <section className="projects-hero-grid">
+          <article className="projects-pulse-card">
+            <div className="projects-widget-kicker"><span>PULSO DE PROYECTOS</span><i /></div>
+            <div className="projects-pulse-copy">
+              <strong>{projectViewStats.active.length}</strong>
+              <span>proyectos activos</span>
+              <div className="projects-pulse-meta">
+                <span><b>{projectViewStats.byStatus["Ideas"] || 0}</b><small>ideas</small></span>
+                <span><b>{projectViewStats.byStatus["Producción"] || 0}</b><small>producción</small></span>
+                <span><b>{projectViewStats.byStatus["Seguimiento"] || 0}</b><small>seguimiento</small></span>
+              </div>
+            </div>
+            <div className="projects-pulse-stack">
+              {projectViewStats.attention.map((item,index)=><button key={item.project.id} onClick={()=>setSelectedProjectPage(item.project)}>
+                <span>{String(index+1).padStart(2,"0")}</span>
+                <div><strong>{item.project.name}</strong><small>{item.project.account} · {item.projectTasks.length} tareas abiertas</small></div>
+                <ArrowUpRight />
+              </button>)}
+            </div>
+          </article>
+
+          <article className="projects-milestones-card">
+            <header className="module-head"><div><span>AGENDA</span><h2>Próximos hitos</h2></div><CalendarDays /></header>
+            <div className="projects-milestones-list">
+              {projectViewStats.milestones.map((item,index)=><button key={item.project.id} onClick={()=>setSelectedProjectPage(item.project)}>
+                <span>{String(index+1).padStart(2,"0")}</span>
+                <div><strong>{item.nextTask?.name}</strong><small>{item.project.name} · {item.nextTask?.date}</small></div>
+                <ArrowUpRight />
+              </button>)}
+              {!projectViewStats.milestones.length&&<div className="projects-widget-empty">Sin hitos próximos</div>}
+            </div>
+          </article>
+
+          <article className="projects-risk-card">
+            <div className="projects-widget-kicker"><span>ATENCIÓN</span><i /></div>
+            <strong>{projectViewStats.highPriority.length}</strong>
+            <small>proyectos en prioridad alta</small>
+            <div className="projects-risk-next">
+              <span>MÁS CARGADO</span>
+              <strong>{projectViewStats.busy[0]?.project.name || "Sin carga"}</strong>
+              <small>{projectViewStats.busy[0] ? `${projectViewStats.busy[0].projectTasks.length} tareas abiertas · ${projectViewStats.busy[0].project.account}` : "No hay proyectos activos"}</small>
+            </div>
+          </article>
+        </section>
+
+        <section className="kanban-board project-board project-board-complete project-board-with-widgets">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelectedProjectPage(project)} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section>
+      </TabsContent>
 
       <TabsContent value="tasks" className="view-content tasks-view">
         <section className="mobile-only mobile-work">
