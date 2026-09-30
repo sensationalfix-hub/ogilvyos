@@ -7940,3 +7940,51 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   align-self: stretch !important;
   margin-bottom: 0 !important;
 }
+
+
+/* === Focus spacing fix v34 ================================================ */
+.dashboard-focus-card {
+  padding: 16px !important;
+  min-height: 206px !important;
+  height: 206px !important;
+  overflow: hidden !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+}
+
+.dashboard-focus-card .module-head {
+  min-height: 56px !important;
+  padding: 0 0 12px 0 !important;
+}
+
+.dashboard-focus-accordion {
+  height: 122px !important;
+  min-height: 122px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  align-self: end !important;
+}
+
+.dashboard-focus-accordion-card {
+  height: 118px !important;
+  min-height: 118px !important;
+  margin: 0 !important;
+}
+
+@media (max-width:1180px){
+  .dashboard-focus-card {
+    min-height: 200px !important;
+    height: 200px !important;
+  }
+
+  .dashboard-focus-accordion {
+    height: 116px !important;
+    min-height: 116px !important;
+  }
+
+  .dashboard-focus-accordion-card {
+    height: 112px !important;
+    min-height: 112px !important;
+  }
+}
