@@ -624,6 +624,58 @@ export default function Home() {
   const globalTimelineStart = operationalWeekStart;
   const globalTimelineEnd = useMemo(() => addDays(globalTimelineStart, timelineWeeks * 7), [globalTimelineStart, timelineWeeks]);
 
+  const timelineInsights = useMemo(() => {
+    const windowStart = globalTimelineStart.getTime();
+    const windowEnd = globalTimelineEnd.getTime();
+
+    const visibleProjects = projects.filter((project) => {
+      const start = project.timingStart ? new Date(project.timingStart + "T00:00:00").getTime() : NaN;
+      const end = project.timingEnd ? new Date(project.timingEnd + "T23:59:59").getTime() : start;
+      return Number.isFinite(start) && end >= windowStart && start <= windowEnd;
+    });
+
+    const visibleTasks = allTasks
+      .filter((task) => task.dateStart)
+      .map((task) => ({ task, time: new Date(task.dateStart!).getTime() }))
+      .filter(({ time }) => Number.isFinite(time) && time >= windowStart && time <= windowEnd)
+      .sort((a, b) => a.time - b.time);
+
+    const density = Array.from({ length: timelineWeeks }, (_, week) => {
+      const start = addDays(globalTimelineStart, week * 7).getTime();
+      const end = addDays(globalTimelineStart, (week + 1) * 7).getTime();
+      const taskWeight = visibleTasks.filter(({ time }) => time >= start && time < end).length;
+      const projectWeight = visibleProjects.filter((project) => {
+        const pStart = project.timingStart ? new Date(project.timingStart + "T00:00:00").getTime() : NaN;
+        const pEnd = project.timingEnd ? new Date(project.timingEnd + "T23:59:59").getTime() : pStart;
+        return Number.isFinite(pStart) && pEnd >= start && pStart < end;
+      }).length;
+      return taskWeight * 2 + projectWeight;
+    });
+
+    const maxDensity = Math.max(1, ...density);
+    const peakIndex = density.indexOf(Math.max(...density));
+    const peakStart = addDays(globalTimelineStart, Math.max(0, peakIndex) * 7);
+    const peakEnd = addDays(peakStart, 6);
+
+    const missingEnd = visibleProjects.filter((project) => project.timingStart && !project.timingEnd).length;
+    const nextMilestones = visibleTasks.slice(0, 3);
+
+    const overlaps = visibleProjects.reduce((count, project, index) => {
+      const start = project.timingStart ? new Date(project.timingStart + "T00:00:00").getTime() : NaN;
+      const end = project.timingEnd ? new Date(project.timingEnd + "T23:59:59").getTime() : start;
+      if (!Number.isFinite(start)) return count;
+      const hasOverlap = visibleProjects.slice(index + 1).some((other) => {
+        if (other.account !== project.account) return false;
+        const otherStart = other.timingStart ? new Date(other.timingStart + "T00:00:00").getTime() : NaN;
+        const otherEnd = other.timingEnd ? new Date(other.timingEnd + "T23:59:59").getTime() : otherStart;
+        return Number.isFinite(otherStart) && start <= otherEnd && otherStart <= end;
+      });
+      return count + (hasOverlap ? 1 : 0);
+    }, 0);
+
+    return { visibleProjects, visibleTasks, density, maxDensity, peakStart, peakEnd, missingEnd, nextMilestones, overlaps };
+  }, [projects, allTasks, globalTimelineStart, globalTimelineEnd, timelineWeeks]);
+
   const dashboardTasks = useMemo(() => tasks.filter((task) => taskLane(task) !== "Backlog"), [tasks]);
   const upcomingDeadlines = useMemo(() => {
     const now = new Date();
@@ -1718,74 +1770,117 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="timeline" className="view-content global-timeline-view">
-        <section className="global-timeline-shell timeline-v3">
-          <header className="global-timeline-toolbar timeline-toolbar-v3">
-            <div className="timeline-window">
-              <button className="timeline-today" onClick={() => setTimelineWeeks(8)}>Hoy</button>
-              <div><span>VENTANA</span><strong>{globalTimelineStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {globalTimelineEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}</strong></div>
-            </div>
-            <div className="timeline-range-switch">{[4, 8, 12].map((weeks) => <button key={weeks} className={timelineWeeks === weeks ? "active" : ""} onClick={() => setTimelineWeeks(weeks)}>{weeks} sem</button>)}</div>
-          </header>
+        <section className="timeline-roadmap-view">
+          <section className="timeline-insights-grid">
+            <article className="timeline-insight-card timeline-load-card">
+              <div className="timeline-insight-kicker"><span>CARGA TEMPORAL</span><Activity /></div>
+              <div className="timeline-load-head">
+                <div><strong>{timelineWeeks}</strong><span>semanas</span></div>
+                <small>{globalTimelineStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} → {globalTimelineEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small>
+              </div>
+              <div className="timeline-density-bars" aria-label="Densidad de trabajo por semana">
+                {timelineInsights.density.map((value, index) => <i key={index}><b style={{ height: `${Math.max(12, (value / timelineInsights.maxDensity) * 100)}%` }} /></i>)}
+              </div>
+              <div className="timeline-card-foot"><span>Pico de carga</span><strong>{timelineInsights.peakStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}–{timelineInsights.peakEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</strong></div>
+            </article>
 
-          <div className="global-timeline-scale timeline-scale-v3">
-            {Array.from({ length: timelineWeeks + 1 }, (_, index) => <span key={index} style={{ left: `${(index / timelineWeeks) * 100}%` }}>{addDays(globalTimelineStart, index * 7).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>)}
-          </div>
+            <article className="timeline-insight-card timeline-milestones-card">
+              <div className="timeline-insight-kicker"><span>PRÓXIMOS HITOS</span><CalendarRange /></div>
+              <div className="timeline-milestone-list">
+                {timelineInsights.nextMilestones.map(({ task, time }) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}>
+                  <time>{new Date(time).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase()}</time>
+                  <span><strong>{task.name}</strong><small>{task.project}</small></span>
+                  <ChevronRight />
+                </button>)}
+                {!timelineInsights.nextMilestones.length && <div className="timeline-widget-empty">Sin hitos fechados en esta ventana.</div>}
+              </div>
+            </article>
 
-          <div className="global-timeline-groups timeline-groups-v3">
-            {accounts.map((account) => {
-              const visibleAccountProjects = projects
-                .filter((project) => project.account === account.name)
-                .map((project) => {
-                  const left = timelinePercent(project.timingStart, globalTimelineStart, globalTimelineEnd);
-                  const right = timelinePercent(project.timingEnd || project.timingStart, globalTimelineStart, globalTimelineEnd);
-                  const visibleBar = left != null && right != null && right >= 0 && left <= 100;
+            <article className="timeline-insight-card timeline-radar-card">
+              <div className="timeline-insight-kicker"><span>RADAR</span><Target /></div>
+              <div className="timeline-radar-main">
+                <strong>{timelineInsights.visibleProjects.length}</strong>
+                <span>proyectos visibles</span>
+              </div>
+              <div className="timeline-radar-stats">
+                <div><b>{timelineInsights.overlaps}</b><span>solapes de cuenta</span></div>
+                <div><b>{timelineInsights.missingEnd}</b><span>sin fecha final</span></div>
+                <div><b>{timelineInsights.visibleTasks.length}</b><span>hitos en ventana</span></div>
+              </div>
+            </article>
+          </section>
 
-                  const visibleTasks = allTasks
-                    .filter((task) => task.project === project.name && task.dateStart)
-                    .map((task) => ({ task, pos: timelinePercent(task.dateStart, globalTimelineStart, globalTimelineEnd) }))
-                    .filter(({ pos }) => pos != null && pos >= 0 && pos <= 100) as { task: Task; pos: number }[];
-
-                  if (!visibleBar && !visibleTasks.length) return null;
-                  return { project, left, right, visibleBar, visibleTasks };
-                })
-                .filter(Boolean) as {
-                  project: Project;
-                  left: number | null;
-                  right: number | null;
-                  visibleBar: boolean;
-                  visibleTasks: { task: Task; pos: number }[];
-                }[];
-
-              if (!visibleAccountProjects.length) return null;
-
-              return <section key={account.name} className="timeline-account-group timeline-account-card" style={{ "--timeline-color": account.color } as React.CSSProperties}>
-                <header className="timeline-account-head">
-                  <span className="timeline-account-dot" />
-                  <div><strong>{account.name}</strong><small>{visibleAccountProjects.length} proyecto{visibleAccountProjects.length === 1 ? "" : "s"}</small></div>
-                </header>
-
-                <div className="timeline-account-projects">
-                  {visibleAccountProjects.map(({ project, left, right, visibleBar, visibleTasks }) => <button key={project.id} className="global-project-row timeline-project-row" onClick={() => setSelectedProjectPage(project)}>
-                    <span className="global-project-name timeline-project-name"><strong>{project.name}</strong><small>{project.status}</small></span>
-
-                    <span className="global-project-track timeline-project-track">
-                      {visibleBar && <i className="global-project-bar timeline-project-bar" style={{ left: `${clamp(left!)}%`, width: `${Math.max(2, clamp(right!) - clamp(left!))}%` }} />}
-
-                      {visibleTasks.map(({ task, pos }) => <b
-                        key={task.id}
-                        className={"global-task-marker status-" + task.status.toLowerCase().replaceAll(" ", "-")}
-                        style={{ left: `${pos}%` }}
-                      >
-                        <span className="timeline-marker-tooltip"><strong>{task.name}</strong><small>{task.date} · {task.status}</small></span>
-                      </b>)}
-                    </span>
-
-                    
-                  </button>)}
+          <section className="global-timeline-shell timeline-v4">
+            <header className="global-timeline-toolbar timeline-toolbar-v4">
+              <div className="timeline-window">
+                <div>
+                  <span>ROADMAP</span>
+                  <strong>{globalTimelineStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {globalTimelineEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}</strong>
                 </div>
-              </section>;
-            })}
-          </div>
+                <button className="timeline-today" onClick={() => setTimelineWeeks(8)}>Hoy</button>
+              </div>
+              <div className="timeline-range-switch"><span>VISTA</span>{[4, 8, 12].map((weeks) => <button key={weeks} className={timelineWeeks === weeks ? "active" : ""} onClick={() => setTimelineWeeks(weeks)}>{weeks}S</button>)}</div>
+            </header>
+
+            <div className="global-timeline-scale timeline-scale-v4">
+              {Array.from({ length: timelineWeeks + 1 }, (_, index) => <span key={index} style={{ left: `${(index / timelineWeeks) * 100}%` }}>{addDays(globalTimelineStart, index * 7).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>)}
+            </div>
+
+            <div className="global-timeline-groups timeline-groups-v4">
+              {accounts.map((account) => {
+                const visibleAccountProjects = projects
+                  .filter((project) => project.account === account.name)
+                  .map((project) => {
+                    const left = timelinePercent(project.timingStart, globalTimelineStart, globalTimelineEnd);
+                    const right = timelinePercent(project.timingEnd || project.timingStart, globalTimelineStart, globalTimelineEnd);
+                    const visibleBar = left != null && right != null && right >= 0 && left <= 100;
+                    const visibleTasks = allTasks
+                      .filter((task) => task.project === project.name && task.dateStart)
+                      .map((task) => ({ task, pos: timelinePercent(task.dateStart, globalTimelineStart, globalTimelineEnd) }))
+                      .filter(({ pos }) => pos != null && pos >= 0 && pos <= 100) as { task: Task; pos: number }[];
+                    if (!visibleBar && !visibleTasks.length) return null;
+                    return { project, left, right, visibleBar, visibleTasks };
+                  })
+                  .filter(Boolean) as {
+                    project: Project;
+                    left: number | null;
+                    right: number | null;
+                    visibleBar: boolean;
+                    visibleTasks: { task: Task; pos: number }[];
+                  }[];
+
+                if (!visibleAccountProjects.length) return null;
+
+                return <section key={account.name} className="timeline-account-group timeline-account-card-v4" style={{ "--timeline-color": account.color } as React.CSSProperties}>
+                  <header className="timeline-account-head-v4">
+                    <span className="timeline-account-dot" />
+                    <div><strong>{account.name}</strong><small>{visibleAccountProjects.length} proyecto{visibleAccountProjects.length === 1 ? "" : "s"}</small></div>
+                  </header>
+
+                  <div className="timeline-account-projects-v4">
+                    {visibleAccountProjects.map(({ project, left, right, visibleBar, visibleTasks }) => <button key={project.id} className="timeline-project-row-v4" onClick={() => setSelectedProjectPage(project)}>
+                      <span className="timeline-project-label-v4">
+                        <strong>{project.name}</strong>
+                        <small>{project.status}</small>
+                      </span>
+                      <span className="timeline-project-track-v4">
+                        {visibleBar && <i className="timeline-project-bar-v4" style={{ left: `${clamp(left!)}%`, width: `${Math.max(2.5, clamp(right!) - clamp(left!))}%` }}>
+                          <em>{project.name}</em>
+                        </i>}
+                        {visibleTasks.map(({ task, pos }) => <b
+                          key={task.id}
+                          className={"timeline-task-node status-" + task.status.toLowerCase().replaceAll(" ", "-")}
+                          style={{ left: `${pos}%` }}
+                        >
+                          <span className="timeline-marker-tooltip"><strong>{task.name}</strong><small>{task.date} · {task.status}</small></span>
+                        </b>)}
+                      </span>
+                    </button>)}
+                  </div>
+                </section>;
+              })}
+            </div>
+          </section>
         </section>
       </TabsContent>
 
