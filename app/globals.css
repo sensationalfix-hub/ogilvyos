@@ -8367,3 +8367,93 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     padding: 6px 9px !important;
   }
 }
+
+
+/* === Lime frosted deadlines + taller project cards v38 =================== */
+
+/* Frosted rail: lime-tinted glass */
+.dashboard-view .deadline-ribbon {
+  background: rgba(231,255,63,.58) !important;
+  backdrop-filter: blur(20px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
+  box-shadow: 0 12px 28px rgba(123,143,18,.12) !important;
+}
+
+.dashboard-view .deadline-ribbon::before {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.06)),
+    linear-gradient(90deg, rgba(231,255,63,.18), rgba(231,255,63,.06)) !important;
+  opacity: .7 !important;
+}
+
+.dashboard-view .deadline-ribbon-title,
+.dashboard-view .deadline-ribbon-title span {
+  color: rgba(21,25,20,.72) !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button {
+  background: rgba(255,255,255,.38) !important;
+  color: var(--ui-ink) !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button:hover {
+  background: rgba(255,255,255,.72) !important;
+  transform: translateY(-1px) !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button span {
+  color: rgba(21,25,20,.58) !important;
+}
+
+/* Active project cards: a bit taller, more editorial */
+.dashboard-view .dashboard-project {
+  min-height: 132px !important;
+  padding: 14px 16px 13px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  border-radius: 18px !important;
+}
+
+.dashboard-view .dashboard-project-top {
+  margin-bottom: 12px !important;
+}
+
+.dashboard-view .dashboard-project-copy {
+  margin: auto 0 !important;
+  text-align: center !important;
+}
+
+.dashboard-view .dashboard-project-copy strong {
+  display: block !important;
+  font-size: 15px !important;
+  line-height: 1.08 !important;
+  font-weight: 760 !important;
+  letter-spacing: -.03em !important;
+}
+
+.dashboard-view .dashboard-project-copy small {
+  display: block !important;
+  margin-top: 6px !important;
+  font-size: 8.5px !important;
+  line-height: 1.25 !important;
+}
+
+.dashboard-view .dashboard-project-footer {
+  margin-top: 14px !important;
+}
+
+.dashboard-view .project-overview-list {
+  gap: 10px !important;
+}
+
+@media (max-width:1180px){
+  .dashboard-view .dashboard-project {
+    min-height: 122px !important;
+    padding: 13px 14px 12px !important;
+  }
+
+  .dashboard-view .dashboard-project-copy strong {
+    font-size: 14px !important;
+  }
+}
