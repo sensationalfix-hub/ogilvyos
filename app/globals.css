@@ -15383,3 +15383,63 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     display:none!important;
   }
 }
+
+
+/* === Progressive edge fade for horizontal deadline rail ================= */
+.dashboard-view .deadline-ribbon-list{
+  position:relative!important;
+  isolation:isolate!important;
+  mask-image:linear-gradient(
+    to right,
+    transparent 0,
+    rgba(0,0,0,.45) 10px,
+    #000 24px,
+    #000 calc(100% - 34px),
+    rgba(0,0,0,.72) calc(100% - 18px),
+    transparent 100%
+  )!important;
+  -webkit-mask-image:linear-gradient(
+    to right,
+    transparent 0,
+    rgba(0,0,0,.45) 10px,
+    #000 24px,
+    #000 calc(100% - 34px),
+    rgba(0,0,0,.72) calc(100% - 18px),
+    transparent 100%
+  )!important;
+}
+
+.dashboard-view .deadline-ribbon-list::before,
+.dashboard-view .deadline-ribbon-list::after{
+  content:""!important;
+  position:sticky!important;
+  top:0!important;
+  bottom:0!important;
+  z-index:4!important;
+  flex:0 0 26px!important;
+  align-self:stretch!important;
+  pointer-events:none!important;
+  backdrop-filter:blur(5px)!important;
+  -webkit-backdrop-filter:blur(5px)!important;
+}
+
+.dashboard-view .deadline-ribbon-list::before{
+  left:0!important;
+  margin-right:-26px!important;
+  background:linear-gradient(to right,rgba(231,255,63,.34),rgba(231,255,63,0))!important;
+  mask-image:linear-gradient(to right,#000,transparent)!important;
+  -webkit-mask-image:linear-gradient(to right,#000,transparent)!important;
+}
+
+.dashboard-view .deadline-ribbon-list::after{
+  right:0!important;
+  margin-left:-26px!important;
+  background:linear-gradient(to left,rgba(231,255,63,.42),rgba(231,255,63,0))!important;
+  mask-image:linear-gradient(to left,#000,transparent)!important;
+  -webkit-mask-image:linear-gradient(to left,#000,transparent)!important;
+}
+
+.dashboard-view .deadline-ribbon-list > button{
+  position:relative!important;
+  z-index:1!important;
+}
