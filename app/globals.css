@@ -8203,3 +8203,167 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .dashboard-view .roster-person:last-child {
   margin-bottom: 4px !important;
 }
+
+
+/* === Upcoming dates horizontal frosted rail v37 ========================== */
+.dashboard-view .projects-overview {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .project-overview-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 8px 10px 78px !important;
+  scrollbar-gutter: stable;
+}
+
+/* Frosted rail sitting above scrolling project cards */
+.dashboard-view .deadline-ribbon {
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  z-index: 6 !important;
+  min-height: 54px !important;
+  padding: 9px 12px !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0,1fr) !important;
+  align-items: center !important;
+  gap: 12px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: rgba(250,251,248,.58) !important;
+  box-shadow: 0 12px 28px rgba(28,35,29,.10) !important;
+  backdrop-filter: blur(18px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.08) !important;
+}
+
+/* Heading */
+.dashboard-view .deadline-ribbon-title {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: #7d857e !important;
+  white-space: nowrap !important;
+}
+
+.dashboard-view .deadline-ribbon-title svg {
+  width: 13px !important;
+  height: 13px !important;
+  flex: none !important;
+  stroke-width: 1.8 !important;
+}
+
+.dashboard-view .deadline-ribbon-title span {
+  color: #7d857e !important;
+  font-size: 7.5px !important;
+  font-weight: 860 !important;
+  letter-spacing: .12em !important;
+}
+
+/* Horizontal deadline items */
+.dashboard-view .deadline-ribbon-list {
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap !important;
+  scrollbar-width: none !important;
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 20px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 20px), transparent 100%);
+}
+
+.dashboard-view .deadline-ribbon-list::-webkit-scrollbar {
+  display: none !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button {
+  flex: 0 0 auto !important;
+  min-height: 34px !important;
+  padding: 7px 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  background: rgba(255,255,255,.62) !important;
+  color: var(--ui-ink) !important;
+  box-shadow: none !important;
+  transition:
+    background .16s ease,
+    transform .16s ease,
+    color .16s ease !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button:hover {
+  background: var(--ui-lime) !important;
+  color: var(--ui-ink) !important;
+  transform: translateY(-1px) !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button strong {
+  color: inherit !important;
+  font-size: 8.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.01em !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button span {
+  color: #7e867f !important;
+  font-size: 8px !important;
+  font-weight: 560 !important;
+}
+
+.dashboard-view .deadline-ribbon-list > button:hover span {
+  color: rgba(21,25,20,.62) !important;
+}
+
+.dashboard-view .deadline-ribbon-list > small {
+  color: #929a93 !important;
+  font-size: 8px !important;
+}
+
+/* subtle glass edge, no outline */
+.dashboard-view .deadline-ribbon::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: inherit !important;
+  pointer-events: none !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.08)) !important;
+  opacity: .65 !important;
+}
+
+/* keep contents above glass sheen */
+.dashboard-view .deadline-ribbon > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+@media (max-width:1180px){
+  .dashboard-view .project-overview-list {
+    padding-bottom: 74px !important;
+  }
+
+  .dashboard-view .deadline-ribbon {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    min-height: 52px !important;
+    padding: 8px 10px !important;
+    gap: 10px !important;
+  }
+
+  .dashboard-view .deadline-ribbon-list > button {
+    min-height: 32px !important;
+    padding: 6px 9px !important;
+  }
+}
