@@ -867,7 +867,7 @@ export default function Home() {
           <div className="account-dock-title"><span>CUENTAS</span><small>Arrastra aquí una tarea o proyecto para reasignarlo</small></div>
           <div className="account-dock-track">{accounts.map((account) => <button key={account.name} className={`account-dock-chip ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "ready" : ""}`} style={{ "--account-color": account.color, "--account-contrast": accountContrast(account.color) } as React.CSSProperties}
             onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)} onClick={() => setSelectedAccount(account)}>
-            <AccountMark name={account.name} /><span><strong>{account.name}</strong><small>{account.projects} proyectos · {account.tasks} tareas</small></span><i />
+            <span className="account-dock-copy"><strong>{account.name}</strong><small>{account.projects} proyectos · {account.tasks} tareas</small></span><i />
           </button>)}</div>
         </section>
       </TabsContent>
