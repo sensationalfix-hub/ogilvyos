@@ -59,5 +59,6 @@ export const config = {
     "/team/:path*",
     "/calendar/:path*",
     "/holidays/:path*",
+    "/admin/:path*",
   ],
 };
