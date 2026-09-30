@@ -16040,3 +16040,266 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   pointer-events:auto!important;
   opacity:1!important;
 }
+
+
+/* === Buzón visual reset v2 ============================================== */
+.inbox-shell{
+  grid-template-rows:184px minmax(0,1fr)!important;
+  gap:14px!important;
+}
+
+.inbox-presence-card{
+  min-height:184px!important;
+  padding:22px 24px!important;
+  grid-template-columns:260px minmax(0,1fr)!important;
+  gap:28px!important;
+  border-radius:26px!important;
+  background:
+    radial-gradient(circle at 82% 18%,rgba(231,255,63,.10),transparent 24%),
+    #0d120f!important;
+}
+
+.inbox-presence-copy{
+  align-self:center!important;
+}
+.inbox-kicker{
+  font-size:10px!important;
+  letter-spacing:.15em!important;
+}
+.inbox-presence-copy strong{
+  margin-top:14px!important;
+  font-size:60px!important;
+  line-height:.88!important;
+}
+.inbox-presence-copy small{
+  margin-top:8px!important;
+  font-size:14px!important;
+}
+
+.inbox-presence-list{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  align-content:center!important;
+}
+.inbox-presence-person{
+  min-height:66px!important;
+  padding:10px 12px!important;
+  grid-template-columns:40px minmax(0,1fr) 10px!important;
+  gap:10px!important;
+  border-radius:18px!important;
+  background:rgba(255,255,255,.07)!important;
+  border:1px solid rgba(255,255,255,.035)!important;
+}
+.inbox-presence-avatar{
+  width:40px!important;
+  height:40px!important;
+  font-size:11px!important;
+}
+.inbox-presence-person strong{
+  font-size:12px!important;
+}
+.inbox-presence-person small{
+  margin-top:2px!important;
+  font-size:9px!important;
+}
+.inbox-presence-person>i{
+  width:8px!important;
+  height:8px!important;
+}
+
+.inbox-columns{
+  gap:14px!important;
+  grid-template-columns:minmax(0,1.08fr) minmax(390px,.92fr)!important;
+}
+.inbox-column{
+  padding:20px!important;
+  border-radius:26px!important;
+  background:rgba(255,255,255,.74)!important;
+}
+
+.inbox-section-head{
+  min-height:58px!important;
+  align-items:flex-start!important;
+}
+.inbox-section-head span{
+  font-size:9px!important;
+}
+.inbox-section-head h2{
+  margin-top:3px!important;
+  font-size:24px!important;
+  line-height:1!important;
+}
+.inbox-section-head>b{
+  min-width:34px!important;
+  height:34px!important;
+  font-size:11px!important;
+}
+
+.inbox-composer{
+  margin-bottom:14px!important;
+  padding:16px!important;
+  gap:10px!important;
+  border-radius:20px!important;
+  background:#f1f4ee!important;
+  border:1px solid rgba(28,34,29,.05)!important;
+}
+.inbox-composer-title{
+  gap:9px!important;
+}
+.inbox-composer-title svg{
+  width:17px!important;
+  height:17px!important;
+}
+.inbox-composer-title strong{
+  font-size:12px!important;
+}
+.inbox-composer input,
+.inbox-composer select{
+  min-height:44px!important;
+  padding:0 12px!important;
+  font-size:12px!important;
+}
+.inbox-composer textarea,
+.inbox-admin-tools textarea{
+  min-height:92px!important;
+  padding:12px!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+}
+.inbox-composer footer{
+  margin-top:2px!important;
+}
+.inbox-composer footer>span{
+  font-size:9px!important;
+}
+.inbox-composer footer button,
+.inbox-admin-tools button{
+  min-height:38px!important;
+  padding:0 14px!important;
+  font-size:10px!important;
+}
+
+/* Replace the huge native checkbox with a compact toggle-like control */
+.inbox-composer footer label{
+  position:relative!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  color:#677069!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  cursor:pointer!important;
+}
+.inbox-composer footer label input[type="checkbox"]{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  width:34px!important;
+  height:20px!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:#dfe4dc!important;
+  box-shadow:inset 0 0 0 1px rgba(24,29,25,.05)!important;
+  pointer-events:auto!important;
+  position:relative!important;
+  transition:background .16s ease!important;
+}
+.inbox-composer footer label input[type="checkbox"]::after{
+  content:""!important;
+  position:absolute!important;
+  top:3px!important;
+  left:3px!important;
+  width:14px!important;
+  height:14px!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  box-shadow:0 2px 5px rgba(20,25,20,.16)!important;
+  transition:transform .16s ease!important;
+}
+.inbox-composer footer label input[type="checkbox"]:checked{
+  background:var(--ui-lime)!important;
+}
+.inbox-composer footer label input[type="checkbox"]:checked::after{
+  transform:translateX(14px)!important;
+}
+
+.inbox-announcement-list,
+.inbox-request-list{
+  gap:10px!important;
+}
+.inbox-announcement,
+.inbox-request{
+  padding:16px!important;
+  border-radius:20px!important;
+}
+.inbox-announcement header span,
+.inbox-request header span{
+  font-size:8px!important;
+}
+.inbox-announcement time,
+.inbox-request header b{
+  font-size:8px!important;
+}
+.inbox-announcement h3,
+.inbox-request h3{
+  margin:10px 0 8px!important;
+  font-size:16px!important;
+}
+.inbox-announcement p,
+.inbox-request p{
+  font-size:11px!important;
+  line-height:1.58!important;
+}
+.inbox-announcement footer,
+.inbox-request footer{
+  margin-top:12px!important;
+  font-size:8px!important;
+}
+.inbox-request-author{
+  font-size:9px!important;
+}
+.inbox-admin-reply{
+  margin-top:12px!important;
+  padding:12px!important;
+  border-radius:14px!important;
+}
+.inbox-admin-reply span{
+  font-size:8px!important;
+}
+.inbox-admin-tools{
+  margin-top:12px!important;
+  gap:8px!important;
+}
+.inbox-empty-card{
+  min-height:122px!important;
+  font-size:10px!important;
+}
+
+/* make the functional split visually obvious */
+.inbox-announcements-column{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.84),rgba(255,255,255,.72))!important;
+}
+.inbox-requests-column{
+  background:
+    linear-gradient(180deg,rgba(247,249,244,.92),rgba(255,255,255,.74))!important;
+}
+.inbox-announcements-column .inbox-section-head::after,
+.inbox-requests-column .inbox-section-head::after{
+  content:""!important;
+  position:absolute!important;
+  left:20px!important;
+  right:20px!important;
+  margin-top:48px!important;
+  height:1px!important;
+  background:rgba(30,36,31,.06)!important;
+}
+.inbox-section-head{
+  position:relative!important;
+}
+
+@media(max-width:1250px){
+  .inbox-presence-list{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
