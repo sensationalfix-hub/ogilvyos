@@ -7589,3 +7589,125 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     font-size: 16px !important;
   }
 }
+
+
+/* === Dashboard spacing + unified hover + wider pulse spread v31 ========= */
+
+/* Prevent cards from being visually clipped inside modules */
+.dashboard-focus-card,
+.dashboard-focus-accordion,
+.dashboard-focus-accordion-card,
+.dashboard-pulse-card,
+.dashboard-pulse-hits,
+.dashboard-pulse-hit-card,
+.ops-panel,
+.team-roster {
+  overflow: visible !important;
+}
+
+.dashboard-focus-card {
+  min-height: 194px !important;
+  height: 194px !important;
+}
+
+.dashboard-focus-accordion {
+  height: 126px !important;
+  min-height: 126px !important;
+  padding-bottom: 4px !important;
+}
+
+.dashboard-focus-accordion-card {
+  min-height: 110px !important;
+}
+
+/* Account dock: one hover language, no account-specific colour shifts */
+.dashboard-view .account-dock-chip:hover {
+  background: var(--ui-lime) !important;
+  color: var(--ui-ink) !important;
+  box-shadow: 0 12px 24px rgba(153,173,32,.16) !important;
+  transform: translateY(-2px) !important;
+}
+
+.dashboard-view .account-dock-chip:hover .account-dock-copy strong,
+.dashboard-view .account-dock-chip:hover .account-dock-copy small {
+  color: var(--ui-ink) !important;
+}
+
+.dashboard-view .account-dock-chip:hover .account-dock-copy small {
+  opacity: .62 !important;
+}
+
+/* Make sure no legacy per-account CSS wins on hover */
+.dashboard-view .account-dock-chip[style]:hover {
+  background: var(--ui-lime) !important;
+}
+
+/* Pulse: spread the visual stack further left across available space */
+.dashboard-pulse-body {
+  grid-template-columns: minmax(0, .92fr) minmax(300px, 1.08fr) !important;
+}
+
+.dashboard-pulse-hits {
+  justify-self: stretch !important;
+  width: 100% !important;
+}
+
+.dashboard-pulse-hit-back,
+.dashboard-pulse-hit-card.pulse-hit-main {
+  width: 168px !important;
+  height: 136px !important;
+}
+
+.dashboard-pulse-hit-back.pulse-hit-back-2 {
+  transform: translate(-112%,-40%) rotate(-16deg) scale(.91) !important;
+}
+
+.dashboard-pulse-hit-back.pulse-hit-back-1 {
+  transform: translate(-78%,-46%) rotate(-8deg) scale(.95) !important;
+}
+
+.dashboard-pulse-hit-card.pulse-hit-main {
+  transform: translate(-28%,-50%) !important;
+}
+
+.dashboard-pulse-hit-card.pulse-hit-main:hover {
+  transform: translate(-28%,-52%) scale(1.02) !important;
+}
+
+/* Give the left copy slightly more breathing room */
+.dashboard-pulse-copy {
+  padding-left: 2px !important;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-focus-card {
+    min-height: 188px !important;
+    height: 188px !important;
+  }
+
+  .dashboard-pulse-body {
+    grid-template-columns: minmax(0, .96fr) minmax(260px, 1.04fr) !important;
+  }
+
+  .dashboard-pulse-hit-back,
+  .dashboard-pulse-hit-card.pulse-hit-main {
+    width: 152px !important;
+    height: 128px !important;
+  }
+
+  .dashboard-pulse-hit-back.pulse-hit-back-2 {
+    transform: translate(-102%,-40%) rotate(-15deg) scale(.91) !important;
+  }
+
+  .dashboard-pulse-hit-back.pulse-hit-back-1 {
+    transform: translate(-72%,-46%) rotate(-8deg) scale(.95) !important;
+  }
+
+  .dashboard-pulse-hit-card.pulse-hit-main {
+    transform: translate(-24%,-50%) !important;
+  }
+
+  .dashboard-pulse-hit-card.pulse-hit-main:hover {
+    transform: translate(-24%,-52%) scale(1.02) !important;
+  }
+}
