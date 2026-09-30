@@ -67,11 +67,7 @@ type Account = {
 };
 type TeamPerson = {
   id: string; url: string; name: string; role: string; assignment: string; contract: string | null; tier: string | null;
-  email: string | null; salary: number | null;
-  vacation: {
-    base: number | null; christmas: number | null; easter: number | null; bridges: number | null; agreement: number | null;
-    used: number | null; remaining: number | null; free: number | null; spent: number | null; extras: number | null;
-  };
+  email: string | null; salary: number | null; vacationRemaining: number | null;
   skills: string[]; growth: string[]; joined: string | null; initials: string; tone: string;
   load: number; activeTasks: number; activeProjects: number; projects: number;
   activeProjectNames: string[]; activeTaskNames: string[];
