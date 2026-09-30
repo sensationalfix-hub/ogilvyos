@@ -177,8 +177,8 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const ctx = await context(request);
-  if (!ctx || ctx.identity.role !== "editor") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const url = new URL(request.url);
@@ -194,6 +194,10 @@ export async function DELETE(request: Request) {
     : kind === "request"
       ? "requests"
       : null;
+
+  if (kind === "announcement" && ctx.identity.role !== "editor") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   if (!table) {
     return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
