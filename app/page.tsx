@@ -2539,28 +2539,161 @@ export default function Home() {
     </Dialog>
 
     <Dialog open={Boolean(selectedPerson)} onOpenChange={(open) => { if (!open) setSelectedPerson(null); }}>
-      <DialogContent className="full-detail-dialog detail-sheet employee-sheet">{selectedPerson && (() => {
+      <DialogContent className="full-detail-dialog employee-cockpit">{selectedPerson && (() => {
         const performance = personPerformance(selectedPerson);
-        const maxDistribution = Math.max(1, ...Object.values(selectedPerson.distribution));
         const sessionSignals = signalBoosts[selectedPerson.name];
         const sessionDimensions = dimensionBoosts[selectedPerson.name] ?? {};
+        const dimensionEntries = (Object.keys(dimensionLabels) as DimensionKey[]).map((key) => {
+          const session = sessionDimensions[key];
+          const stored = selectedPerson.dimensions[key];
+          const value = session?.count ? session.sum / session.count : stored;
+          return { key, value, label: dimensionLabels[key].label };
+        });
+        const activeProjectsForPerson = projects.filter((project) => selectedPerson.activeProjectNames.includes(project.name));
+        const recentTasks = allTasks
+          .filter((task) => task.people.includes(selectedPerson.name))
+          .sort((a,b) => String(b.dateStart || "").localeCompare(String(a.dateStart || "")))
+          .slice(0,5);
+        const history = selectedPerson.evaluationHistory ?? [];
+        const trend = history.slice(-8);
+        const trendPoints = trend.map((item,index) => {
+          const x = trend.length <= 1 ? 50 : (index / (trend.length - 1)) * 100;
+          const score = typeof item.score === "number" ? item.score : 0;
+          const y = 88 - (Math.max(0,Math.min(5,score)) / 5) * 72;
+          return `${x},${y}`;
+        }).join(" ");
+        const distributionMax = Math.max(1,...Object.values(selectedPerson.distribution));
         return <>
-          <DialogHeader>
-            <span className="sheet-kicker">FICHA DE EMPLEADO · DATOS REALES</span>
-            <div className="employee-hero"><div className={`avatar avatar-${selectedPerson.tone}`}>{selectedPerson.initials}</div><div><DialogTitle>{selectedPerson.name}</DialogTitle><DialogDescription>{selectedPerson.role} · {selectedPerson.assignment}</DialogDescription>{selectedPerson.activeProjectNames.length > 0 && <div className="employee-projects-inline">{selectedPerson.activeProjectNames.map((project) => <span key={project}>{project}</span>)}</div>}</div><span className="employee-tier">{selectedPerson.tier ?? "—"}</span></div>
-          </DialogHeader>
-          <div className="sheet-body employee-body">
-            <section className="employee-kpis">
-              <article><span>ÍNDICE</span><strong>{performance.ratio ?? "—"}<small>/100</small></strong><p>{confidence(performance.count)}</p></article>
-              <article><span>TAREAS</span><strong>{oneDecimal(selectedPerson.taskScore)}<small>/5</small></strong><p>Ejecución</p></article>
-              <article><span>PROYECTOS</span><strong>{oneDecimal(selectedPerson.projectScore)}<small>/5</small></strong><p>Calidad final</p></article>
-              <article><span>EVIDENCIA</span><strong>{selectedPerson.evidence}</strong><p>{selectedPerson.evaluations ? `${selectedPerson.evaluations} detalladas` : "Ratings históricos"}</p></article>
+          <div className="employee-cockpit-scroll">
+            <header className="employee-cockpit-header">
+              <div className={`employee-cockpit-avatar avatar-${selectedPerson.tone}`}><span>{selectedPerson.initials}</span></div>
+              <div className="employee-cockpit-identity">
+                <span className="employee-cockpit-kicker">FICHA DE EMPLEADO</span>
+                <DialogTitle>{selectedPerson.name}</DialogTitle>
+                <DialogDescription>{selectedPerson.role} · {selectedPerson.assignment}</DialogDescription>
+                <div className="employee-cockpit-project-chips">
+                  {selectedPerson.activeProjectNames.slice(0,4).map((project)=><span key={project}>{project}</span>)}
+                  {selectedPerson.activeProjectNames.length>4&&<span>+{selectedPerson.activeProjectNames.length-4}</span>}
+                </div>
+                <div className="employee-cockpit-meta">
+                  <span>Incorporación · {shortDate(selectedPerson.joined)}</span>
+                  <span>{selectedPerson.activeProjects} proyectos activos</span>
+                  <span>{selectedPerson.evaluations} evaluaciones</span>
+                </div>
+              </div>
+              <div className="employee-cockpit-contact">
+                <div><Mail/><span><small>Email</small><b>{selectedPerson.email || "Sin email"}</b></span></div>
+                <div><Banknote/><span><small>Sueldo</small><b>{currencyEUR(selectedPerson.salary)}{selectedPerson.salary != null ? " / año" : ""}</b></span></div>
+                <div><Palmtree/><span><small>Vacaciones restantes</small><b>{selectedPerson.vacationRemaining != null ? `${selectedPerson.vacationRemaining} días` : "—"}</b></span></div>
+              </div>
+              <div className="employee-cockpit-status">
+                <div style={{"--index-color":ratioColor(performance.ratio)} as React.CSSProperties}>
+                  <strong>{performance.ratio ?? "—"}<small>/100</small></strong>
+                  <span>Índice observado</span>
+                  <b>{confidence(performance.count)}</b>
+                </div>
+                <div><strong>{selectedPerson.load}%</strong><span>carga actual</span></div>
+              </div>
+            </header>
+
+            <section className="employee-cockpit-bento">
+              <article className="employee-reading-card">
+                <div className="employee-cockpit-module-head"><span>LECTURA ACTUAL</span><Activity/></div>
+                <div className="employee-reading-layout">
+                  <div className="employee-reading-score"><strong>{performance.ratio ?? "—"}</strong><span>Índice observado</span><small>{confidence(performance.count)} · {performance.count} evaluaciones</small></div>
+                  <div className="employee-vertical-dimensions">
+                    {dimensionEntries.slice(0,4).map((item)=><div key={item.key} className="employee-vertical-dimension" title={`${item.label} · ${oneDecimal(item.value)} / 5`}>
+                      <span><b>{oneDecimal(item.value)}</b><small>{item.label}</small></span>
+                      <i><em style={{height:`${typeof item.value==="number"?Math.max(8,item.value*20):0}%`}} /></i>
+                    </div>)}
+                  </div>
+                </div>
+              </article>
+
+              <article className="employee-load-card">
+                <div className="employee-cockpit-module-head"><span>CARGA Y ACTIVIDAD</span><CircleGauge/></div>
+                <div className="employee-load-ring" style={{"--load":selectedPerson.load} as React.CSSProperties}><div><strong>{selectedPerson.load}%</strong><small>carga actual</small></div></div>
+                <div className="employee-load-copy"><b>{selectedPerson.activeProjects} proyectos</b><b>{selectedPerson.activeTasks} tareas</b></div>
+                <div className="employee-load-projects">{selectedPerson.activeProjectNames.slice(0,3).map((name)=><span key={name}>{name}</span>)}</div>
+              </article>
+
+              <article className="employee-evidence-card">
+                <div className="employee-cockpit-module-head"><span>EVIDENCIA</span><Sparkles/></div>
+                <strong>{performance.count}</strong>
+                <span>evaluaciones</span>
+                <b>{confidence(performance.count)}</b>
+                <div className="employee-evidence-scale"><i/><i/><i className={performance.count>=8?"active":""}/></div>
+                <div className="employee-evidence-foot"><span><b>{selectedPerson.completedTasks}</b> tareas cerradas</span><span><b>{selectedPerson.completedProjects}</b> proyectos cerrados</span></div>
+              </article>
             </section>
-            <section className="employee-section"><div className="employee-section-title"><CircleGauge /><div><span>TRABAJO ACTIVO</span><h3>Carga, sin mezclarla con desempeño</h3></div></div><div className="workload-big"><strong>{selectedPerson.load}%</strong><div><Progress value={selectedPerson.load} className={selectedPerson.load >= 75 ? "load-progress hot" : selectedPerson.load >= 45 ? "load-progress warm" : "load-progress cool"} /><span>{selectedPerson.activeProjects} proyectos · {selectedPerson.activeTasks} tareas activas</span></div></div>{selectedPerson.activeProjectNames.length > 0 && <div className="active-project-list"><span>PROYECTOS ACTIVOS</span>{selectedPerson.activeProjectNames.map((project) => <b key={project}>{project}</b>)}</div>}</section>
-            <section className="employee-section"><div className="employee-section-title"><TrendingUp /><div><span>HISTÓRICO</span><h3>Distribución de puntuaciones</h3></div></div><div className="rating-distribution">{[5, 4, 3, 2, 1].map((rating) => { const count = selectedPerson.distribution[String(rating) as keyof typeof selectedPerson.distribution] ?? 0; return <div key={rating}><span>{rating}<Star /></span><i><b style={{ width: (count / maxDistribution) * 100 + "%" }} /></i><strong>{count}</strong></div>; })}</div><p className="history-caption">{selectedPerson.completedTasks} tareas y {selectedPerson.completedProjects} proyectos completados vinculados.</p></section>
-            <section className="employee-section"><div className="employee-section-title"><Target /><div><span>RÚBRICA</span><h3>Calidad, timing, colaboración y criterio</h3></div></div><div className="dimension-profile">{(Object.keys(dimensionLabels) as DimensionKey[]).map((key) => { const session = sessionDimensions[key]; const stored = selectedPerson.dimensions[key]; const value = session?.count ? session.sum / session.count : stored; return <div key={key}><span>{dimensionLabels[key].label}<small>{dimensionLabels[key].hint}</small></span><i><b style={{ width: value ? `${value * 20}%` : "0%" }} /></i><strong>{oneDecimal(value)}</strong></div>; })}</div><p className="history-caption">Notion ya tiene estas dimensiones preparadas. Empezarán a formar histórico con los nuevos cierres detallados.</p></section>
-            <section className="employee-section"><div className="employee-section-title"><Sparkles /><div><span>PERFIL</span><h3>Fortalezas y focos de desarrollo</h3></div></div><div className="skill-columns"><div><span>SKILLS</span><div className="tag-cloud">{selectedPerson.skills.length ? selectedPerson.skills.map((skill) => <b key={skill}>{skill}</b>) : <small>Sin datos</small>}</div></div><div><span>DESARROLLO</span><div className="tag-cloud growth">{selectedPerson.growth.length ? selectedPerson.growth.map((skill) => <b key={skill}>{skill}</b>) : <small>Sin señales registradas</small>}</div></div></div>{sessionSignals && <div className="session-signals"><span>SEÑALES DE ESTA SESIÓN</span><div className="tag-cloud">{Object.entries(sessionSignals.positive).map(([signal, count]) => <b key={signal}>+ {signal} · {count}</b>)}{Object.entries(sessionSignals.negative).map(([signal, count]) => <b className="negative" key={signal}>− {signal} · {count}</b>)}</div></div>}</section>
-            <section className="employee-section data-gaps"><div className="employee-section-title"><AlertTriangle /><div><span>CALIDAD DE DATOS</span><h3>Qué falta para una Career Conversation sólida</h3></div></div><ul><li>Esfuerzo u horas por tarea</li><li>Autor y fecha de cada evaluación</li><li>Rol individual dentro del proyecto</li><li>Feedback textual estructurado</li>{!selectedPerson.joined && <li>Fecha de incorporación</li>}</ul></section>
+
+            <section className="employee-cockpit-midgrid">
+              <article className="employee-trend-card">
+                <div className="employee-cockpit-module-head"><div><span>EVOLUCIÓN</span><h3>Índice observado en el tiempo</h3></div><TrendingUp/></div>
+                {trend.length>1 ? <div className="employee-trend-chart">
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Evolución de evaluaciones">
+                    <polyline points={trendPoints} fill="none" vectorEffect="non-scaling-stroke"/>
+                    {trend.map((item,index)=>{
+                      const x=trend.length<=1?50:(index/(trend.length-1))*100;
+                      const score=typeof item.score==="number"?item.score:0;
+                      const y=88-(Math.max(0,Math.min(5,score))/5)*72;
+                      return <circle key={item.id} cx={x} cy={y} r="1.8"><title>{item.projectName||item.taskName||item.type} · {oneDecimal(item.score)}/5 · {shortDate(item.date)}</title></circle>;
+                    })}
+                  </svg>
+                  <div className="employee-trend-labels"><span>{shortDate(trend[0]?.date)}</span><b>{oneDecimal(trend.at(-1)?.score)} / 5</b><span>{shortDate(trend.at(-1)?.date)}</span></div>
+                </div> : <div className="employee-trend-empty"><TrendingUp/><strong>Histórico insuficiente</strong><span>Necesitamos al menos dos evaluaciones fechadas para dibujar evolución.</span></div>}
+              </article>
+
+              <article className="employee-distribution-card">
+                <div className="employee-cockpit-module-head"><div><span>DISTRIBUCIÓN</span><h3>Puntuaciones</h3></div><Star/></div>
+                <div className="employee-histogram">
+                  {[1,2,3,4,5].map((rating)=>{
+                    const count=selectedPerson.distribution[String(rating) as keyof typeof selectedPerson.distribution]||0;
+                    return <div key={rating}><i><em style={{height:`${Math.max(4,(count/distributionMax)*100)}%`}} /></i><b>{count}</b><span>{rating}★</span></div>;
+                  })}
+                </div>
+                <div className="employee-distribution-average"><span>Media observada</span><strong>{oneDecimal(selectedPerson.score)} / 5</strong></div>
+              </article>
+            </section>
+
+            <section className="employee-how-card">
+              <div className="employee-cockpit-module-head"><div><span>CÓMO FUNCIONA</span><h3>Lectura por dimensiones</h3></div><Target/></div>
+              <div className="employee-dimension-tiles">
+                {dimensionEntries.map((item)=><article key={item.key}>
+                  <div className="employee-dimension-ring" style={{"--dimension":typeof item.value==="number"?Math.max(0,Math.min(100,item.value*20)):0} as React.CSSProperties}><strong>{oneDecimal(item.value)}</strong></div>
+                  <span>{item.label}</span>
+                  <small>{performance.count ? `${performance.count} evaluaciones` : "Sin muestra"}</small>
+                </article>)}
+              </div>
+            </section>
+
+            <section className="employee-cockpit-lowergrid">
+              <article className="employee-current-work-card">
+                <div className="employee-cockpit-module-head"><div><span>TRABAJO ACTUAL</span><h3>Proyectos activos</h3></div><FolderKanban/></div>
+                <div className="employee-current-projects">
+                  {activeProjectsForPerson.map((project)=><button key={project.id} onClick={()=>{setSelectedPerson(null);setSelectedProjectPage(project);}}>
+                    <span>{project.account}</span><strong>{project.name}</strong><small>{project.status} · {allTasks.filter((task)=>task.project===project.name&&!["Terminado","Cancelado"].includes(task.status)).length} tareas</small><ChevronRight/>
+                  </button>)}
+                  {!activeProjectsForPerson.length&&<div className="employee-empty-state">Sin proyectos activos</div>}
+                </div>
+              </article>
+
+              <article className="employee-activity-card">
+                <div className="employee-cockpit-module-head"><div><span>ACTIVIDAD RECIENTE</span><h3>Últimos movimientos</h3></div><Clock3/></div>
+                <div className="employee-activity-list">
+                  {history.slice(-4).reverse().map((item)=><div key={item.id}><span>{shortDate(item.date)}</span><strong>{item.projectName||item.taskName||item.type}</strong><small>{oneDecimal(item.score)} / 5{item.quality!=null?` · calidad ${oneDecimal(item.quality)}`:""}{item.timing!=null?` · timing ${oneDecimal(item.timing)}`:""}</small></div>)}
+                  {!history.length&&recentTasks.map((task)=><button key={task.id} onClick={()=>setDetail({kind:"task",...task})}><span>{task.date}</span><strong>{task.name}</strong><small>{task.project} · {task.status}</small></button>)}
+                  {!history.length&&!recentTasks.length&&<div className="employee-empty-state">Sin actividad reciente</div>}
+                </div>
+              </article>
+
+              <article className="employee-profile-card-detail">
+                <div className="employee-cockpit-module-head"><div><span>PERFIL</span><h3>Fortalezas y crecimiento</h3></div><Sparkles/></div>
+                <div className="employee-profile-group"><span>SKILLS</span><div>{selectedPerson.skills.length?selectedPerson.skills.map((skill)=><b key={skill}>{skill}</b>):<small>Sin datos</small>}</div></div>
+                <div className="employee-profile-group growth"><span>ÁREAS DE CRECIMIENTO</span><div>{selectedPerson.growth.length?selectedPerson.growth.map((skill)=><b key={skill}>{skill}</b>):<small>Sin señales registradas</small>}</div></div>
+                {sessionSignals&&<div className="employee-profile-group session"><span>SEÑALES DE ESTA SESIÓN</span><div>{Object.entries(sessionSignals.positive).map(([signal,count])=><b key={signal}>+ {signal} · {count}</b>)}{Object.entries(sessionSignals.negative).map(([signal,count])=><b className="negative" key={signal}>− {signal} · {count}</b>)}</div></div>}
+              </article>
+            </section>
           </div>
         </>;
       })()}</DialogContent>
