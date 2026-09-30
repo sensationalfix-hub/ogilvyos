@@ -5207,3 +5207,126 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     min-width: 760px;
   }
 }
+
+
+/* === Calendar day cards + visible Today control v20 ====================== */
+.calendar-month-grid {
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(108px, 1fr) !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  overflow: auto !important;
+  background: transparent !important;
+}
+
+.calendar-day {
+  min-width: 0 !important;
+  min-height: 108px !important;
+  padding: 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  background: #fff !important;
+  border: 1px solid #e7ebe5 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 2px 8px rgba(37,49,36,.04) !important;
+  transition:
+    background .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease,
+    transform .16s ease !important;
+}
+
+.calendar-day.blank {
+  background: #f7f8f5 !important;
+  border: 1px dashed #e4e8e2 !important;
+  box-shadow: none !important;
+}
+
+.calendar-day:not(.blank):hover {
+  background: #fbfcf9 !important;
+  border-color: #d7ddd5 !important;
+  box-shadow: 0 8px 18px rgba(37,49,36,.08) !important;
+  transform: translateY(-1px);
+}
+
+.calendar-day.today {
+  background:
+    linear-gradient(180deg, rgba(223,255,43,.10), rgba(223,255,43,.025)),
+    #fff !important;
+  border-color: #dbe4b0 !important;
+  box-shadow: 0 6px 16px rgba(180,196,95,.10) !important;
+}
+
+.calendar-day-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  margin-bottom: 2px !important;
+}
+
+.calendar-day-head > span {
+  width: 28px !important;
+  height: 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 10px !important;
+  background: #f4f6f2 !important;
+  color: #424942 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+}
+
+.calendar-day.today .calendar-day-head > span {
+  background: var(--ogilvy-ink) !important;
+  color: #fff !important;
+}
+
+.calendar-day-items {
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+}
+
+.calendar-chip {
+  min-height: 22px !important;
+  padding: 4px 6px !important;
+  border-radius: 8px !important;
+}
+
+.calendar-month-board {
+  padding-bottom: 8px !important;
+  border-radius: 18px !important;
+}
+
+/* Generic month nav buttons are icon-sized; Today is not. Make it explicit. */
+.month-switcher .today-button {
+  width: auto !important;
+  min-width: 54px !important;
+  height: 34px !important;
+  padding: 0 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #dfe5dd !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #394139 !important;
+  box-shadow: 0 2px 8px rgba(37,49,36,.04) !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: .02em !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.month-switcher .today-button:hover {
+  border-color: #c9d2c6 !important;
+  background: #f5f7f3 !important;
+  color: #1f251f !important;
+}
