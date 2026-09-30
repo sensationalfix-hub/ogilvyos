@@ -299,6 +299,8 @@ export default function Home() {
   const [calendarTaskDate, setCalendarTaskDate] = useState<string | null>(null);
   const [calendarTaskName, setCalendarTaskName] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<TeamPerson | null>(null);
+  const [teamRoleFilter, setTeamRoleFilter] = useState<"all" | "art" | "copy">("all");
+  const [teamSort, setTeamSort] = useState<"activity" | "load" | "ratio" | "evidence">("activity");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
   const [timelineWeeks, setTimelineWeeks] = useState(8);
@@ -664,6 +666,19 @@ export default function Home() {
     .sort((a,b) => plannerMinutes(a.dateStart) - plannerMinutes(b.dateStart));
   const mobileAgendaMilestones = weeklyProjectMilestones.filter((event) => event.date === mobileAgendaKey);
   const mobileAgendaHolidays = weeklyHolidays.filter((holiday) => holiday.start <= mobileAgendaKey && holiday.end >= mobileAgendaKey);
+
+  const teamViewStats = useMemo(() => {
+    const highLoad = team.filter((person) => person.load >= 75);
+    const available = team.filter((person) => person.load <= 24);
+    const enoughEvidence = team.filter((person) => person.evidence >= 8);
+    const fragile = team.filter((person) => person.evidence < 3);
+    const activity = (person: TeamPerson) => person.activeProjects * 3 + person.activeTasks;
+    const spotlight = [...team].sort((a,b) => (b.load * 2 + activity(b) * 8 + (b.evidence < 3 ? 18 : 0)) - (a.load * 2 + activity(a) * 8 + (a.evidence < 3 ? 18 : 0))).slice(0,3);
+    const capacity = [...team].sort((a,b) => a.load - b.load || activity(b) - activity(a)).slice(0,3);
+    const highestLoad = [...team].sort((a,b) => b.load - a.load).slice(0,2);
+    const lowestEvidence = [...team].sort((a,b) => a.evidence - b.evidence || activity(b) - activity(a)).slice(0,2);
+    return { highLoad, available, enoughEvidence, fragile, spotlight, capacity, highestLoad, lowestEvidence };
+  }, [team]);
 
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
@@ -2020,25 +2035,142 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="people-summary">
-          <article><Target /><span><b>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</b> elementos puntuados</span></article>
-          <article><TrendingUp /><span><b>{team.filter((person) => person.evaluations >= 8).length}</b> fichas con muestra alta</span></article>
-          <article><AlertTriangle /><span><b>{team.filter((person) => person.evaluations < 3).length}</b> fichas aún frágiles</span></article>
-          <div><strong>Índice de desempeño</strong><small>60% ejecución de tareas + 40% calidad de proyectos. La carga va aparte.</small></div>
+        <section className="team-hero-grid">
+          <article className="team-pulse-card">
+            <div className="team-widget-kicker"><span>PULSO DEL EQUIPO</span><i /></div>
+            <div className="team-pulse-copy">
+              <strong>{team.length}</strong>
+              <span>personas activas</span>
+              <div className="team-pulse-meta">
+                <span><b>{teamViewStats.highLoad.length}</b><small>carga alta</small></span>
+                <span><b>{teamViewStats.available.length}</b><small>disponibles</small></span>
+                <span><b>{teamViewStats.enoughEvidence.length}</b><small>muestra sólida</small></span>
+              </div>
+            </div>
+            <div className="team-pulse-stack">
+              {teamViewStats.spotlight.map((person,index)=>{
+                const performance=personPerformance(person);
+                return <button key={person.id} onClick={()=>setSelectedPerson(person)}>
+                  <span>{String(index+1).padStart(2,"0")}</span>
+                  <div><strong>{person.name}</strong><small>{person.activeProjects} proyectos · {person.activeTasks} tareas · {confidence(performance.count)}</small></div>
+                  <b>{performance.ratio ?? "—"}</b>
+                </button>;
+              })}
+            </div>
+          </article>
+
+          <article className="team-capacity-card">
+            <header className="module-head"><div><span>DISPONIBILIDAD</span><h2>Dónde hay hueco</h2></div><Users /></header>
+            <div className="team-capacity-list">
+              {teamViewStats.capacity.map((person,index)=><button key={person.id} onClick={()=>setSelectedPerson(person)}>
+                <span>{String(index+1).padStart(2,"0")}</span>
+                <div><strong>{person.name}</strong><small>{person.activeProjects} proyectos · {person.activeTasks} tareas</small></div>
+                <b>{person.load}%</b>
+              </button>)}
+            </div>
+          </article>
+
+          <article className="team-coverage-card">
+            <div className="team-widget-kicker"><span>COBERTURA</span><i /></div>
+            <strong>{teamViewStats.enoughEvidence.length}<small> / {team.length}</small></strong>
+            <span>con muestra suficiente</span>
+            <div className="team-coverage-next">
+              <b>{teamViewStats.fragile.length}</b>
+              <small>perfiles necesitan más evidencia</small>
+              <strong>{teamViewStats.fragile[0]?.name || "Cobertura sólida"}</strong>
+            </div>
+          </article>
         </section>
-        <section className="team-layout">
-          <div className="team-grid">{team.filter((person) => !q || (person.name + " " + person.role + " " + person.skills.join(" ")).toLowerCase().includes(q)).map((person) => {
-            const performance = personPerformance(person);
-            return <button key={person.name} className="team-card employee-card" draggable onClick={() => setSelectedPerson(person)}
-              onDragStart={(event) => { event.dataTransfer.setData("text/plain", `person:${person.name}`); setDragging(`person:${person.name}`); }} onDragEnd={() => setDragging(null)}>
-              <div className={`avatar avatar-${person.tone}`}>{person.initials}</div><div className="team-copy"><h2>{person.name}</h2><p>{person.role} · {person.assignment}</p></div>
-              <span className={`ratio-chip ${performance.ratio == null ? "empty" : ""}`}>{performance.ratio ?? "—"}<small>/100</small></span>
-              <div className="profile-metrics"><span><b>{person.activeProjects}</b> proyectos</span><span><b>{person.activeTasks}</b> tareas</span><span><b>{performance.count}</b> evaluaciones</span></div>
-              <div className="load-row"><span>CARGA RELATIVA</span><b>{person.load}%</b></div><Progress value={person.load} className={person.load >= 75 ? "load-progress hot" : person.load >= 45 ? "load-progress warm" : "load-progress cool"} />
-              <div className="team-footer"><span>{confidence(performance.count)}</span><span>Ver ficha <ChevronRight /></span></div>
-            </button>;
-          })}</div>
-          <aside className="capacity-note data-health-card"><Sparkles /><span>SCHEMA HEALTH · NOTION</span><h2>{schemaState === "live" ? (schemaIssues.length ? `${schemaIssues.length} propiedades requieren atención` : "Estructura sincronizada y sana") : schemaState === "error" ? "No se pudo leer el schema en vivo" : "Comprobando la estructura real…"}</h2><ul><li><Check /> {taskStatusOptions.length} estados de tarea leídos</li><li><Check /> {projectStatusOptions.length} estados de proyecto leídos</li><li><Check /> {projectTypeOptions.length} tipos de proyecto leídos</li><li><Check /> {taskPriorityOptions.length} prioridades de tarea · {projectPriorityOptions.length} de proyecto</li>{schemaIssues.slice(0, 3).map((issue) => <li key={`${issue.source}-${issue.name}`}><AlertTriangle /> {issue.source}: falta {issue.name}</li>)}</ul><p>{schemaState === "live" ? "WorkOS usa estas opciones directamente. Los cambios de schema en Notion se detectan al cargar." : "Mientras Notion no responda, la interfaz conserva un fallback local y bloquea la falsa sensación de sincronía."}</p></aside>
+
+        <section className="team-toolbar">
+          <div className="team-filter-chips">
+            <button className={teamRoleFilter==="all"?"active":""} onClick={()=>setTeamRoleFilter("all")}>Todos</button>
+            <button className={teamRoleFilter==="art"?"active":""} onClick={()=>setTeamRoleFilter("art")}>Dirección de Arte</button>
+            <button className={teamRoleFilter==="copy"?"active":""} onClick={()=>setTeamRoleFilter("copy")}>Copy</button>
+          </div>
+          <label>Ordenar
+            <select value={teamSort} onChange={(event)=>setTeamSort(event.target.value as typeof teamSort)}>
+              <option value="activity">Actividad</option>
+              <option value="load">Carga</option>
+              <option value="ratio">Índice observado</option>
+              <option value="evidence">Muestra</option>
+            </select>
+          </label>
+        </section>
+
+        <section className="team-layout team-layout-redesign">
+          <div className="team-grid team-grid-redesign">
+            {[...team]
+              .filter((person) => !q || (person.name + " " + person.role + " " + person.skills.join(" ")).toLowerCase().includes(q))
+              .filter((person) => teamRoleFilter==="all" || (teamRoleFilter==="art" ? person.role.toLocaleLowerCase("es").includes("arte") : person.role.toLocaleLowerCase("es").includes("copy")))
+              .sort((a,b)=>{
+                if(teamSort==="load") return b.load-a.load;
+                if(teamSort==="ratio") return (personPerformance(b).ratio ?? -1)-(personPerformance(a).ratio ?? -1);
+                if(teamSort==="evidence") return b.evidence-a.evidence;
+                return (b.activeProjects*3+b.activeTasks)-(a.activeProjects*3+a.activeTasks);
+              })
+              .map((person) => {
+                const performance = personPerformance(person);
+                const dimensionEntries = (Object.keys(dimensionLabels) as DimensionKey[])
+                  .map((key)=>({key,label:dimensionLabels[key].label,value:person.dimensions[key]}))
+                  .filter((item)=>typeof item.value==="number");
+                return <button key={person.name} className="team-card employee-card employee-card-redesign" draggable onClick={() => setSelectedPerson(person)}
+                  onDragStart={(event) => { event.dataTransfer.setData("text/plain", `person:${person.name}`); setDragging(`person:${person.name}`); }} onDragEnd={() => setDragging(null)}>
+                  <div className="employee-card-head">
+                    <div className={`avatar avatar-${person.tone}`}>{person.initials}</div>
+                    <div><h2>{person.name}</h2><p>{person.role}</p></div>
+                    <span className={`ratio-chip ${performance.ratio == null ? "empty" : ""}`}><b>{performance.ratio ?? "—"}</b><small>/100</small></span>
+                  </div>
+
+                  <div className="employee-score-context">
+                    <span>{confidence(performance.count)}</span>
+                    <small>{performance.count} evaluaciones</small>
+                  </div>
+
+                  <div className="employee-load">
+                    <div><span>CARGA</span><b>{person.load}%</b></div>
+                    <i><em style={{width:`${person.load}%`}} /></i>
+                    <small>{person.activeProjects} proyectos · {person.activeTasks} tareas</small>
+                  </div>
+
+                  <div className="employee-project-chips">
+                    {person.activeProjectNames.slice(0,2).map((name)=><span key={name}>{name}</span>)}
+                    {person.activeProjectNames.length>2&&<span>+{person.activeProjectNames.length-2}</span>}
+                    {!person.activeProjectNames.length&&<span className="muted">Disponible</span>}
+                  </div>
+
+                  <div className="employee-dimensions" aria-hidden="true">
+                    <span>LECTURA</span>
+                    {dimensionEntries.slice(0,4).map((item)=><div key={item.key}><div><small>{item.label}</small><b>{oneDecimal(item.value)}</b></div><i><em style={{width:`${Math.min(100,(item.value as number)*20)}%`}} /></i></div>)}
+                    {!dimensionEntries.length&&<p>Sin suficiente desglose todavía.</p>}
+                  </div>
+                </button>;
+              })}
+          </div>
+
+          <aside className="team-radar-card">
+            <Sparkles />
+            <span>RADAR DE EQUIPO</span>
+            <h2>Lo que merece ojo</h2>
+
+            <div className="team-radar-section">
+              <div><small>CARGA ALTA</small><b>{teamViewStats.highLoad.length}</b></div>
+              {teamViewStats.highestLoad.map((person)=><button key={person.id} onClick={()=>setSelectedPerson(person)}><span>{person.name}</span><b>{person.load}%</b></button>)}
+              {!teamViewStats.highLoad.length&&<p>Nadie en zona alta.</p>}
+            </div>
+
+            <div className="team-radar-section">
+              <div><small>DISPONIBLES</small><b>{teamViewStats.available.length}</b></div>
+              {teamViewStats.capacity.slice(0,2).map((person)=><button key={person.id} onClick={()=>setSelectedPerson(person)}><span>{person.name}</span><b>{person.load}%</b></button>)}
+            </div>
+
+            <div className="team-radar-section">
+              <div><small>POCA MUESTRA</small><b>{teamViewStats.fragile.length}</b></div>
+              {teamViewStats.lowestEvidence.map((person)=><button key={person.id} onClick={()=>setSelectedPerson(person)}><span>{person.name}</span><b>{person.evidence}</b></button>)}
+            </div>
+
+            <p className="team-radar-note">El índice observado se interpreta junto a la muestra. La carga es una señal operativa separada, no una nota de desempeño.</p>
+          </aside>
         </section>
       </TabsContent>
 
