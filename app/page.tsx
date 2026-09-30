@@ -296,8 +296,10 @@ function timelinePercent(value: string | null | undefined, start: Date, end: Dat
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("dashboard");
-  const [sessionRole, setSessionRole] = useState<"editor" | "viewer">("editor");
+  const [sessionRole, setSessionRole] = useState<"editor" | "viewer" | "employee">("editor");
   const [sessionName, setSessionName] = useState("Jorge");
+  const [sessionInitials, setSessionInitials] = useState("JC");
+  const [sessionEmployeeName, setSessionEmployeeName] = useState<string | null>(null);
   const canEdit = sessionRole === "editor";
   const weekPlannerScrollRef = useRef<HTMLDivElement | null>(null);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -312,12 +314,14 @@ export default function Home() {
     fetch("/api/auth/session", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Unauthorized");
-        return response.json() as Promise<{ role: "editor" | "viewer"; name: string }>;
+        return response.json() as Promise<{ role: "editor" | "viewer" | "employee"; name: string; initials?: string; employeeName?: string | null }>;
       })
       .then((session) => {
         if (!active) return;
         setSessionRole(session.role);
         setSessionName(session.name);
+        if (session.initials) setSessionInitials(session.initials);
+        setSessionEmployeeName(session.employeeName ?? null);
       })
       .catch(() => {});
     return () => { active = false; };
@@ -1474,14 +1478,14 @@ export default function Home() {
         <button className={activeView === "team" ? "active" : ""} onClick={() => setActiveView("team")}><Users /><span>Equipo</span></button>
       </nav>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
-      <form action="/api/auth/logout" method="post" className="user-chip"><span>{sessionRole === "viewer" ? "RM" : "JC"}</span><div><strong>{sessionName.toUpperCase()}</strong><small>{sessionRole === "viewer" ? "Solo lectura" : "Director Creativo"}</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
+      <form action="/api/auth/logout" method="post" className="user-chip"><span>{sessionInitials}</span><div><strong>{sessionName.toUpperCase()}</strong><small>{sessionRole === "editor" ? "Director Creativo" : sessionRole === "viewer" ? "Solo lectura" : "Empleado"}</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
     </aside>
 
     <main className={`main-stage main-stage-${activeView}${selectedProjectPage ? " project-page-open" : ""}`} aria-hidden={selectedProjectPage ? true : undefined}>
       <header className="topbar">
         <div className="page-heading"><span>{current.eyebrow}</span><h1>{current.title}</h1><p>{current.description}</p></div>
         <div className="top-actions">
-          {!canEdit && <span className="readonly-chip">SOLO LECTURA</span>}
+          {!canEdit && <span className="readonly-chip">{sessionRole === "employee" ? "MI ESPACIO" : "SOLO LECTURA"}</span>}
           <label className="search-box"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en el OS…" /></label>
           {queuedChanges > 0 && <button className="draft-chip" onClick={() => toast.info("Cambios de prototipo", { description: "Los conectaremos a Notion en la siguiente capa." })}>{queuedChanges} cambio{queuedChanges > 1 ? "s" : ""}</button>}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
