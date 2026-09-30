@@ -88,6 +88,13 @@ function numeric(page: PageRow, name: string): number | null {
   return null;
 }
 
+function emailValue(page: PageRow, name: string): string | null {
+  const value = prop(page, name);
+  if (typeof value?.email === "string" && value.email.trim()) return value.email.trim();
+  if (typeof value === "string" && value.includes("@")) return value.trim();
+  return null;
+}
+
 function starNumber(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return Math.max(1, Math.min(5, Math.round(value)));
   if (typeof value !== "string" || !value.trim()) return null;
@@ -267,7 +274,22 @@ export async function GET(request: Request) {
           name,
           role: select(page, "Rol") || "Sin rol",
           assignment: select(page, "Asignacion") || "Equipo",
+          contract: select(page, "Contrato") || null,
           tier: select(page, "Rating"),
+          email: emailValue(page, "Email"),
+          salary: numeric(page, "Sueldo"),
+          vacation: {
+            base: numeric(page, "Base"),
+            christmas: numeric(page, "Navidad"),
+            easter: numeric(page, "Semana Santa"),
+            bridges: numeric(page, "Puentes"),
+            agreement: numeric(page, "Convenio"),
+            used: numeric(page, "Días Usados"),
+            remaining: numeric(page, "Restantes"),
+            free: numeric(page, "Libres"),
+            spent: numeric(page, "Gastados"),
+            extras: numeric(page, "Extras"),
+          },
           skills: multiSelect(page, "Skills"),
           growth: multiSelect(page, "Debilidades"),
           joined,
