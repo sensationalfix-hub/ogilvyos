@@ -9960,3 +9960,290 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .accounts-pulse-card{grid-template-columns:1fr!important}
   .accounts-grid-redesign{grid-template-columns:1fr!important}
 }
+
+
+/* === Accounts visual refinement v44 ===================================== */
+
+/* Pulse: richer, card-driven composition */
+.accounts-pulse-card{
+  grid-template-columns:minmax(0,1fr) 240px!important;
+  gap:10px 20px!important;
+}
+
+.accounts-pulse-main{
+  justify-content:center!important;
+}
+
+.accounts-pulse-main>div:first-child>strong{
+  font-size:46px!important;
+}
+
+.accounts-pulse-main>div:first-child>span{
+  font-size:13px!important;
+}
+
+.accounts-pulse-meta{
+  margin-top:2px!important;
+  gap:22px!important;
+}
+
+.accounts-pulse-meta b{
+  font-size:20px!important;
+}
+
+.accounts-pulse-meta small{
+  font-size:7.5px!important;
+}
+
+.accounts-pulse-stack{
+  align-self:center!important;
+  display:grid!important;
+  gap:8px!important;
+}
+
+.accounts-pulse-mini{
+  min-height:42px!important;
+  padding:8px 10px!important;
+  display:grid!important;
+  grid-template-columns:24px minmax(0,1fr) 12px!important;
+  gap:8px!important;
+  align-items:center!important;
+  border:0!important;
+  border-radius:13px!important;
+  background:rgba(255,255,255,.06)!important;
+  color:#fff!important;
+  text-align:left!important;
+  box-shadow:none!important;
+  transition:background .16s ease,transform .16s ease!important;
+}
+
+.accounts-pulse-mini:hover{
+  background:var(--ui-lime)!important;
+  color:var(--ui-ink)!important;
+  transform:translateX(-2px)!important;
+}
+
+.accounts-pulse-mini>span{
+  width:22px!important;
+  height:22px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.12)!important;
+  color:#fff!important;
+  font-size:6.5px!important;
+  font-weight:850!important;
+}
+
+.accounts-pulse-mini:hover>span{
+  background:#111512!important;
+  color:#fff!important;
+}
+
+.accounts-pulse-mini>div{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:3px!important;
+}
+
+.accounts-pulse-mini strong,
+.accounts-pulse-mini small{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+.accounts-pulse-mini strong{
+  font-size:9px!important;
+  line-height:1!important;
+}
+
+.accounts-pulse-mini small{
+  color:rgba(255,255,255,.46)!important;
+  font-size:6.5px!important;
+}
+
+.accounts-pulse-mini:hover small{
+  color:rgba(21,25,20,.58)!important;
+}
+
+.accounts-pulse-mini svg{
+  width:11px!important;
+  color:rgba(255,255,255,.38)!important;
+}
+
+.accounts-pulse-mini:hover svg{
+  color:var(--ui-ink)!important;
+}
+
+/* Cards: strong 3-zone composition */
+.accounts-grid-redesign{
+  gap:14px!important;
+}
+
+.account-card-redesign{
+  min-height:308px!important;
+  padding:16px 18px 18px!important;
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  border-radius:24px!important;
+  background:#fff!important;
+}
+
+.account-card-meta{
+  min-height:26px!important;
+}
+
+.account-card-center{
+  min-height:0!important;
+  padding:12px 8px 10px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+
+.account-card-redesign h2{
+  margin:0!important;
+  font-size:34px!important;
+  line-height:.95!important;
+  font-weight:820!important;
+  letter-spacing:-.055em!important;
+  text-align:center!important;
+}
+
+.account-card-redesign .account-card-center>p{
+  margin:10px 0 0!important;
+  max-width:90%!important;
+  color:#8f9790!important;
+  font-size:8.5px!important;
+  line-height:1.25!important;
+  text-align:center!important;
+}
+
+.account-next-hit{
+  margin-top:20px!important;
+  max-width:82%!important;
+  align-items:center!important;
+  text-align:center!important;
+}
+
+.account-next-hit>span{
+  font-size:6.5px!important;
+}
+
+.account-next-hit>strong{
+  max-width:100%!important;
+  color:#424943!important;
+  font-size:10px!important;
+  line-height:1.1!important;
+  text-align:center!important;
+}
+
+.account-next-hit>small{
+  font-size:7.5px!important;
+  text-align:center!important;
+}
+
+/* Footer locked to bottom and centered */
+.account-card-bottom{
+  min-height:74px!important;
+  padding-top:14px!important;
+  display:grid!important;
+  grid-template-rows:auto auto!important;
+  gap:10px!important;
+  align-items:end!important;
+  justify-items:center!important;
+  border-top:1px solid rgba(21,25,20,.045)!important;
+}
+
+.account-metrics{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:repeat(3,1fr)!important;
+  gap:6px!important;
+}
+
+.account-metrics>span{
+  align-items:center!important;
+  text-align:center!important;
+}
+
+.account-metrics b{
+  font-size:17px!important;
+}
+
+.account-metrics small{
+  font-size:6.5px!important;
+  text-transform:uppercase!important;
+  letter-spacing:.06em!important;
+}
+
+.account-card-team{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  gap:5px!important;
+}
+
+.account-card-team>span{
+  color:#a0a7a0!important;
+  font-size:6px!important;
+  font-weight:840!important;
+  letter-spacing:.12em!important;
+}
+
+.account-card-team .people-stack{
+  justify-content:center!important;
+}
+
+/* Bigger, cleaner team bubbles */
+.account-card-team .people-stack>span{
+  width:22px!important;
+  height:22px!important;
+  font-size:6.5px!important;
+  box-shadow:0 0 0 2px #fff!important;
+}
+
+/* Keep hover layer equally bold */
+.account-card-hover{
+  padding:20px!important;
+}
+
+.account-card-hover h3{
+  font-size:34px!important;
+}
+
+.account-hover-projects{
+  gap:8px!important;
+}
+
+.account-hover-projects>span{
+  padding:10px 11px!important;
+  font-size:8.5px!important;
+}
+
+/* Remove legacy account-card spacing that can fight the redesign */
+.account-card-redesign>p,
+.account-card-redesign>.account-stats,
+.account-card-redesign>.account-bar,
+.account-card-redesign>.account-card-head{
+  display:none!important;
+}
+
+@media(max-width:1180px){
+  .accounts-pulse-card{
+    grid-template-columns:minmax(0,1fr) 215px!important;
+  }
+
+  .account-card-redesign{
+    min-height:292px!important;
+  }
+
+  .account-card-redesign h2,
+  .account-card-hover h3{
+    font-size:30px!important;
+  }
+}
