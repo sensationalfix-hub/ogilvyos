@@ -7988,3 +7988,117 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     min-height: 112px !important;
   }
 }
+
+
+/* === Equal hero heights + unclipped internal shadows v35 ================= */
+
+/* All three top modules share one exact height */
+.dashboard-pulse-card,
+.dashboard-focus-card,
+.dashboard-timer-card {
+  height: 206px !important;
+  min-height: 206px !important;
+  max-height: 206px !important;
+}
+
+/* Keep the outer modules visually aligned */
+.dashboard-hero-grid {
+  align-items: stretch !important;
+}
+
+.dashboard-pulse-card,
+.dashboard-focus-card,
+.dashboard-timer-card {
+  align-self: stretch !important;
+}
+
+/* Let inner item shadows breathe */
+.dashboard-focus-card,
+.dashboard-pulse-card {
+  overflow: visible !important;
+}
+
+.dashboard-focus-accordion,
+.dashboard-pulse-hits {
+  overflow: visible !important;
+}
+
+/* But prevent layout spill with safe inner spacing */
+.dashboard-focus-card {
+  padding: 16px !important;
+}
+
+.dashboard-focus-accordion {
+  height: 118px !important;
+  min-height: 118px !important;
+  padding: 2px 4px 10px 4px !important;
+  margin: 0 -4px -2px -4px !important;
+}
+
+.dashboard-focus-accordion-card {
+  height: 104px !important;
+  min-height: 104px !important;
+  box-shadow: 0 10px 24px rgba(31,38,32,.08) !important;
+}
+
+/* Preserve pulse composition without clipping its shadows */
+.dashboard-pulse-hits {
+  padding: 6px 10px 10px 10px !important;
+  margin: -2px -10px -4px -10px !important;
+}
+
+.dashboard-pulse-hit-back,
+.dashboard-pulse-hit-card.pulse-hit-main {
+  box-shadow: 0 18px 34px rgba(0,0,0,.20) !important;
+}
+
+/* General dashboard module shadows should not be clipped */
+.dashboard-view .ops-panel,
+.dashboard-view .team-roster {
+  overflow: visible !important;
+}
+
+.dashboard-view .mini-task-board,
+.dashboard-view .project-overview-list,
+.dashboard-view .roster-list {
+  overflow: visible !important;
+}
+
+/* Give card lists a little breathing room for shadows */
+.dashboard-view .mini-task-board,
+.dashboard-view .project-overview-list,
+.dashboard-view .roster-list {
+  padding-bottom: 10px !important;
+}
+
+.dashboard-view .work-card,
+.dashboard-view .dashboard-project,
+.dashboard-view .roster-person {
+  box-shadow: 0 8px 20px rgba(34,43,36,.06) !important;
+}
+
+/* avoid cutting shadow edges in scrollable subcontainers */
+.dashboard-view .mini-task-lane-scroll,
+.dashboard-view .project-overview-list {
+  overflow-x: visible !important;
+}
+
+@media (max-width:1180px){
+  .dashboard-pulse-card,
+  .dashboard-focus-card,
+  .dashboard-timer-card {
+    height: 198px !important;
+    min-height: 198px !important;
+    max-height: 198px !important;
+  }
+
+  .dashboard-focus-accordion {
+    height: 112px !important;
+    min-height: 112px !important;
+  }
+
+  .dashboard-focus-accordion-card {
+    height: 100px !important;
+    min-height: 100px !important;
+  }
+}
