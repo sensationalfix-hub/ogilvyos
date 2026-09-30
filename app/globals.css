@@ -11858,3 +11858,23 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .mobile-account-card{flex-basis:86vw!important;width:86vw!important}
   .mobile-today-date strong{font-size:39px!important}
 }
+
+
+/* === Mobile: remove browser-style app header v52 ========================= */
+@media(max-width:760px){
+  .topbar{
+    display:none!important;
+  }
+
+  .main-stage{
+    padding-top:max(8px,env(safe-area-inset-top))!important;
+  }
+
+  .view-content{
+    padding-top:8px!important;
+  }
+
+  .mobile-screen-head{
+    padding-top:2px!important;
+  }
+}
