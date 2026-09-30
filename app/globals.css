@@ -11191,3 +11191,74 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .account-card-redesign:hover .account-next-hit.is-empty>small{
   color:rgba(255,255,255,.38)!important;
 }
+
+
+/* === Planner cards dark base / pure black hover v49 ====================== */
+.planner-task-block{
+  background:#111512!important;
+  color:#fff!important;
+  box-shadow:0 10px 24px rgba(17,21,18,.16)!important;
+}
+
+.planner-task-block:hover{
+  background:#000!important;
+  color:#fff!important;
+  box-shadow:0 14px 30px rgba(0,0,0,.24)!important;
+}
+
+.planner-task-block strong{
+  color:#fff!important;
+}
+
+.planner-task-time,
+.planner-task-block small{
+  color:rgba(255,255,255,.58)!important;
+}
+
+.planner-task-grip{
+  background:rgba(255,255,255,.08)!important;
+  color:rgba(255,255,255,.72)!important;
+}
+
+.planner-task-block:hover .planner-task-grip{
+  background:rgba(255,255,255,.10)!important;
+  color:#fff!important;
+}
+
+.planner-resize-handle::after{
+  background:rgba(255,255,255,.34)!important;
+}
+
+.planner-task-block:hover .planner-resize-handle::after{
+  background:rgba(255,255,255,.58)!important;
+}
+
+/* All-day tasks follow the same language */
+.planner-all-day-chip.task{
+  background:#111512!important;
+  color:#fff!important;
+  box-shadow:0 8px 18px rgba(17,21,18,.14)!important;
+}
+
+.planner-all-day-chip.task strong{
+  color:#fff!important;
+}
+
+.planner-all-day-chip.task small{
+  color:rgba(255,255,255,.54)!important;
+}
+
+.planner-all-day-chip.task:hover{
+  background:#000!important;
+  color:#fff!important;
+}
+
+.planner-all-day-grip{
+  background:rgba(255,255,255,.08)!important;
+  color:rgba(255,255,255,.72)!important;
+}
+
+.planner-all-day-chip.task:hover .planner-all-day-grip{
+  background:rgba(255,255,255,.10)!important;
+  color:#fff!important;
+}
