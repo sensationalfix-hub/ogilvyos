@@ -44,9 +44,11 @@ type LiveSchema = {
   health: Record<string, Array<{ name: string; ok: boolean; type: string | null }>>;
 };
 
+type TaskLane = "En progreso" | "En espera" | "Por hacer" | "Backlog";
 type Task = {
   id: string; name: string; status: TaskStatus; priority: Priority; project: string;
   account: string; date: string; dateStart?: string | null; dateEnd?: string | null; people: string[]; url: string;
+  workosLane?: TaskLane | null;
 };
 type Project = {
   id: string; name: string; status: ProjectStatus; account: string; timing: string;
@@ -232,6 +234,19 @@ function taskIsAllDay(task: Pick<Task, "dateStart">) {
 const PLANNER_START = 9 * 60;
 const PLANNER_END = 19 * 60;
 const PLANNER_HOUR_PX = 64;
+const TASK_LANES: TaskLane[] = ["En progreso", "En espera", "Por hacer", "Backlog"];
+const DASHBOARD_TASK_LANES: TaskLane[] = ["En progreso", "En espera", "Por hacer"];
+function taskLane(task: Pick<Task, "status" | "workosLane">): TaskLane {
+  if (task.workosLane && TASK_LANES.includes(task.workosLane)) return task.workosLane;
+  if (task.status === "En progreso") return "En progreso";
+  if (task.status === "Pausa") return "En espera";
+  return "Por hacer";
+}
+function notionStatusForLane(lane: TaskLane): TaskStatus {
+  if (lane === "En progreso") return "En progreso";
+  if (lane === "En espera") return "Pausa";
+  return "Pendiente";
+}
 function mondayForOperationalWeek(base = new Date()) {
   const date = new Date(base);
   date.setHours(0, 0, 0, 0);
@@ -442,8 +457,8 @@ export default function Home() {
   const taskPriorityOptions = liveSchema?.tasks.priority.map((option) => option.name) ?? Array.from(new Set(tasks.map((task) => task.priority).filter(Boolean)));
   const projectPriorityOptions = liveSchema?.projects.priority.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.priority).filter(Boolean)));
   const projectTypeOptions = liveSchema?.projects.type.map((option) => option.name) ?? Array.from(new Set(projects.map((project) => project.type).filter(Boolean)));
-  const desiredTaskBoardOrder = ["En progreso", "Pausa", "Pendiente"];
-  const taskBoardStatuses = desiredTaskBoardOrder.filter((status) => taskStatusOptions.includes(status));
+  const taskBoardLanes = TASK_LANES;
+  const dashboardTaskLanes = DASHBOARD_TASK_LANES;
   const desiredProjectBoardOrder = ["Standby", "Brief", "Ideas", "Pre-Producción", "Producción", "Seguimiento"];
   const projectBoardStatuses = desiredProjectBoardOrder.filter((status) => projectStatusOptions.includes(status));
   const schemaChecks = liveSchema
@@ -573,11 +588,11 @@ export default function Home() {
   const upcomingDeadlines = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    return tasks
+    return dashboardTasks
       .filter((task) => task.dateStart && new Date(task.dateStart).getTime() >= now.getTime())
       .sort((a, b) => new Date(a.dateStart || 0).getTime() - new Date(b.dateStart || 0).getTime())
       .slice(0, 3);
-  }, [tasks]);
+  }, [dashboardTasks]);
   const accountViewStats = useMemo(() => {
     const now = Date.now();
     const items = accounts.map((account) => {
@@ -610,8 +625,37 @@ export default function Home() {
     return { items, totalProjects, totalTasks, highPriority, moving };
   }, [accounts, projects, allTasks]);
 
+  const taskViewStats = useMemo(() => {
+    const now = Date.now();
+    const fortyEightHours = now + 48 * 60 * 60 * 1000;
+    const active = tasks;
+    const laneCounts = Object.fromEntries(TASK_LANES.map((lane) => [lane, active.filter((task) => taskLane(task) === lane).length])) as Record<TaskLane, number>;
+    const attention = [...active]
+      .filter((task) => taskLane(task) !== "Backlog")
+      .sort((a,b) => {
+        const aScore = (a.priority === "Alta" ? 10000000000000 : 0) + (a.dateStart ? -new Date(a.dateStart).getTime() : 0);
+        const bScore = (b.priority === "Alta" ? 10000000000000 : 0) + (b.dateStart ? -new Date(b.dateStart).getTime() : 0);
+        return bScore - aScore;
+      })
+      .slice(0,3);
+    const next48 = active
+      .filter((task) => taskLane(task) !== "Backlog" && task.dateStart && new Date(task.dateStart).getTime() >= now && new Date(task.dateStart).getTime() <= fortyEightHours)
+      .sort((a,b) => new Date(a.dateStart || 0).getTime() - new Date(b.dateStart || 0).getTime());
+    const visualTasks = active
+      .filter((task) => taskLane(task) !== "Backlog")
+      .sort((a,b) => {
+        if (a.dateStart && b.dateStart) return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
+        if (a.dateStart) return -1;
+        if (b.dateStart) return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0,3);
+    return { active, laneCounts, attention, next48, visualTasks };
+  }, [tasks]);
+
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
+  const dashboardTasks = useMemo(() => tasks.filter((task) => taskLane(task) !== "Backlog"), [tasks]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
   const dashboardProjects = useMemo(() => projects.filter((project) => {
     const status = project.status.trim().toLocaleLowerCase("es");
@@ -744,6 +788,24 @@ export default function Home() {
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       throw new Error(body?.error || "No se pudo sincronizar con Notion");
+    }
+  }
+
+  async function moveTaskLane(id: string, lane: TaskLane) {
+    const previous = tasks.find((task) => task.id === id);
+    if (!previous) return;
+    const status = notionStatusForLane(lane);
+    const next = { ...previous, status, workosLane: lane };
+    setTasks((items) => items.map((task) => task.id === id ? next : task));
+    setAllTasks((items) => items.map((task) => task.id === id ? next : task));
+    setDragging(null);
+    try {
+      await syncNotion("task", id, { status, workosLane: lane });
+      toast.success(`Tarea movida a ${lane}`, { description: "Sincronizado con Notion." });
+    } catch {
+      setTasks((items) => items.map((task) => task.id === id ? previous : task));
+      setAllTasks((items) => items.map((task) => task.id === id ? previous : task));
+      toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
   }
 
@@ -898,6 +960,11 @@ export default function Home() {
     }
   }
 
+  function handleTaskLaneDrop(event: React.DragEvent, destination: TaskLane) {
+    event.preventDefault();
+    const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
+    if (kind === "task") void moveTaskLane(id, destination);
+  }
   function handleDrop(event: React.DragEvent, destination: TaskStatus | ProjectStatus) {
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind === "task") moveTask(id, destination as TaskStatus);
@@ -953,6 +1020,7 @@ export default function Home() {
           id: body.id,
           name,
           status: "Pendiente",
+          workosLane: "Backlog",
           priority: "Media",
           project: "Por asignar",
           account: "Sin cuenta",
@@ -961,6 +1029,7 @@ export default function Home() {
           people: ["Por asignar"],
           url: body.url || "https://www.notion.so",
         }, ...items]);
+        await syncNotion("task", body.id, { status: "Pendiente", workosLane: "Backlog" });
       } else {
         setProjects((items) => [{
           id: body.id,
@@ -1035,6 +1104,7 @@ export default function Home() {
         id: body.id,
         name,
         status: "Pendiente",
+        workosLane: "Por hacer",
         priority: "Media",
         project: selectedProjectPage.name,
         account: selectedProjectPage.account,
@@ -1044,6 +1114,8 @@ export default function Home() {
         url: body.url || "https://www.notion.so",
       };
       await syncNotion("task", task.id, {
+        status: "Pendiente",
+        workosLane: "Por hacer",
         project: selectedProjectPage.name,
         account: selectedProjectPage.account,
         people: task.people,
@@ -1120,6 +1192,7 @@ export default function Home() {
         id: body.id,
         name,
         status: "Pendiente",
+        workosLane: "Por hacer",
         priority: "Media",
         project: "Por asignar",
         account: "Sin cuenta",
@@ -1128,7 +1201,7 @@ export default function Home() {
         people: ["Por asignar"],
         url: body.url || "https://www.notion.so",
       };
-      await syncNotion("task", task.id, { dateStart });
+      await syncNotion("task", task.id, { dateStart, status: "Pendiente", workosLane: "Por hacer" });
       setTasks((items) => [task, ...items]);
       setAllTasks((items) => [task, ...items]);
       setCalendarTaskName("");
@@ -1251,11 +1324,11 @@ export default function Home() {
             <article className="ops-panel tasks-overview">
               <div className="ops-head module-head"><div><span>OPERATIVA EN VIVO</span><h2>Tareas</h2></div><button className="module-action" onClick={() => setActiveView("tasks")}>Ver tablero <ArrowUpRight /></button></div>
               <div className="mini-task-board">
-                {taskBoardStatuses.map((status) => {
-                  const items = tasks.filter((task) => task.status === status);
+                {dashboardTaskLanes.map((lane) => {
+                  const items = dashboardTasks.filter((task) => taskLane(task) === lane);
                   const total = items.length;
-                  return <div key={status} className={`mini-task-lane ${dragging?.startsWith("task") ? "ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}>
-                    <div className="mini-lane-head"><span>{status}</span><b>{total}</b></div>
+                  return <div key={lane} className={`mini-task-lane ${dragging?.startsWith("task") ? "ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleTaskLaneDrop(event, lane)}>
+                    <div className="mini-lane-head"><span>{lane}</span><b>{total}</b></div>
                     <div className="mini-task-lane-scroll">
                       {items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}
                       {items.length === 0 && <EmptyDrop />}
@@ -1728,7 +1801,60 @@ export default function Home() {
 
       <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelectedProjectPage(project)} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
-      <TabsContent value="tasks" className="view-content board-scroll"><section className="kanban-board task-board active-task-board">{taskBoardStatuses.map((status) => { const items = filteredTasks.filter((task) => task.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("task") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
+      <TabsContent value="tasks" className="view-content tasks-view">
+        <section className="tasks-hero-grid">
+          <article className="tasks-pulse-card">
+            <div className="tasks-widget-kicker"><span>PULSO DE TAREAS</span><i /></div>
+            <div className="tasks-pulse-copy">
+              <strong>{taskViewStats.active.length}</strong>
+              <span>tareas activas</span>
+              <div className="tasks-pulse-meta">
+                {DASHBOARD_TASK_LANES.map((lane) => <span key={lane}><b>{taskViewStats.laneCounts[lane]}</b><small>{lane.toLowerCase()}</small></span>)}
+              </div>
+            </div>
+            <div className="tasks-pulse-stack">
+              {taskViewStats.visualTasks.map((task,index) => <button key={task.id} className={`tasks-pulse-mini pulse-task-${index+1}`} onClick={() => setDetail({ kind:"task", ...task })}>
+                <span>{String(index+1).padStart(2,"0")}</span>
+                <div><strong>{task.name}</strong><small>{task.project} · {task.date}</small></div>
+                <ArrowUpRight />
+              </button>)}
+              {!taskViewStats.visualTasks.length && <div className="tasks-pulse-empty"><Check /><span>Sin tareas activas</span></div>}
+            </div>
+          </article>
+
+          <article className="tasks-attention-card">
+            <header className="module-head"><div><span>PRIORIDAD</span><h2>Necesitan atención</h2></div><AlertTriangle /></header>
+            <div className="tasks-attention-list">
+              {taskViewStats.attention.map((task,index) => <button key={task.id} onClick={() => setDetail({ kind:"task", ...task })}>
+                <span>{String(index+1).padStart(2,"0")}</span>
+                <div><strong>{task.name}</strong><small>{task.account} · {task.date}</small></div>
+                <ArrowUpRight />
+              </button>)}
+            </div>
+          </article>
+
+          <article className="tasks-window-card">
+            <div className="tasks-widget-kicker"><span>PRÓXIMAS 48H</span><i /></div>
+            <strong>{taskViewStats.next48.length}</strong>
+            <small>tareas con fecha</small>
+            <div className="tasks-window-next">
+              <span>{taskViewStats.next48.length ? "SIGUIENTE" : "ESTADO"}</span>
+              <strong>{taskViewStats.next48[0]?.name || "Sin entregas inmediatas"}</strong>
+              <small>{taskViewStats.next48[0] ? `${taskViewStats.next48[0].date} · ${taskViewStats.next48[0].account}` : "Las próximas 48h están despejadas"}</small>
+            </div>
+          </article>
+        </section>
+
+        <section className="kanban-board task-board active-task-board task-board-four">
+          {taskBoardLanes.map((lane) => {
+            const items = filteredTasks.filter((task) => taskLane(task) === lane);
+            return <div key={lane} className={`kanban-column task-lane task-lane-${lane.toLowerCase().replaceAll(" ","-")} ${dragging?.startsWith("task") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleTaskLaneDrop(event, lane)}>
+              <div className="column-head"><span>{lane}</span><b>{items.length}</b><Plus /></div>
+              <div className="column-body">{items.map((task) => <TaskCard key={task.id} task={task} onOpen={() => setDetail({ kind: "task", ...task })} onDragStart={() => setDragging(`task:${task.id}`)} onAssignPerson={(person) => assignPerson("task", task.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div>
+            </div>;
+          })}
+        </section>
+      </TabsContent>
 
       <TabsContent value="team" className="view-content team-view-complete">
         <section className="people-summary">
