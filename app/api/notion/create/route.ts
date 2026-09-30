@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requestIsAuthorized } from "@/app/lib/workos-auth";
+import { requestCanWrite } from "@/app/lib/workos-auth";
 import { createPage, DATA_SOURCES } from "@/app/lib/notion-live";
 
 function title(value: string) {
@@ -13,7 +13,7 @@ function status(value: string) {
 }
 
 export async function POST(request: Request) {
-  if (!await requestIsAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!await requestCanWrite(request)) return NextResponse.json({ error: "Read-only account" }, { status: 403 });
 
   try {
     const body = await request.json();
