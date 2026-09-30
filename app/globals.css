@@ -8102,3 +8102,104 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     min-height: 100px !important;
   }
 }
+
+
+/* === Restore dashboard lower-module containment v36 =======================
+   v35 let shadows escape by making operational modules overflow:visible.
+   Restore the original containment/scroll model while keeping equal hero heights. */
+
+.dashboard-view .ops-panel,
+.dashboard-view .team-roster {
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Tasks --------------------------------------------------------------- */
+.dashboard-view .tasks-overview {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  min-height: 0 !important;
+}
+
+.dashboard-view .mini-task-board {
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding-bottom: 8px !important;
+}
+
+.dashboard-view .mini-task-lane {
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .mini-task-lane-scroll {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 4px 4px 12px !important;
+}
+
+/* Projects ------------------------------------------------------------ */
+.dashboard-view .projects-overview {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .project-overview-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 8px 10px 14px !important;
+  scrollbar-gutter: stable;
+}
+
+.dashboard-view .deadline-ribbon {
+  position: relative !important;
+  z-index: 2 !important;
+  flex: 0 0 auto !important;
+  margin-top: 0 !important;
+  padding: 10px 12px 12px !important;
+  background: rgba(255,255,255,.72) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+/* Team ---------------------------------------------------------------- */
+.dashboard-view .team-roster {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .roster-list {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 6px 8px 12px !important;
+}
+
+.dashboard-view .roster-footer {
+  position: relative !important;
+  z-index: 2 !important;
+  flex: 0 0 auto !important;
+  background: rgba(255,255,255,.72) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+/* Shadows live inside their scroll areas instead of escaping across modules */
+.dashboard-view .work-card,
+.dashboard-view .dashboard-project,
+.dashboard-view .roster-person {
+  box-shadow: 0 6px 16px rgba(34,43,36,.055) !important;
+}
+
+.dashboard-view .work-card:last-child,
+.dashboard-view .dashboard-project:last-child,
+.dashboard-view .roster-person:last-child {
+  margin-bottom: 4px !important;
+}
