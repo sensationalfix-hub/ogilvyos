@@ -98,3 +98,31 @@ export async function resolveSupabaseIdentity(accessToken: string) {
   if (!profile || !profile.active) return null;
   return { user, profile };
 }
+
+
+export async function supabaseSignUp(email: string, password: string, redirectTo: string) {
+  const response = await fetch(
+    `${SUPABASE_URL}/auth/v1/signup?redirect_to=${encodeURIComponent(redirectTo)}`,
+    {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ email, password }),
+      cache: "no-store",
+    }
+  );
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      ok: false as const,
+      status: response.status,
+      error: String(body?.msg || body?.message || body?.error_description || "No se pudo crear el acceso"),
+    };
+  }
+
+  return {
+    ok: true as const,
+    user: body?.user ?? null,
+    session: body?.access_token ? body : null,
+  };
+}
