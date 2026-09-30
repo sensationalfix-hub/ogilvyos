@@ -869,30 +869,43 @@ export default function Home() {
         <section className="dashboard-hero-grid">
           <article className="dashboard-pulse-card">
             <div className="dashboard-hero-kicker"><span>PULSO DEL DÍA</span><i className={dataState === "live" ? "live" : ""} /></div>
-            <div className="dashboard-pulse-date">{new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" })}</div>
-            <div className="dashboard-pulse-stats">
-              <span><b>{tasks.length.toString().padStart(2, "0")}</b><small>tareas activas</small></span>
-              <span><b>{dashboardProjects.length.toString().padStart(2, "0")}</b><small>proyectos</small></span>
-              <span><b>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</b><small>carga alta</small></span>
+            <div className="dashboard-pulse-body">
+              <div className="dashboard-pulse-copy">
+                <strong className="dashboard-pulse-weekday">{new Date().toLocaleDateString("es-ES", { weekday: "long" })}</strong>
+                <span className="dashboard-pulse-full-date">{new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long" })}</span>
+                <div className="dashboard-pulse-stats">
+                  <span><b>{tasks.length.toString().padStart(2, "0")}</b><small>tareas activas</small></span>
+                  <span><b>{dashboardProjects.length.toString().padStart(2, "0")}</b><small>proyectos</small></span>
+                  <span><b>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</b><small>carga alta</small></span>
+                </div>
+              </div>
+
+              <div className="dashboard-pulse-hits">
+                {upcomingDeadlines.slice(0, 3).map((task, index) => <button
+                  key={task.id}
+                  className={`dashboard-pulse-hit-card pulse-hit-${index + 1}`}
+                  onClick={() => setDetail({ kind: "task", ...task })}
+                >
+                  <span>{index === 0 ? "PRÓXIMO HITO" : task.date}</span>
+                  <strong>{task.name}</strong>
+                  <small>{task.project} · {task.date}</small>
+                  <ArrowUpRight />
+                </button>)}
+                {!upcomingDeadlines.length && <div className="dashboard-pulse-hit-empty"><Check /><span>Sin entregas próximas</span></div>}
+              </div>
             </div>
-            <button className="dashboard-next-hit" onClick={() => { const next = upcomingDeadlines[0]; if (next) setDetail({ kind: "task", ...next }); }}>
-              <span>PRÓXIMO HITO</span>
-              <strong>{upcomingDeadlines[0]?.name || "Sin entregas próximas"}</strong>
-              <small>{upcomingDeadlines[0]?.date || "Calendario despejado"} {upcomingDeadlines[0] ? "· " + upcomingDeadlines[0].project : ""}</small>
-              <ArrowUpRight />
-            </button>
           </article>
 
           <article className="dashboard-focus-card">
             <header><div><span>EN FOCO</span><h2>Próximos movimientos</h2></div><button onClick={() => setActiveView("calendar")}>Agenda <ArrowUpRight /></button></header>
-            <div className="dashboard-focus-stack">
+            <div className="dashboard-focus-accordion">
               {upcomingDeadlines.slice(0, 3).map((task, index) => <button
                 key={task.id}
-                className={`dashboard-focus-stack-card focus-card-${index + 1}`}
+                className={`dashboard-focus-accordion-card focus-card-${index + 1}`}
                 onClick={() => setDetail({ kind: "task", ...task })}
               >
-                <span className="dashboard-focus-stack-index">{String(index + 1).padStart(2, "0")}</span>
-                <div className="dashboard-focus-stack-copy"><strong>{task.name}</strong><small>{task.project} · {task.date}</small></div>
+                <span className="focus-accordion-number">{String(index + 1).padStart(2, "0")}</span>
+                <div className="focus-accordion-copy"><strong>{task.name}</strong><small>{task.project} · {task.date}</small></div>
                 <ArrowUpRight />
               </button>)}
               {!upcomingDeadlines.length && <div className="dashboard-focus-empty"><Check /><span>No hay entregas próximas con fecha.</span></div>}
