@@ -1409,6 +1409,7 @@ export default function Home() {
   }
 
   function openCalendarEvent(event: CalendarEvent) {
+    if (!canEdit) return;
     if (event.kind === "task") {
       const task = tasks.find((item) => item.id === event.id);
       if (task) setDetail({ kind: "task", ...task });
@@ -1420,7 +1421,45 @@ export default function Home() {
     }
   }
 
-  return <Tabs value={activeView} onValueChange={(value) => setActiveView(value as View)} orientation="vertical" className={`os-shell ${canEdit ? "" : "readonly-mode"}`} onDragStartCapture={(event) => { if (!canEdit) event.preventDefault(); }}>
+  return <Tabs
+    value={activeView}
+    onValueChange={(value) => setActiveView(value as View)}
+    orientation="vertical"
+    className={`os-shell ${canEdit ? "" : "readonly-mode"}`}
+    onDragStartCapture={(event) => { if (!canEdit) event.preventDefault(); }}
+    onClickCapture={(event) => {
+      if (canEdit) return;
+      const target = event.target as HTMLElement;
+      const blocked = target.closest([
+        ".work-card",
+        ".project-card",
+        ".dashboard-project",
+        ".dashboard-pulse-hit-card",
+        ".dashboard-focus-accordion-card",
+        ".deadline-ribbon-list button",
+        ".roster-person",
+        ".team-card",
+        ".team-pulse-stack button",
+        ".team-capacity-list button",
+        ".team-radar-section button",
+        ".mobile-person-card",
+        ".mobile-next-card",
+        ".mobile-focus-card",
+        ".mobile-agenda-item",
+        ".mobile-work-card",
+        ".timeline-milestone-list button",
+        ".timeline-project-row-v4",
+        ".calendar-chip",
+        ".calendar-event",
+        ".account-card",
+        ".account-overview-list button"
+      ].join(","));
+      if (blocked) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }}
+  >
     <aside className="sidebar-shell">
       <div className="brand-lockup"><img src="/workos.svg" alt="WorkOS" className="brand-logo" /></div>
       <div className="nav-section-label"><span>ESPACIOS</span><small>9 vistas</small></div>
