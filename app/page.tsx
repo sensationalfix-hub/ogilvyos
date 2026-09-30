@@ -5,7 +5,7 @@ import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
   Check, LayoutDashboard, ListTodo, Plus, Save, Search, Sparkles, Star,
-  Target, TrendingUp, Users, X,
+  Target, TrendingUp, Users, X, Play, Pause, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -269,7 +269,25 @@ export default function Home() {
   const [ratingBoosts, setRatingBoosts] = useState<Record<string, { sum: number; count: number }>>({});
   const [signalBoosts, setSignalBoosts] = useState<Record<string, { positive: Record<string, number>; negative: Record<string, number> }>>({});
   const [dimensionBoosts, setDimensionBoosts] = useState<Record<string, Partial<Record<DimensionKey, { sum: number; count: number }>>>>({});
+  const [focusSeconds, setFocusSeconds] = useState(25 * 60);
+  const [focusRunning, setFocusRunning] = useState(false);
   const current = viewCopy[activeView];
+
+  useEffect(() => {
+    if (!focusRunning) return;
+    const timer = window.setInterval(() => {
+      setFocusSeconds((seconds) => {
+        if (seconds <= 1) {
+          window.clearInterval(timer);
+          setFocusRunning(false);
+          toast.success("Focus terminado", { description: "25 minutos. La civilización sigue en pie." });
+          return 25 * 60;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [focusRunning]);
 
   useEffect(() => {
     if (!selectedProjectPage) return;
@@ -848,11 +866,45 @@ export default function Home() {
       </header>
 
       <TabsContent value="dashboard" className="view-content dashboard-view">
-        <section className="metric-strip">
-          <article><span>PROYECTOS ACTIVOS</span><strong>{dashboardProjects.length.toString().padStart(2, "0")}</strong><small><i className="green" /> datos reales de Notion</small></article>
-          <article><span>TAREAS ACTIVAS</span><strong>{tasks.length.toString().padStart(2, "0")}</strong><small><i className="red" /> solo trabajo abierto</small></article>
-          <article><span>CARGA ALTA</span><strong>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</strong><small><i className="orange" /> carga relativa</small></article>
-          <article><span>EVALUACIONES</span><strong>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</strong><small><i className="blue" /> tareas + proyectos puntuados</small></article>
+        <section className="dashboard-hero-grid">
+          <article className="dashboard-pulse-card">
+            <div className="dashboard-hero-kicker"><span>PULSO DEL DÍA</span><i className={dataState === "live" ? "live" : ""} /></div>
+            <div className="dashboard-pulse-date">{new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" })}</div>
+            <div className="dashboard-pulse-stats">
+              <span><b>{tasks.length.toString().padStart(2, "0")}</b><small>tareas activas</small></span>
+              <span><b>{dashboardProjects.length.toString().padStart(2, "0")}</b><small>proyectos</small></span>
+              <span><b>{team.filter((person) => person.load >= 75).length.toString().padStart(2, "0")}</b><small>carga alta</small></span>
+            </div>
+            <button className="dashboard-next-hit" onClick={() => { const next = upcomingDeadlines[0]; if (next) setDetail({ kind: "task", ...next }); }}>
+              <span>PRÓXIMO HITO</span>
+              <strong>{upcomingDeadlines[0]?.name || "Sin entregas próximas"}</strong>
+              <small>{upcomingDeadlines[0]?.date || "Calendario despejado"} {upcomingDeadlines[0] ? "· " + upcomingDeadlines[0].project : ""}</small>
+              <ArrowUpRight />
+            </button>
+          </article>
+
+          <article className="dashboard-focus-card">
+            <header><div><span>EN FOCO</span><h2>Próximos movimientos</h2></div><button onClick={() => setActiveView("calendar")}>Agenda <ArrowUpRight /></button></header>
+            <div className="dashboard-focus-list">
+              {upcomingDeadlines.slice(0, 3).map((task, index) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}>
+                <b>{String(index + 1).padStart(2, "0")}</b>
+                <span><strong>{task.name}</strong><small>{task.project} · {task.date}</small></span>
+                <ChevronRight />
+              </button>)}
+              {!upcomingDeadlines.length && <div className="dashboard-focus-empty"><Check /><span>No hay entregas próximas con fecha.</span></div>}
+            </div>
+          </article>
+
+          <article className="dashboard-timer-card">
+            <div className="dashboard-timer-top"><span>FOCUS</span><i className={focusRunning ? "running" : ""} /></div>
+            <strong>{String(Math.floor(focusSeconds / 60)).padStart(2, "0")}:{String(focusSeconds % 60).padStart(2, "0")}</strong>
+            <small>{focusRunning ? "Sesión en curso" : "Pomodoro · 25 min"}</small>
+            <div className="dashboard-timer-actions">
+              <button aria-label={focusRunning ? "Pausar" : "Iniciar"} onClick={() => setFocusRunning((running) => !running)}>{focusRunning ? <Pause /> : <Play />}</button>
+              <button aria-label="Reiniciar" onClick={() => { setFocusRunning(false); setFocusSeconds(25 * 60); }}><RotateCcw /></button>
+            </div>
+            <span className="dashboard-sync-status"><i className={dataState === "live" ? "ok" : ""} /> {dataState === "live" ? "Notion sincronizado" : "Sincronizando"}</span>
+          </article>
         </section>
         <section className="control-room">
           <div className="dashboard-workbench">
