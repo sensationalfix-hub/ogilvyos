@@ -1012,12 +1012,7 @@ export default function Home() {
                       </b>)}
                     </span>
 
-                    <span className="timeline-row-popover" aria-hidden="true">
-                      <strong>{project.name}</strong>
-                      <small>{project.account} · {project.status}</small>
-                      <span><b>{project.timing}</b><b>{visibleTasks.length} hito{visibleTasks.length === 1 ? "" : "s"}</b></span>
-                      <em>Click para abrir el proyecto</em>
-                    </span>
+                    
                   </button>)}
                 </div>
               </section>;
