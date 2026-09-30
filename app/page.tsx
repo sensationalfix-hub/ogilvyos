@@ -2729,31 +2729,31 @@ export default function Home() {
     <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null); }}>
       <DialogContent onEscapeKeyDown={(event) => event.stopPropagation()} className="full-detail-dialog detail-sheet">{detail && <>
         <DialogHeader>
-          <span className="sheet-kicker">{detail.kind === "task" ? "EDITAR TAREA" : "EDITAR PROYECTO"}</span>
+          <span className="sheet-kicker">{canEdit ? (detail.kind === "task" ? "EDITAR TAREA" : "EDITAR PROYECTO") : (detail.kind === "task" ? "TAREA" : "PROYECTO")}</span>
           <DialogTitle>{detail.name}</DialogTitle>
-          <DialogDescription>Consulta el contenido y edita los datos desde aquí.</DialogDescription>
+          <DialogDescription>{canEdit ? "Consulta el contenido y edita los datos desde aquí." : "Consulta el contenido y los datos asociados."}</DialogDescription>
         </DialogHeader>
         <div className="sheet-body detail-editor detail-workspace-body">
           <div className="detail-properties-editor">
-          <label className="editor-field full"><span>Nombre</span><input value={detail.name} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
+          <label className="editor-field full"><span>Nombre</span><input value={detail.name} readOnly={!canEdit} disabled={!canEdit} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
           <div className="editor-grid">
-            <div className="editor-field"><span>Estado</span><Select value={detail.status} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskStatusOptions : projectStatusOptions).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></div>
-            <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskPriorityOptions : projectPriorityOptions).map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
+            <div className="editor-field"><span>Estado</span><Select value={detail.status} disabled={!canEdit} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskStatusOptions : projectStatusOptions).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></div>
+            <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} disabled={!canEdit} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskPriorityOptions : projectPriorityOptions).map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
           </div>
-          <div className="editor-field"><span>Cuenta</span><Select value={detail.account} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accounts.map((account) => <SelectItem key={account.name} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="editor-field"><span>Cuenta</span><Select value={detail.account} disabled={!canEdit} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accounts.map((account) => <SelectItem key={account.name} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
           {detail.kind === "task"
-  ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
-  : <div className="editor-field"><span>Tipo</span><Select value={detail.type} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
+  ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} disabled={!canEdit} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
+  : <div className="editor-field"><span>Tipo</span><Select value={detail.type} disabled={!canEdit} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
           {detail.kind === "task"
             ? <div className="editor-field full task-schedule-editor">
-                <div className="task-schedule-head"><span>Planificación</span><label className="task-all-day-toggle"><span>Todo el día</span><Switch checked={taskIsAllDay(detail)} onCheckedChange={(checked) => {
+                <div className="task-schedule-head"><span>Planificación</span><label className="task-all-day-toggle"><span>Todo el día</span><Switch checked={taskIsAllDay(detail)} disabled={!canEdit} onCheckedChange={(checked) => {
                   const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
                   updateDetailField("dateStart", checked ? day : localPlannerIso(day, 9 * 60));
                   updateDetailField("dateEnd", checked ? null : localPlannerIso(day, 10 * 60));
                   updateDetailField("date", new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", ""));
                 }} /></label></div>
                 <div className="task-schedule-grid">
-                  <label><small>Fecha</small><input type="date" value={dateOnly(detail.dateStart) || ""} onChange={(event) => {
+                  <label><small>Fecha</small><input type="date" disabled={!canEdit} value={dateOnly(detail.dateStart) || ""} onChange={(event) => {
                     const day = event.target.value;
                     if (!day) { updateDetailField("dateStart", null); updateDetailField("dateEnd", null); updateDetailField("date", "SIN FECHA"); return; }
                     if (taskIsAllDay(detail)) updateDetailField("dateStart", day);
@@ -2764,12 +2764,12 @@ export default function Home() {
                     updateDetailField("date", new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", ""));
                   }} /></label>
                   {!taskIsAllDay(detail) && <>
-                    <label><small>Inicio</small><input type="time" step="900" value={plannerTimeLabel(plannerMinutes(detail.dateStart, 9 * 60))} onChange={(event) => {
+                    <label><small>Inicio</small><input type="time" step="900" disabled={!canEdit} value={plannerTimeLabel(plannerMinutes(detail.dateStart, 9 * 60))} onChange={(event) => {
                       const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
                       const [h,m] = event.target.value.split(":").map(Number);
                       updateDetailField("dateStart", localPlannerIso(day, h * 60 + m));
                     }} /></label>
-                    <label><small>Fin</small><input type="time" step="900" value={plannerTimeLabel(plannerMinutes(detail.dateEnd, 10 * 60))} onChange={(event) => {
+                    <label><small>Fin</small><input type="time" step="900" disabled={!canEdit} value={plannerTimeLabel(plannerMinutes(detail.dateEnd, 10 * 60))} onChange={(event) => {
                       const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
                       const [h,m] = event.target.value.split(":").map(Number);
                       updateDetailField("dateEnd", localPlannerIso(day, h * 60 + m));
