@@ -5,7 +5,7 @@ import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
   Check, LayoutDashboard, ListTodo, Plus, Save, Search, Sparkles, Star,
-  Target, TrendingUp, Users, X, Play, Pause, RotateCcw,
+  Target, TrendingUp, Users, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,6 +73,10 @@ type TeamPerson = {
   activeProjectNames: string[]; activeTaskNames: string[];
   completedTasks: number; completedProjects: number; score: number | null;
   taskScore: number | null; projectScore: number | null; evaluations: number;
+  evaluationHistory: Array<{
+    id: string; type: string; date: string | null; score: number | null; taskName: string | null; projectName: string | null;
+    quality: number | null; timing: number | null; collaboration: number | null; autonomy: number | null; impact: number | null;
+  }>;
   evidence: number; ratedTasks: number; ratedProjects: number; ratio: number | null;
   distribution: Record<"1" | "2" | "3" | "4" | "5", number>;
   dimensions: Record<DimensionKey, number | null>;
@@ -165,6 +169,16 @@ function ratioColor(value?: number | null) {
   const clamped = Math.max(0, Math.min(100, value));
   const hue = Math.round((clamped / 100) * 120);
   return `hsl(${hue} 78% 52%)`;
+}
+function currencyEUR(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(value);
+}
+function shortDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}).replace(".","");
 }
 function StarPicker({ value, onChange, compact = false }: { value: number; onChange: (value: number) => void; compact?: boolean }) {
   return <div className={compact ? "star-picker compact" : "star-picker"}>{[1, 2, 3, 4, 5].map((star) => <button type="button" key={star} className={value >= star ? "active" : ""} aria-label={star + " de 5"} onClick={() => onChange(star)}><Star /></button>)}</div>;
