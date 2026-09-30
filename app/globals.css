@@ -7711,3 +7711,199 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     transform: translate(-24%,-52%) scale(1.02) !important;
   }
 }
+
+
+/* === Solid cards, no outlines, no overflow v32 =========================== */
+
+/* Global dashboard card language: solid surfaces, no strokes or bevels */
+.dashboard-pulse-card,
+.dashboard-focus-card,
+.dashboard-timer-card,
+.dashboard-focus-accordion-card,
+.dashboard-view .account-dock-chip,
+.dashboard-pulse-hit-card,
+.dashboard-pulse-hit-back {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* Remove inset/bevel treatments from top modules */
+.dashboard-pulse-card,
+.dashboard-focus-card,
+.dashboard-timer-card {
+  box-shadow: 0 12px 30px rgba(34,43,36,.06) !important;
+}
+
+.dashboard-pulse-card {
+  overflow: hidden !important;
+  background: #0d120f !important;
+}
+
+/* Keep pulse stack fully inside the black card */
+.dashboard-pulse-hits {
+  overflow: hidden !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.dashboard-pulse-hit-back,
+.dashboard-pulse-hit-card.pulse-hit-main {
+  width: 148px !important;
+  height: 126px !important;
+  min-height: 126px !important;
+  border-radius: 22px !important;
+}
+
+.dashboard-pulse-hit-back {
+  padding: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  background: #1a201b !important;
+  box-shadow: 0 16px 30px rgba(0,0,0,.16) !important;
+  color: #fff !important;
+}
+
+.dashboard-pulse-hit-back > span {
+  color: var(--ui-lime) !important;
+  font-size: 6.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: .10em !important;
+}
+
+.dashboard-pulse-hit-back > strong {
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+}
+
+.dashboard-pulse-hit-back > small {
+  color: rgba(255,255,255,.44) !important;
+  font-size: 7px !important;
+}
+
+.dashboard-pulse-hit-back.pulse-hit-back-2 {
+  opacity: .28 !important;
+  transform: translate(-106%,-46%) rotate(-12deg) scale(.90) !important;
+}
+
+.dashboard-pulse-hit-back.pulse-hit-back-1 {
+  opacity: .52 !important;
+  transform: translate(-73%,-48%) rotate(-6deg) scale(.95) !important;
+}
+
+.dashboard-pulse-hit-card.pulse-hit-main {
+  background: #202620 !important;
+  box-shadow: 0 20px 36px rgba(0,0,0,.22) !important;
+  transform: translate(-26%,-50%) !important;
+}
+
+.dashboard-pulse-hit-card.pulse-hit-main:hover {
+  transform: translate(-26%,-52%) scale(1.02) !important;
+  box-shadow: 0 24px 42px rgba(0,0,0,.25) !important;
+}
+
+/* No outline glow on pulse stack */
+.dashboard-pulse-hit-card.pulse-hit-main,
+.dashboard-pulse-hit-card.pulse-hit-main:hover {
+  border-color: transparent !important;
+}
+
+/* Focus module: cards must stay inside the container */
+.dashboard-focus-card {
+  overflow: hidden !important;
+  min-height: 182px !important;
+  height: 182px !important;
+}
+
+.dashboard-focus-accordion {
+  height: 108px !important;
+  min-height: 108px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.dashboard-focus-accordion-card {
+  min-height: 104px !important;
+  height: 104px !important;
+  overflow: hidden !important;
+  box-shadow: 0 9px 20px rgba(31,38,32,.06) !important;
+}
+
+.dashboard-focus-accordion .dashboard-focus-accordion-card:hover {
+  transform: none !important;
+  box-shadow: 0 12px 24px rgba(31,38,32,.09) !important;
+}
+
+/* Account dock: no borders, no lift that gets clipped */
+.dashboard-view .account-dock {
+  overflow: hidden !important;
+}
+
+.dashboard-view .account-dock-track {
+  padding-block: 2px !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .account-dock-chip {
+  box-shadow: 0 7px 17px rgba(34,43,36,.045) !important;
+  transform: none !important;
+}
+
+.dashboard-view .account-dock-chip:hover,
+.dashboard-view .account-dock-chip[style]:hover {
+  background: var(--ui-lime) !important;
+  transform: none !important;
+  box-shadow: 0 9px 20px rgba(153,173,32,.12) !important;
+}
+
+/* Make sure no dark/green stroke survives on account hover */
+.dashboard-view .account-dock-chip,
+.dashboard-view .account-dock-chip:hover,
+.dashboard-view .account-dock-chip[style]:hover {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* Remove visible strokes from primary dashboard module containers */
+.dashboard-view .ops-panel,
+.dashboard-view .team-roster,
+.dashboard-view .account-dock {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* Remove the top bevel from the pulse module completely */
+.dashboard-pulse-card::before,
+.dashboard-pulse-card::after,
+.dashboard-focus-card::before,
+.dashboard-focus-card::after,
+.dashboard-timer-card::before,
+.dashboard-timer-card::after {
+  display: none !important;
+}
+
+@media (max-width:1180px){
+  .dashboard-pulse-hit-back,
+  .dashboard-pulse-hit-card.pulse-hit-main {
+    width: 138px !important;
+    height: 120px !important;
+    min-height: 120px !important;
+  }
+
+  .dashboard-pulse-hit-back.pulse-hit-back-2 {
+    transform: translate(-98%,-46%) rotate(-11deg) scale(.90) !important;
+  }
+
+  .dashboard-pulse-hit-back.pulse-hit-back-1 {
+    transform: translate(-68%,-48%) rotate(-6deg) scale(.95) !important;
+  }
+
+  .dashboard-pulse-hit-card.pulse-hit-main {
+    transform: translate(-22%,-50%) !important;
+  }
+
+  .dashboard-pulse-hit-card.pulse-hit-main:hover {
+    transform: translate(-22%,-52%) scale(1.02) !important;
+  }
+}
