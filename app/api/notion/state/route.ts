@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requestIsAuthorized } from "@/app/lib/workos-auth";
+import { requestIdentity } from "@/app/lib/workos-auth";
 import { DATA_SOURCES, queryDataSource } from "@/app/lib/notion-live";
 
 export const dynamic = "force-dynamic";
@@ -161,7 +161,8 @@ function evaluationAverage(values: number[]) {
 }
 
 export async function GET(request: Request) {
-  if (!await requestIsAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const identity = await requestIdentity(request);
+  if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     // Sequential on purpose: Notion's API is rate-limited and the task data source paginates.
     const accountPages = await queryAll(DATA_SOURCES.accounts);
@@ -382,9 +383,82 @@ export async function GET(request: Request) {
       .filter((holiday) => holiday.end && new Date(holiday.end).getTime() >= holidayWindowStart)
       .sort((a, b) => String(a.start).localeCompare(String(b.start)));
 
+    if (identity.role === "employee") {
+      const employeeName = String(identity.employeeName || "").trim();
+      if (!employeeName) {
+        return NextResponse.json({ error: "Employee profile is not linked" }, { status: 403 });
+      }
+
+      const directTasks = tasks.filter((task) => task.people.includes(employeeName));
+      const directProjectNames = new Set(
+        projects.filter((project) => project.people.includes(employeeName)).map((project) => project.name)
+      );
+      for (const task of directTasks) {
+        if (task.project && task.project !== "Por asignar") directProjectNames.add(task.project);
+      }
+
+      const employeeProjects = visibleProjects.filter((project) => directProjectNames.has(project.name));
+      const employeeProjectNames = new Set(employeeProjects.map((project) => project.name));
+      const employeeTasks = directTasks.filter((task) =>
+        task.project === "Por asignar" || employeeProjectNames.has(task.project)
+      );
+      const employeeActiveTasks = employeeTasks.filter((task) => ACTIVE_TASK_STATUSES.has(task.status));
+      const employeeAccountsSet = new Set([
+        ...employeeProjects.map((project) => project.account),
+        ...employeeTasks.map((task) => task.account),
+      ]);
+      const employeeAccounts = accounts.filter((account) => employeeAccountsSet.has(account.name));
+      const employeeHolidays = holidays.filter((holiday) => holiday.name === employeeName);
+      const employeeTeam = team
+        .filter((person) => person.name === employeeName)
+        .map((person) => ({
+          ...person,
+          salary: null,
+          score: null,
+          taskScore: null,
+          projectScore: null,
+          evaluations: 0,
+          evaluationHistory: [],
+          evidence: 0,
+          ratedTasks: 0,
+          ratedProjects: 0,
+          ratio: null,
+          distribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+          dimensions: { quality: null, timing: null, collaboration: null, autonomy: null, impact: null },
+        }));
+
+      return NextResponse.json({
+        source: "notion",
+        loadedAt: new Date().toISOString(),
+        scope: "employee",
+        employeeName,
+        counts: {
+          accounts: employeeAccounts.length,
+          projects: employeeProjects.length,
+          activeProjects: employeeProjects.filter((project) => ACTIVE_PROJECT_STATUSES.has(project.status)).length,
+          tasks: employeeTasks.length,
+          activeTasks: employeeActiveTasks.length,
+          team: employeeTeam.length,
+          holidays: employeeHolidays.length,
+          evaluations: 0,
+          ratedTasks: 0,
+          ratedProjects: 0,
+        },
+        accounts: employeeAccounts,
+        projects: employeeProjects,
+        tasks: employeeActiveTasks,
+        allTasks: employeeTasks,
+        team: employeeTeam,
+        holidays: employeeHolidays,
+      }, {
+        headers: { "Cache-Control": "private, no-store, max-age=0" },
+      });
+    }
+
     return NextResponse.json({
       source: "notion",
       loadedAt: new Date().toISOString(),
+      scope: identity.role === "viewer" ? "viewer_global" : "admin",
       counts: {
         accounts: accounts.length,
         projects: projects.length,
