@@ -5,7 +5,7 @@ import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
   Check, LayoutDashboard, ListTodo, Plus, Save, Search, Sparkles, Star,
-  Target, TrendingUp, Users, X, Play, Pause, RotateCcw,
+  Target, TrendingUp, Users, X, Play, Pause, RotateCcw, MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -291,6 +291,7 @@ export default function Home() {
   const [quickType, setQuickType] = useState("task");
   const [quickName, setQuickName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(1);
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
   const [calendarTaskDate, setCalendarTaskDate] = useState<string | null>(null);
@@ -1228,9 +1229,20 @@ export default function Home() {
     <aside className="sidebar-shell">
       <div className="brand-lockup"><span>O</span><strong>OGILVY<br />OS</strong></div>
       <div className="nav-section-label"><span>ESPACIOS</span><small>9 vistas</small></div>
-      <TabsList className="nav-list" variant="line" aria-label="Navegación principal">
-        {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
-      </TabsList>
+      <div className="mobile-nav-deck">
+        <TabsList className="nav-list" variant="line" aria-label="Navegación principal">
+          {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
+        </TabsList>
+        <Dialog open={mobileMoreOpen} onOpenChange={setMobileMoreOpen}>
+          <DialogTrigger asChild><button className="mobile-more-trigger" aria-label="Más vistas"><MoreHorizontal /><span>Más</span></button></DialogTrigger>
+          <DialogContent className="mobile-more-sheet">
+            <DialogHeader><DialogTitle>Más espacios</DialogTitle><DialogDescription>Consulta el resto de vistas sin convertir la barra inferior en un mercadillo.</DialogDescription></DialogHeader>
+            <div className="mobile-more-grid">
+              {navigation.filter((item) => ["timeline","accounts","projects","team","holidays"].includes(item.value)).map(({ value, label, icon: Icon }) => <button key={value} onClick={() => { setActiveView(value as View); setMobileMoreOpen(false); }}><Icon /><span>{label}</span><ChevronRight /></button>)}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
       <form action="/api/auth/logout" method="post" className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
     </aside>
