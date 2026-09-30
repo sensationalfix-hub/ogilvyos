@@ -8939,3 +8939,142 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     height: 640px !important;
   }
 }
+
+
+/* === All-day planner drop + task schedule editor v41 ===================== */
+.planner-allday-cell.task-drop-ready {
+  background: rgba(231,255,63,.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(231,255,63,.38) !important;
+}
+
+.planner-allday-cell.task-drop-ready::after {
+  content: "SUELTA AQUÍ" !important;
+  margin-left: auto !important;
+  align-self: center !important;
+  color: rgba(21,25,20,.48) !important;
+  font-size: 6.5px !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em !important;
+}
+
+.planner-all-day-chip.task {
+  position: relative !important;
+  padding-right: 28px !important;
+  background: #fff !important;
+  box-shadow: 0 6px 14px rgba(34,43,36,.06) !important;
+}
+
+.planner-all-day-chip.task i {
+  background: var(--ui-lime) !important;
+}
+
+.planner-all-day-grip {
+  position: absolute !important;
+  right: 4px !important;
+  top: 50% !important;
+  width: 22px !important;
+  height: 26px !important;
+  display: grid !important;
+  place-items: center !important;
+  transform: translateY(-50%) !important;
+  border-radius: 8px !important;
+  background: rgba(21,25,20,.05) !important;
+  color: #8d958e !important;
+  cursor: grab !important;
+}
+
+.planner-all-day-grip svg {
+  width: 11px !important;
+}
+
+.planner-all-day-grip:active {
+  cursor: grabbing !important;
+}
+
+/* Extra breathing between adjacent timed blocks */
+.planner-task-block {
+  margin-bottom: 2px !important;
+}
+
+/* Task detail: cleaner OS-native schedule block */
+.task-schedule-editor {
+  gap: 10px !important;
+}
+
+.task-schedule-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.task-schedule-head > span {
+  color: #7f8780 !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+}
+
+.task-all-day-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #687069 !important;
+  font-size: 8px !important;
+}
+
+.task-schedule-grid {
+  display: grid !important;
+  grid-template-columns: 1.1fr .75fr .75fr !important;
+  gap: 8px !important;
+}
+
+.task-schedule-grid label {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+}
+
+.task-schedule-grid small {
+  color: #969e97 !important;
+  font-size: 7px !important;
+  font-weight: 760 !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+}
+
+.task-schedule-grid input {
+  width: 100% !important;
+  min-height: 38px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  background: #f5f6f3 !important;
+  color: var(--ui-ink) !important;
+  box-shadow: none !important;
+}
+
+/* Remove legacy red accent from task detail */
+.detail-sheet .sheet-kicker {
+  color: #8d958e !important;
+}
+
+.detail-sheet .close-evaluate-button {
+  background: #111512 !important;
+  color: #fff !important;
+  border: 0 !important;
+}
+
+.detail-sheet .notion-button {
+  background: var(--ui-lime) !important;
+  color: var(--ui-ink) !important;
+  border: 0 !important;
+}
+
+@media (max-width:760px){
+  .task-schedule-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
