@@ -197,6 +197,7 @@ export async function GET(request: Request) {
         account: relation(page, "Cuentas").map((id) => accountNames.get(id)).find(Boolean) || "Sin cuenta",
         date: dateLabel(taskDate?.start),
         dateStart: taskDate?.start ?? null,
+        dateEnd: taskDate?.end ?? null,
         people: relationNames(relation(page, "Equipo"), teamNames),
         url: page.url || `https://www.notion.so/${compactId(page.id)}`,
         rating: starNumber(select(page, "Rating")),
