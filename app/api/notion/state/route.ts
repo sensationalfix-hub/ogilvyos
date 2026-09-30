@@ -217,19 +217,28 @@ export async function GET(request: Request) {
     const visibleProjects = projects.filter((project) => VISIBLE_PROJECT_STATUSES.has(project.status));
     const activeTasks = tasks.filter((task) => ACTIVE_TASK_STATUSES.has(task.status));
 
-    const evaluations = evaluationPages.map((page) => ({
-      id: compactId(page.id),
-      type: select(page, "Tipo"),
-      employees: relation(page, "Empleado"),
-      taskIds: relation(page, "Tarea"),
-      projectIds: relation(page, "Proyecto"),
-      score: numeric(page, "Nota general"),
-      quality: numeric(page, "Calidad"),
-      timing: numeric(page, "Timing"),
-      collaboration: numeric(page, "Colaboración"),
-      autonomy: numeric(page, "Autonomía"),
-      impact: numeric(page, "Impacto"),
-    }));
+    const evaluations = evaluationPages.map((page) => {
+      const taskIds = relation(page, "Tarea");
+      const projectIds = relation(page, "Proyecto");
+      const taskName = taskIds.map((id) => tasks.find((task) => task.id === id)?.name).find(Boolean) || null;
+      const projectName = projectIds.map((id) => projects.find((project) => project.id === id)?.name).find(Boolean) || null;
+      return {
+        id: compactId(page.id),
+        type: select(page, "Tipo"),
+        employees: relation(page, "Empleado"),
+        taskIds,
+        projectIds,
+        taskName,
+        projectName,
+        date: typeof page.created_time === "string" ? page.created_time : null,
+        score: numeric(page, "Nota general"),
+        quality: numeric(page, "Calidad"),
+        timing: numeric(page, "Timing"),
+        collaboration: numeric(page, "Colaboración"),
+        autonomy: numeric(page, "Autonomía"),
+        impact: numeric(page, "Impacto"),
+      };
+    });
 
     const team = teamPages
       .filter((page) => {
@@ -296,6 +305,22 @@ export async function GET(request: Request) {
           taskScore,
           projectScore,
           evaluations: generalScores.length,
+          evaluationHistory: personEvaluations
+            .filter((evaluation) => typeof evaluation.score === "number")
+            .sort((a,b) => String(a.date || "").localeCompare(String(b.date || "")))
+            .map((evaluation) => ({
+              id: evaluation.id,
+              type: evaluation.type || "Evaluación",
+              date: evaluation.date,
+              score: evaluation.score,
+              taskName: evaluation.taskName,
+              projectName: evaluation.projectName,
+              quality: evaluation.quality,
+              timing: evaluation.timing,
+              collaboration: evaluation.collaboration,
+              autonomy: evaluation.autonomy,
+              impact: evaluation.impact,
+            })),
           evidence,
           ratedTasks: ratedTaskScores.length,
           ratedProjects: ratedProjectScores.length,
