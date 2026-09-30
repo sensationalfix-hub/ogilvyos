@@ -15599,3 +15599,75 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     max-height:198px!important;
   }
 }
+
+
+/* === Deadline rail optical edge v3 ======================================= */
+/* Transparent frosted edge: blur the cards themselves instead of painting
+   an opaque lime band over them. */
+.dashboard-view .deadline-ribbon{
+  overflow:hidden!important;
+}
+
+.dashboard-view .deadline-ribbon-list{
+  padding-right:78px!important;
+  margin-right:-78px!important;
+  mask-image:linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(100% - 92px),
+    rgba(0,0,0,.92) calc(100% - 68px),
+    rgba(0,0,0,.62) calc(100% - 42px),
+    rgba(0,0,0,.24) calc(100% - 18px),
+    transparent 100%
+  )!important;
+  -webkit-mask-image:linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(100% - 92px),
+    rgba(0,0,0,.92) calc(100% - 68px),
+    rgba(0,0,0,.62) calc(100% - 42px),
+    rgba(0,0,0,.24) calc(100% - 18px),
+    transparent 100%
+  )!important;
+}
+
+/* kill previous painted edge */
+.dashboard-view .deadline-ribbon::after{
+  content:""!important;
+  position:absolute!important;
+  z-index:7!important;
+  top:0!important;
+  right:0!important;
+  width:76px!important;
+  height:100%!important;
+  pointer-events:none!important;
+  background:linear-gradient(
+    to right,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,.025) 38%,
+    rgba(255,255,255,.055) 68%,
+    rgba(255,255,255,.08) 100%
+  )!important;
+  backdrop-filter:blur(14px) saturate(.92)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(.92)!important;
+  mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.35) 34%,#000 100%)!important;
+  -webkit-mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.35) 34%,#000 100%)!important;
+}
+
+/* subtle left edge only once the user scrolls content under it */
+.dashboard-view .deadline-ribbon::before{
+  content:""!important;
+  position:absolute!important;
+  z-index:7!important;
+  top:0!important;
+  left:124px!important;
+  width:28px!important;
+  height:100%!important;
+  pointer-events:none!important;
+  background:transparent!important;
+  backdrop-filter:blur(8px)!important;
+  -webkit-backdrop-filter:blur(8px)!important;
+  mask-image:linear-gradient(to right,#000,transparent)!important;
+  -webkit-mask-image:linear-gradient(to right,#000,transparent)!important;
+  opacity:.42!important;
+}
