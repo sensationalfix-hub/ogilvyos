@@ -202,6 +202,7 @@ export async function GET(request: Request) {
         url: page.url || `https://www.notion.so/${compactId(page.id)}`,
         rating: starNumber(select(page, "Rating")),
         effort: select(page, "Esfuerzo"),
+        workosLane: select(page, "WorkOS Estado") || null,
       };
     });
 
