@@ -16303,3 +16303,127 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
   }
 }
+
+
+/* === Buzón polish v3: proper switch + readable bulletin cards ============ */
+.inbox-composer footer label{
+  gap:10px!important;
+  font-size:11px!important;
+  line-height:1!important;
+}
+
+.inbox-composer footer label input[type="checkbox"]{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  display:block!important;
+  flex:0 0 38px!important;
+  width:38px!important;
+  min-width:38px!important;
+  max-width:38px!important;
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:#d8ded6!important;
+  box-shadow:inset 0 0 0 1px rgba(23,28,24,.08)!important;
+  position:relative!important;
+  vertical-align:middle!important;
+  cursor:pointer!important;
+  pointer-events:auto!important;
+  transition:background .18s ease!important;
+}
+
+.inbox-composer footer label input[type="checkbox"]::after{
+  content:""!important;
+  position:absolute!important;
+  top:3px!important;
+  left:3px!important;
+  width:16px!important;
+  height:16px!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  box-shadow:0 2px 7px rgba(17,22,18,.18)!important;
+  transform:translateX(0)!important;
+  transition:transform .18s ease!important;
+}
+
+.inbox-composer footer label input[type="checkbox"]:checked{
+  background:var(--ui-lime)!important;
+}
+
+.inbox-composer footer label input[type="checkbox"]:checked::after{
+  transform:translateX(16px)!important;
+}
+
+/* Important announcements: one solid WorkOS black block, no gradient. */
+.inbox-announcement.important{
+  background:#0d120f!important;
+  color:#fff!important;
+  box-shadow:0 12px 28px rgba(18,23,19,.10)!important;
+}
+
+.inbox-announcement.important header span{
+  color:var(--ui-lime)!important;
+}
+
+.inbox-announcement.important time,
+.inbox-announcement.important footer{
+  color:rgba(255,255,255,.48)!important;
+}
+
+.inbox-announcement.important h3{
+  color:#fff!important;
+}
+
+.inbox-announcement.important p{
+  color:rgba(255,255,255,.72)!important;
+}
+
+/* Bulletin typography: readable at actual desktop viewing distance. */
+.inbox-announcement h3,
+.inbox-request h3{
+  font-size:18px!important;
+  line-height:1.15!important;
+}
+
+.inbox-announcement p,
+.inbox-request p{
+  font-size:12px!important;
+  line-height:1.62!important;
+}
+
+.inbox-announcement header span,
+.inbox-request header span,
+.inbox-announcement time,
+.inbox-request header b{
+  font-size:9px!important;
+}
+
+.inbox-announcement footer,
+.inbox-request footer,
+.inbox-request-author{
+  font-size:9px!important;
+}
+
+.inbox-admin-reply p{
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+
+.inbox-section-head h2{
+  font-size:26px!important;
+}
+
+.inbox-composer-title strong{
+  font-size:13px!important;
+}
+
+.inbox-composer input,
+.inbox-composer select,
+.inbox-composer textarea,
+.inbox-admin-tools textarea{
+  font-size:12px!important;
+}
