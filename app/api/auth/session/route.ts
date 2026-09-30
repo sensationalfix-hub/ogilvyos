@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
-import { requestRole } from "@/app/lib/workos-auth";
+import { requestIdentity } from "@/app/lib/workos-auth";
 
 export async function GET(request: Request) {
-  const role = await requestRole(request);
-  if (!role) return NextResponse.json({ authenticated: false }, { status: 401 });
+  const identity = await requestIdentity(request);
+  if (!identity) return NextResponse.json({ authenticated: false }, { status: 401 });
+
   return NextResponse.json({
     authenticated: true,
-    role,
-    name: role === "viewer" ? "Ramiro" : "Jorge",
+    role: identity.role,
+    name: identity.name,
+    initials: identity.initials,
+    employeeName: identity.employeeName,
+    source: identity.source,
   });
 }
