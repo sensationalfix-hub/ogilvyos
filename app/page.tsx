@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
@@ -251,9 +251,12 @@ function plannerTimeLabel(minutes: number) {
 function taskIsAllDay(task: Pick<Task, "dateStart">) {
   return Boolean(task.dateStart && !task.dateStart.includes("T"));
 }
-const PLANNER_START = 9 * 60;
-const PLANNER_END = 19 * 60;
+const PLANNER_START = 7 * 60;
+const PLANNER_END = 22 * 60;
+const PLANNER_DEFAULT_START = 9 * 60;
 const PLANNER_HOUR_PX = 64;
+const PLANNER_HOURS = (PLANNER_END - PLANNER_START) / 60;
+const PLANNER_HEIGHT = PLANNER_HOURS * PLANNER_HOUR_PX;
 const TASK_LANES: TaskLane[] = ["En progreso", "En espera", "Por hacer", "Backlog"];
 const DASHBOARD_TASK_LANES: TaskLane[] = ["En progreso", "En espera", "Por hacer"];
 function taskLane(task: Pick<Task, "status" | "workosLane">): TaskLane {
@@ -293,12 +296,23 @@ function timelinePercent(value: string | null | undefined, start: Date, end: Dat
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("dashboard");
+  const weekPlannerScrollRef = useRef<HTMLDivElement | null>(null);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [allTasks, setAllTasks] = useState<Task[]>(initialTasks);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [accounts, setAccounts] = useState<Account[]>(fallbackAccounts);
   const [team, setTeam] = useState<TeamPerson[]>(fallbackTeam);
   const [holidays, setHolidays] = useState<Holiday[]>(fallbackHolidays);
+
+  useEffect(() => {
+    if (activeView !== "week") return;
+    const frame = requestAnimationFrame(() => {
+      if (weekPlannerScrollRef.current) {
+        weekPlannerScrollRef.current.scrollTop = ((PLANNER_DEFAULT_START - PLANNER_START) / 60) * PLANNER_HOUR_PX;
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeView]);
   const [liveCounts, setLiveCounts] = useState<LiveState["counts"] | null>(null);
   const [dataState, setDataState] = useState<"loading" | "live" | "error">("loading");
   const [liveSchema, setLiveSchema] = useState<LiveSchema | null>(null);
@@ -1640,16 +1654,16 @@ export default function Home() {
             })}
           </div>
 
-          <div className="week-planner-scroll">
-            <div className="week-planner-grid">
-              <aside className="planner-time-axis">
-                {Array.from({ length: 11 }, (_, index) => 9 + index).map((hour) => <span key={hour} style={{ top: `${(hour - 9) * PLANNER_HOUR_PX}px` }}>{String(hour).padStart(2, "0")}:00</span>)}
+          <div className="week-planner-scroll" ref={weekPlannerScrollRef}>
+            <div className="week-planner-grid" style={{ height: `${PLANNER_HEIGHT}px` }}>
+              <aside className="planner-time-axis" style={{ height: `${PLANNER_HEIGHT}px` }}>
+                {Array.from({ length: PLANNER_HOURS + 1 }, (_, index) => PLANNER_START / 60 + index).map((hour) => <span key={hour} style={{ top: `${(hour * 60 - PLANNER_START) / 60 * PLANNER_HOUR_PX}px` }}>{String(hour).padStart(2, "0")}:00</span>)}
               </aside>
 
               {operationalWeekDays.map((day) => {
                 const key = isoDate(day);
                 const dayTasks = weeklyTasks.filter((task) => dateOnly(task.dateStart) === key && !taskIsAllDay(task));
-                return <div key={key} className="planner-day-column"
+                return <div key={key} className="planner-day-column" style={{ height: `${PLANNER_HEIGHT}px` }}
                   onDragOver={(event) => { if (dragging?.startsWith("task:")) event.preventDefault(); }}
                   onDrop={(event) => {
                     event.preventDefault();
@@ -1662,7 +1676,7 @@ export default function Home() {
                     void movePlannerTask(id, key, minutes);
                   }}>
                   <div className="planner-hour-lines" aria-hidden="true">
-                    {Array.from({ length: 11 }, (_, index) => <i key={index} style={{ top: `${index * PLANNER_HOUR_PX}px` }} />)}
+                    {Array.from({ length: PLANNER_HOURS + 1 }, (_, index) => <i key={index} style={{ top: `${index * PLANNER_HOUR_PX}px` }} />)}
                   </div>
 
                   {dayTasks.map((task) => {
