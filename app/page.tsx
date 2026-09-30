@@ -160,6 +160,12 @@ function confidence(count: number) {
 function oneDecimal(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(1) : "—";
 }
+function ratioColor(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "#dfe4dd";
+  const clamped = Math.max(0, Math.min(100, value));
+  const hue = Math.round((clamped / 100) * 120);
+  return `hsl(${hue} 78% 52%)`;
+}
 function StarPicker({ value, onChange, compact = false }: { value: number; onChange: (value: number) => void; compact?: boolean }) {
   return <div className={compact ? "star-picker compact" : "star-picker"}>{[1, 2, 3, 4, 5].map((star) => <button type="button" key={star} className={value >= star ? "active" : ""} aria-label={star + " de 5"} onClick={() => onChange(star)}><Star /></button>)}</div>;
 }
@@ -2135,12 +2141,12 @@ export default function Home() {
                   <div className="employee-profile-stats">
                     <span><b>{person.activeProjects}</b><small>proyectos</small></span>
                     <span><b>{person.load}%</b><small>carga</small></span>
-                    <span><b>{performance.ratio ?? "—"}</b><small>índice</small></span>
+                    <span className="employee-index-stat" style={{"--index-color":ratioColor(performance.ratio)} as React.CSSProperties}><b>{performance.ratio ?? "—"}</b><small>índice</small></span>
                   </div>
 
                   <div className="employee-dimensions" aria-hidden="true">
                     <span>LECTURA</span>
-                    {dimensionEntries.slice(0,4).map((item)=><div key={item.key}><div><small>{item.label}</small><b>{oneDecimal(item.value)}</b></div><i><em style={{width:`${Math.min(100,(item.value as number)*20)}%`}} /></i></div>)}
+                    {dimensionEntries.slice(0,4).map((item)=><div key={item.key} className="employee-dimension-row"><div><small>{item.label}</small><b>{oneDecimal(item.value)}</b></div><i><em style={{width:`${Math.min(100,(item.value as number)*20)}%`}} /></i></div>)}
                     {!dimensionEntries.length&&<p>Sin suficiente desglose todavía.</p>}
                   </div>
                 </button>;
