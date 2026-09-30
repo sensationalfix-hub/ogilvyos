@@ -1,6 +1,23 @@
+import {
+  resolveSupabaseIdentity,
+  SUPABASE_ACCESS_COOKIE,
+  SUPABASE_REFRESH_COOKIE,
+  supabaseRefresh,
+} from "@/app/lib/supabase-auth";
+
 export const WORKOS_SESSION_COOKIE = "workos_session";
 
-export type WorkOSRole = "editor" | "viewer";
+export type WorkOSRole = "editor" | "viewer" | "employee";
+
+export type WorkOSIdentity = {
+  role: WorkOSRole;
+  name: string;
+  initials: string;
+  employeeName: string | null;
+  source: "legacy" | "supabase";
+  refreshedAccessToken?: string;
+  refreshedRefreshToken?: string;
+};
 
 function configuredPassword() {
   return process.env.APP_ACCESS_PASSWORD
@@ -40,13 +57,13 @@ export function isViewerAuthConfigured() {
   return Boolean(configuredViewerPassword());
 }
 
-export async function workOSSessionValue(role: WorkOSRole = "editor") {
+export async function workOSSessionValue(role: "editor" | "viewer" = "editor") {
   const password = role === "viewer" ? configuredViewerPassword() : configuredPassword();
   if (!password) return null;
   return digest(`workos-session:v2:${role}:${password}`);
 }
 
-export async function passwordRole(value: string): Promise<WorkOSRole | null> {
+export async function passwordRole(value: string): Promise<"editor" | "viewer" | null> {
   const editorPassword = configuredPassword();
   const viewerPassword = configuredViewerPassword();
 
@@ -69,11 +86,7 @@ export async function passwordRole(value: string): Promise<WorkOSRole | null> {
   return null;
 }
 
-export async function passwordMatches(value: string) {
-  return (await passwordRole(value)) === "editor";
-}
-
-export async function sessionRoleFromValue(value: string | undefined | null): Promise<WorkOSRole | null> {
+export async function sessionRoleFromValue(value: string | undefined | null): Promise<"editor" | "viewer" | null> {
   if (!value) return null;
 
   const editor = await workOSSessionValue("editor");
@@ -98,12 +111,64 @@ export function cookieFromRequest(request: Request, name: string) {
   return null;
 }
 
+function mapSupabaseRole(role: string): WorkOSRole {
+  if (role === "admin") return "editor";
+  if (role === "viewer_global") return "viewer";
+  return "employee";
+}
+
+export async function requestIdentity(request: Request): Promise<WorkOSIdentity | null> {
+  const accessToken = cookieFromRequest(request, SUPABASE_ACCESS_COOKIE);
+  if (accessToken) {
+    const identity = await resolveSupabaseIdentity(accessToken);
+    if (identity) {
+      return {
+        role: mapSupabaseRole(identity.profile.role),
+        name: identity.profile.full_name || identity.user.email || "WorkOS",
+        initials: identity.profile.initials || (identity.profile.full_name || identity.user.email || "WO").slice(0, 2).toUpperCase(),
+        employeeName: identity.profile.employee_name,
+        source: "supabase",
+      };
+    }
+  }
+
+  const refreshToken = cookieFromRequest(request, SUPABASE_REFRESH_COOKIE);
+  if (refreshToken) {
+    const refreshed = await supabaseRefresh(refreshToken);
+    if (refreshed?.access_token) {
+      const identity = await resolveSupabaseIdentity(refreshed.access_token);
+      if (identity) {
+        return {
+          role: mapSupabaseRole(identity.profile.role),
+          name: identity.profile.full_name || identity.user.email || "WorkOS",
+          initials: identity.profile.initials || (identity.profile.full_name || identity.user.email || "WO").slice(0, 2).toUpperCase(),
+          employeeName: identity.profile.employee_name,
+          source: "supabase",
+          refreshedAccessToken: refreshed.access_token,
+          refreshedRefreshToken: refreshed.refresh_token,
+        };
+      }
+    }
+  }
+
+  const legacyRole = await sessionRoleFromValue(cookieFromRequest(request, WORKOS_SESSION_COOKIE));
+  if (!legacyRole) return null;
+
+  return {
+    role: legacyRole,
+    name: legacyRole === "viewer" ? "Ramiro" : "Jorge",
+    initials: legacyRole === "viewer" ? "RM" : "JC",
+    employeeName: null,
+    source: "legacy",
+  };
+}
+
 export async function requestRole(request: Request) {
-  return sessionRoleFromValue(cookieFromRequest(request, WORKOS_SESSION_COOKIE));
+  return (await requestIdentity(request))?.role ?? null;
 }
 
 export async function requestIsAuthorized(request: Request) {
-  return Boolean(await requestRole(request));
+  return Boolean(await requestIdentity(request));
 }
 
 export async function requestCanWrite(request: Request) {
