@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requestIsAuthorized } from "@/app/lib/workos-auth";
+import { requestCanWrite } from "@/app/lib/workos-auth";
 import { DATA_SOURCES, resolveRelation, updatePage } from "@/app/lib/notion-live";
 
 type Kind = "task" | "project";
@@ -80,7 +80,7 @@ async function projectProperties(changes: Record<string, unknown>) {
 }
 
 export async function PATCH(request: Request) {
-  if (!await requestIsAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!await requestCanWrite(request)) return NextResponse.json({ error: "Read-only account" }, { status: 403 });
   try {
     const body = (await request.json()) as Body;
     if (!body.id || !body.kind || !body.changes) {
