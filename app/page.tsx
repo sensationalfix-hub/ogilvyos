@@ -245,6 +245,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [queuedChanges, setQueuedChanges] = useState(0);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [dragVisual, setDragVisual] = useState<{ title: string; meta: string; x: number; y: number } | null>(null);
   const [quickType, setQuickType] = useState("task");
   const [quickName, setQuickName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -272,6 +273,73 @@ export default function Home() {
   const [focusSeconds, setFocusSeconds] = useState(25 * 60);
   const [focusRunning, setFocusRunning] = useState(false);
   const current = viewCopy[activeView];
+
+  useEffect(() => {
+    const ghost = document.createElement("div");
+    ghost.setAttribute("aria-hidden", "true");
+    Object.assign(ghost.style, {
+      position: "fixed",
+      left: "-9999px",
+      top: "-9999px",
+      width: "1px",
+      height: "1px",
+      opacity: "0",
+      pointerEvents: "none",
+    });
+    document.body.appendChild(ghost);
+
+    let source: HTMLElement | null = null;
+
+    const start = (event: DragEvent) => {
+      const target = event.target instanceof Element ? event.target.closest('[draggable="true"]') as HTMLElement | null : null;
+      if (!target) return;
+      source = target;
+      source.classList.add("is-being-dragged");
+
+      const title =
+        target.querySelector("h3")?.textContent?.trim() ||
+        target.querySelector(".dashboard-project-copy strong")?.textContent?.trim() ||
+        target.querySelector(".team-copy h2")?.textContent?.trim() ||
+        target.querySelector(".roster-person strong")?.textContent?.trim() ||
+        target.querySelector(".week-item strong")?.textContent?.trim() ||
+        target.querySelector("strong")?.textContent?.trim() ||
+        "Elemento";
+
+      const meta =
+        target.querySelector(".client-label")?.textContent?.trim() ||
+        target.querySelector("p")?.textContent?.trim() ||
+        target.querySelector("small")?.textContent?.trim() ||
+        "Arrastrando";
+
+      event.dataTransfer?.setDragImage(ghost, 0, 0);
+      setDragVisual({ title, meta, x: event.clientX, y: event.clientY });
+    };
+
+    const move = (event: DragEvent) => {
+      if (!event.clientX && !event.clientY) return;
+      setDragVisual((visual) => visual ? { ...visual, x: event.clientX, y: event.clientY } : visual);
+    };
+
+    const end = () => {
+      source?.classList.remove("is-being-dragged");
+      source = null;
+      setDragVisual(null);
+    };
+
+    document.addEventListener("dragstart", start, true);
+    window.addEventListener("dragover", move, true);
+    document.addEventListener("dragend", end, true);
+    document.addEventListener("drop", end, true);
+
+    return () => {
+      document.removeEventListener("dragstart", start, true);
+      window.removeEventListener("dragover", move, true);
+      document.removeEventListener("dragend", end, true);
+      document.removeEventListener("drop", end, true);
+      source?.classList.remove("is-being-dragged");
+      ghost.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!focusRunning) return;
@@ -1476,6 +1544,11 @@ export default function Home() {
         <DialogFooter><Button variant="outline" onClick={resetEvaluation}>Cancelar</Button><Button className="close-evaluate-button" disabled={!score} onClick={submitEvaluation}><Check /> Cerrar y guardar</Button></DialogFooter>
       </>}</DialogContent>
     </Dialog>
+    {dragVisual && <div className="physical-drag-preview" style={{ left: dragVisual.x, top: dragVisual.y }} aria-hidden="true">
+      <div className="physical-drag-grip"><GripVertical /></div>
+      <div className="physical-drag-copy"><strong>{dragVisual.title}</strong><small>{dragVisual.meta}</small></div>
+      <span className="physical-drag-glint" />
+    </div>}
     <Toaster position="bottom-right" />
   </Tabs>;
 }
