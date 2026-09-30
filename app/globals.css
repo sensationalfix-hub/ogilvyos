@@ -16427,3 +16427,219 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .inbox-admin-tools textarea{
   font-size:12px!important;
 }
+
+
+/* === Buzón top widgets v4 =============================================== */
+.inbox-shell{
+  grid-template-rows:184px minmax(0,1fr)!important;
+}
+
+.inbox-top-grid{
+  min-height:184px;
+  display:grid;
+  grid-template-columns:minmax(220px,.72fr) minmax(420px,1.55fr) minmax(230px,.73fr);
+  gap:12px;
+}
+
+.inbox-online-card,
+.inbox-people-card,
+.inbox-status-card{
+  min-width:0;
+  height:184px;
+  padding:18px;
+  border-radius:24px;
+  overflow:hidden;
+  box-shadow:0 12px 30px rgba(34,43,36,.055);
+}
+
+.inbox-card-label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.inbox-card-label span{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.inbox-card-label svg{
+  width:17px;
+  height:17px;
+}
+
+.inbox-online-card{
+  background:#0d120f;
+  color:#fff;
+}
+
+.inbox-online-card .inbox-card-label{
+  color:rgba(255,255,255,.52);
+}
+
+.inbox-online-card .inbox-card-label svg{
+  color:var(--ui-lime);
+}
+
+.inbox-online-value{
+  margin-top:22px;
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+}
+
+.inbox-online-value strong{
+  font-size:58px;
+  line-height:.82;
+  letter-spacing:-.06em;
+}
+
+.inbox-online-value span{
+  padding-bottom:5px;
+  color:rgba(255,255,255,.48);
+  font-size:11px;
+  font-weight:700;
+}
+
+.inbox-online-card>small{
+  display:block;
+  margin-top:22px;
+  color:rgba(255,255,255,.38);
+  font-size:9px;
+}
+
+.inbox-people-card{
+  background:#fff;
+}
+
+.inbox-people-card .inbox-card-label{
+  color:#89918a;
+}
+
+.inbox-people-track{
+  height:118px;
+  margin-top:14px;
+  display:flex;
+  gap:10px;
+  align-items:stretch;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  padding-right:34px;
+  mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 54px),rgba(0,0,0,.35) calc(100% - 20px),transparent 100%);
+  -webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 54px),rgba(0,0,0,.35) calc(100% - 20px),transparent 100%);
+}
+
+.inbox-people-track::-webkit-scrollbar{
+  display:none;
+}
+
+.inbox-person-tile{
+  flex:0 0 190px;
+  min-width:190px;
+  padding:14px;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) 8px;
+  gap:10px;
+  align-items:center;
+  border-radius:18px;
+  background:#f4f6f1;
+}
+
+.inbox-person-tile>span{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 4px 12px rgba(28,34,29,.06);
+  color:#151a16;
+  font-size:11px;
+  font-weight:850;
+}
+
+.inbox-person-tile>div{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.inbox-person-tile strong,
+.inbox-person-tile small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.inbox-person-tile strong{
+  font-size:12px;
+}
+
+.inbox-person-tile small{
+  color:#8f9790;
+  font-size:9px;
+}
+
+.inbox-person-tile>i{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--ui-lime);
+  box-shadow:0 0 0 4px rgba(231,255,63,.12);
+}
+
+.inbox-status-card{
+  background:var(--ui-lime);
+  color:#151915;
+}
+
+.inbox-status-card .inbox-card-label{
+  color:rgba(21,25,20,.58);
+}
+
+.inbox-status-card>strong{
+  display:block;
+  margin-top:18px;
+  font-size:50px;
+  line-height:.86;
+  letter-spacing:-.055em;
+}
+
+.inbox-status-card>span{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.inbox-status-meta{
+  margin-top:22px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.inbox-status-meta b{
+  min-height:28px;
+  display:inline-flex;
+  align-items:center;
+  padding:0 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.56);
+  font-size:9px;
+  font-weight:850;
+}
+
+@media(max-width:1180px){
+  .inbox-top-grid{
+    grid-template-columns:minmax(210px,.72fr) minmax(360px,1.45fr) minmax(210px,.7fr);
+  }
+  .inbox-person-tile{
+    flex-basis:170px;
+    min-width:170px;
+  }
+}
