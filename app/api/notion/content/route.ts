@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requestIsAuthorized } from '@/app/lib/workos-auth';
-import { DATA_SOURCES, notionRequest } from '@/app/lib/notion-live';
+import { requestCanWrite, requestIdentity } from '@/app/lib/workos-auth';
+import { DATA_SOURCES, notionRequest, queryDataSource } from '@/app/lib/notion-live';
 import { loadPageBlocks } from '@/app/lib/page-content';
 
 const validId = (id: string) => /^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -10,6 +10,30 @@ async function taskOrProject(id: string) {
   const source = page.parent?.data_source_id;
   if (![DATA_SOURCES.tasks, DATA_SOURCES.projects].some((value) => source && compact(value) === compact(source))) throw new Error('PAGE_NOT_ALLOWED');
   return page;
+}
+function relationIds(property: any): string[] {
+  return Array.isArray(property?.relation) ? property.relation.map((item: any) => compact(item?.id || '')).filter(Boolean) : [];
+}
+async function employeeTeamId(name: string) {
+  const response = await queryDataSource(DATA_SOURCES.team, {
+    page_size: 5,
+    filter: { property: "Nombre", title: { equals: name } },
+  });
+  const rows = Array.isArray(response?.results) ? response.results : [];
+  const match = rows.find((row: any) => compact(row?.id || ''));
+  return match ? compact(match.id) : null;
+}
+async function employeeCanOpen(page: any, employeeName: string) {
+  const teamId = await employeeTeamId(employeeName);
+  if (!teamId) return false;
+  const source = compact(page.parent?.data_source_id || '');
+  if (source === compact(DATA_SOURCES.tasks)) {
+    return relationIds(page.properties?.Equipo).includes(teamId);
+  }
+  if (source === compact(DATA_SOURCES.projects)) {
+    return relationIds(page.properties?.Personas).includes(teamId);
+  }
+  return false;
 }
 function propertyValue(property: any): string {
   const value = property[property.type];
@@ -24,11 +48,18 @@ function propertyValue(property: any): string {
   return value == null ? '' : typeof value === 'object' ? '' : String(value);
 }
 export async function GET(request: Request) {
-  if (!await requestIsAuthorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const identity = await requestIdentity(request);
+  if (!identity) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const id = new URL(request.url).searchParams.get('id') || '';
   if (!validId(id)) return NextResponse.json({ error: 'Invalid page' }, { status: 400 });
   try {
     const page = await taskOrProject(id);
+    if (identity.role === "employee") {
+      const employeeName = String(identity.employeeName || "").trim();
+      if (!employeeName || !await employeeCanOpen(page, employeeName)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
     const blocks = await loadPageBlocks(id, notionRequest);
     const properties = Object.entries(page.properties || {}).map(([name, property]) => ({ name, value: propertyValue(property) || 'Sin completar', files: (property as any).type === 'files' ? (property as any).files.map((file: any) => ({ name: file.name, url: file.file?.url || file.external?.url })) : undefined }));
     return NextResponse.json({ blocks, properties, createdAt: page.created_time, updatedAt: page.last_edited_time });
@@ -37,7 +68,7 @@ export async function GET(request: Request) {
   }
 }
 export async function PATCH(request: Request) {
-  if (!await requestIsAuthorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!await requestCanWrite(request)) return NextResponse.json({ error: 'Read-only account' }, { status: 403 });
   try {
     const { pageId, blockId, checked } = await request.json();
     if (!validId(pageId || '') || !validId(blockId || '') || typeof checked !== 'boolean') return NextResponse.json({ error: 'Invalid checklist update' }, { status: 400 });
