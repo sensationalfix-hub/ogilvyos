@@ -2740,7 +2740,7 @@ export default function Home() {
 
               <div className="inbox-request-list">
                 {boardRequests.map((item) => <article key={item.id} className={`inbox-request status-${item.status.toLowerCase()}`}>
-                  <header><span>{item.kind}</span><div className="inbox-card-actions"><b>{item.status}</b>{canEdit && <button type="button" onClick={() => void deleteBoardItem("request", item.id)} aria-label="Borrar mensaje"><Trash2 /></button>}</div></header>
+                  <header><span>{item.kind}</span><div className="inbox-card-actions"><b>{item.status}</b><button type="button" onClick={() => void deleteBoardItem("request", item.id)} aria-label="Borrar mensaje"><Trash2 /></button></div></header>
                   <h3>{item.subject}</h3>
                   {canEdit && <small className="inbox-request-author">{item.author_name}</small>}
                   <p>{item.message}</p>
