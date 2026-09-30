@@ -8812,3 +8812,130 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   }
   .week-planner-grid { min-width: 820px !important; }
 }
+
+
+/* === Week planner interaction polish v40 ================================= */
+.week-planner-grid,
+.planner-time-axis,
+.planner-day-column {
+  height: 640px !important; /* 10 useful hours x 64px */
+}
+
+.week-planner-scroll {
+  scroll-behavior: smooth !important;
+}
+
+.planner-task-block {
+  min-height: 42px !important;
+  padding: 10px 38px 10px 12px !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+  color: var(--ui-ink) !important;
+  box-shadow: 0 8px 20px rgba(34,43,36,.08) !important;
+  cursor: default !important;
+}
+
+.planner-task-block:hover {
+  z-index: 6 !important;
+  background: #111512 !important;
+  color: #fff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 14px 28px rgba(16,21,18,.18) !important;
+}
+
+.planner-task-block:hover .planner-task-time,
+.planner-task-block:hover small,
+.planner-task-block:hover .planner-task-grip {
+  color: rgba(255,255,255,.62) !important;
+}
+
+.planner-task-block strong {
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+}
+
+.planner-task-block small {
+  font-size: 7.5px !important;
+  line-height: 1.2 !important;
+}
+
+.planner-task-time {
+  font-size: 7.5px !important;
+}
+
+.planner-task-grip {
+  position: absolute !important;
+  top: 50% !important;
+  right: 7px !important;
+  width: 26px !important;
+  height: calc(100% - 14px) !important;
+  min-height: 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  transform: translateY(-50%) !important;
+  border-radius: 9px !important;
+  background: rgba(21,25,20,.055) !important;
+  color: #8e968f !important;
+  cursor: grab !important;
+  touch-action: none !important;
+}
+
+.planner-task-grip:active {
+  cursor: grabbing !important;
+}
+
+.planner-task-grip svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.planner-task-block:hover .planner-task-grip {
+  background: rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.72) !important;
+}
+
+.planner-resize-handle {
+  left: 10px !important;
+  right: 40px !important;
+  height: 14px !important;
+  z-index: 8 !important;
+  cursor: ns-resize !important;
+  touch-action: none !important;
+}
+
+.planner-resize-handle.top {
+  top: -2px !important;
+}
+
+.planner-resize-handle.bottom {
+  bottom: -2px !important;
+}
+
+.planner-resize-handle::after {
+  top: 5px !important;
+  width: 34px !important;
+  height: 3px !important;
+  background: rgba(21,25,20,.18) !important;
+  opacity: .42 !important;
+}
+
+.planner-task-block:hover .planner-resize-handle::after {
+  background: rgba(255,255,255,.42) !important;
+  opacity: 1 !important;
+}
+
+.planner-hour-lines i::after {
+  top: 32px !important;
+}
+
+.planner-time-axis span {
+  font-size: 7.5px !important;
+}
+
+@media (max-width:980px){
+  .week-planner-grid,
+  .planner-time-axis,
+  .planner-day-column {
+    height: 640px !important;
+  }
+}
