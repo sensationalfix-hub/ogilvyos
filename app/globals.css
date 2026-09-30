@@ -14963,3 +14963,43 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .timeline-insights-grid { grid-template-columns: 1fr; }
   .timeline-roadmap-view .global-timeline-shell.timeline-v4 { min-height: 520px; }
 }
+
+
+/* === Read-only viewer mode ================================================ */
+.readonly-chip {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid #dfe3dc;
+  border-radius: 999px;
+  background: #f4f5f1;
+  color: #6f786f;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+.readonly-mode .drag-handle,
+.readonly-mode .planner-task-grip,
+.readonly-mode .planner-all-day-grip,
+.readonly-mode .planner-resize-handle,
+.readonly-mode .calendar-day-add,
+.readonly-mode .project-task-create,
+.readonly-mode .close-evaluate-button,
+.readonly-mode .notion-button {
+  display: none !important;
+}
+.readonly-mode input:not(.search-box input),
+.readonly-mode textarea,
+.readonly-mode select {
+  pointer-events: none !important;
+}
+.readonly-mode [draggable="true"] {
+  cursor: default !important;
+}
+.readonly-mode .work-card,
+.readonly-mode .project-card,
+.readonly-mode .planner-task-block {
+  cursor: pointer !important;
+}
