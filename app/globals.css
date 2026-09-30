@@ -16031,3 +16031,12 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .inbox-view{overflow:auto!important}
   .inbox-shell{height:auto;grid-template-rows:auto auto}
 }
+
+
+/* Buzón is the one intentional write surface for read-only roles. */
+.readonly-mode .inbox-request-composer input,
+.readonly-mode .inbox-request-composer textarea,
+.readonly-mode .inbox-request-composer select{
+  pointer-events:auto!important;
+  opacity:1!important;
+}
