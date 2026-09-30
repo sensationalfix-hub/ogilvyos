@@ -226,6 +226,9 @@ function localPlannerIso(day: string, minutes: number) {
 function plannerTimeLabel(minutes: number) {
   return String(Math.floor(minutes / 60)).padStart(2, "0") + ":" + String(minutes % 60).padStart(2, "0");
 }
+function taskIsAllDay(task: Pick<Task, "dateStart">) {
+  return Boolean(task.dateStart && !task.dateStart.includes("T"));
+}
 const PLANNER_START = 9 * 60;
 const PLANNER_END = 19 * 60;
 const PLANNER_HOUR_PX = 64;
@@ -634,6 +637,23 @@ export default function Home() {
       toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
   }
+  async function setPlannerTaskAllDay(taskId: string, destinationDate: string) {
+    const previous = allTasks.find((task) => task.id === taskId);
+    if (!previous) return;
+    const label = new Date(destinationDate + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
+    const next = { ...previous, dateStart: destinationDate, dateEnd: null, date: label };
+    setAllTasks((items) => items.map((task) => task.id === taskId ? next : task));
+    setTasks((items) => items.map((task) => task.id === taskId ? next : task));
+    try {
+      await syncNotion("task", taskId, { dateStart: destinationDate, dateEnd: null });
+      toast.success("Tarea marcada como todo el día", { description: "Movida a la franja superior y guardada en Notion." });
+    } catch {
+      setAllTasks((items) => items.map((task) => task.id === taskId ? previous : task));
+      setTasks((items) => items.map((task) => task.id === taskId ? previous : task));
+      toast.error("No se pudo marcar como todo el día");
+    }
+  }
+
   async function movePlannerTask(taskId: string, destinationDate: string, startMinutes: number) {
     const previous = allTasks.find((task) => task.id === taskId);
     if (!previous) return;
@@ -918,6 +938,7 @@ export default function Home() {
           account: detail.account,
           people: detail.people,
           dateStart: detail.dateStart,
+          dateEnd: detail.dateEnd,
         });
         setAllTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
         toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
@@ -1186,9 +1207,21 @@ export default function Home() {
               const key = isoDate(day);
               const dayProjects = weeklyProjectMilestones.filter((event) => event.date === key);
               const dayHolidays = weeklyHolidays.filter((holiday) => holiday.start <= key && holiday.end >= key);
-              return <div key={key} className="planner-allday-cell"
-                onDragOver={(event) => { if (dragging?.startsWith("project-")) event.preventDefault(); }}
-                onDrop={(event) => moveWeekItem(event, key)}>
+              const allDayTasks = weeklyTasks.filter((task) => dateOnly(task.dateStart) === key && taskIsAllDay(task));
+              const acceptingTask = Boolean(dragging?.startsWith("task:"));
+              return <div key={key} className={"planner-allday-cell " + (acceptingTask ? "task-drop-ready" : "")}
+                onDragOver={(event) => { if (dragging?.startsWith("project-") || acceptingTask) event.preventDefault(); }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
+                  setDragging(null);
+                  if (kind === "task") { void setPlannerTaskAllDay(id, key); return; }
+                  void moveWeekItem(event, key);
+                }}>
+                {allDayTasks.map((task) => <div key={task.id} className="planner-all-day-chip task" title={task.name}>
+                  <i /><span><strong>{task.name}</strong><small>{task.project}</small></span>
+                  <span className="planner-all-day-grip" draggable onDragStart={(dragEvent) => { dragEvent.dataTransfer.setData("text/plain", `task:${task.id}`); dragEvent.dataTransfer.effectAllowed = "move"; setDragging(`task:${task.id}`); }} onDragEnd={() => setDragging(null)}><GripVertical /></span>
+                </div>)}
                 {dayProjects.map((event) => <button key={event.id} draggable className="planner-all-day-chip project"
                   onDragStart={(dragEvent) => { dragEvent.dataTransfer.setData("text/plain", `project-${event.kind}:${event.project.id}`); dragEvent.dataTransfer.effectAllowed = "move"; setDragging(`project-${event.kind}:${event.project.id}`); }}
                   onDragEnd={() => setDragging(null)}
@@ -1210,7 +1243,7 @@ export default function Home() {
 
               {operationalWeekDays.map((day) => {
                 const key = isoDate(day);
-                const dayTasks = weeklyTasks.filter((task) => dateOnly(task.dateStart) === key);
+                const dayTasks = weeklyTasks.filter((task) => dateOnly(task.dateStart) === key && !taskIsAllDay(task));
                 return <div key={key} className="planner-day-column"
                   onDragOver={(event) => { if (dragging?.startsWith("task:")) event.preventDefault(); }}
                   onDrop={(event) => {
@@ -1236,8 +1269,7 @@ export default function Home() {
                     const height = Math.max(42, ((visibleEnd - visibleStart) / 60) * PLANNER_HOUR_PX);
                     return <button key={task.id}
                       className={"planner-task-block " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")}
-                      style={{ top: `${top}px`, height: `${height}px` }}
-                      onClick={() => setDetail({ kind: "task", ...task })}>
+                      style={{ top: `${top}px`, height: `calc(${height}px - 4px)` }}>
                       <span className="planner-resize-handle top" onPointerDown={(event) => startPlannerResize(task, "start", event)} />
                       <div className="planner-task-time">{plannerTimeLabel(startMinutes)}–{plannerTimeLabel(endMinutes)}</div>
                       <strong>{task.name}</strong>
@@ -1670,7 +1702,38 @@ export default function Home() {
   ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
   : <div className="editor-field"><span>Tipo</span><Select value={detail.type} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
           {detail.kind === "task"
-            ? <label className="editor-field"><span>Fecha</span><input type="date" value={detail.dateStart || ""} onChange={(event) => { updateDetailField("dateStart", event.target.value || null); updateDetailField("date", event.target.value ? new Date(event.target.value + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "") : "SIN FECHA"); }} /></label>
+            ? <div className="editor-field full task-schedule-editor">
+                <div className="task-schedule-head"><span>Planificación</span><label className="task-all-day-toggle"><span>Todo el día</span><Switch checked={taskIsAllDay(detail)} onCheckedChange={(checked) => {
+                  const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
+                  updateDetailField("dateStart", checked ? day : localPlannerIso(day, 9 * 60));
+                  updateDetailField("dateEnd", checked ? null : localPlannerIso(day, 10 * 60));
+                  updateDetailField("date", new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", ""));
+                }} /></label></div>
+                <div className="task-schedule-grid">
+                  <label><small>Fecha</small><input type="date" value={dateOnly(detail.dateStart) || ""} onChange={(event) => {
+                    const day = event.target.value;
+                    if (!day) { updateDetailField("dateStart", null); updateDetailField("dateEnd", null); updateDetailField("date", "SIN FECHA"); return; }
+                    if (taskIsAllDay(detail)) updateDetailField("dateStart", day);
+                    else {
+                      updateDetailField("dateStart", localPlannerIso(day, plannerMinutes(detail.dateStart, 9 * 60)));
+                      updateDetailField("dateEnd", localPlannerIso(day, plannerMinutes(detail.dateEnd, 10 * 60)));
+                    }
+                    updateDetailField("date", new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", ""));
+                  }} /></label>
+                  {!taskIsAllDay(detail) && <>
+                    <label><small>Inicio</small><input type="time" step="900" value={plannerTimeLabel(plannerMinutes(detail.dateStart, 9 * 60))} onChange={(event) => {
+                      const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
+                      const [h,m] = event.target.value.split(":").map(Number);
+                      updateDetailField("dateStart", localPlannerIso(day, h * 60 + m));
+                    }} /></label>
+                    <label><small>Fin</small><input type="time" step="900" value={plannerTimeLabel(plannerMinutes(detail.dateEnd, 10 * 60))} onChange={(event) => {
+                      const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
+                      const [h,m] = event.target.value.split(":").map(Number);
+                      updateDetailField("dateEnd", localPlannerIso(day, h * 60 + m));
+                    }} /></label>
+                  </>}
+                </div>
+              </div>
             : <div className="editor-field full"><span>Timing</span><div className="date-range-fields"><label><small>Inicio</small><input type="date" value={detail.timingStart || ""} onChange={(event) => updateDetailField("timingStart", event.target.value || null)} /></label><label><small>Fin</small><input type="date" min={detail.timingStart || undefined} value={detail.timingEnd || ""} onChange={(event) => updateDetailField("timingEnd", event.target.value || null)} /></label></div></div>}
           <div className="editor-field full"><span>Equipo</span><div className="team-chip-editor"><div className="team-selected-chips">{detail.people.filter((name) => name !== "Por asignar").map((name) => { const person = team.find((item) => item.name === name); return <span key={name} className="team-person-chip">{person && <i className={`avatar avatar-${person.tone}`}>{person.initials}</i>}<b>{name}</b><button type="button" aria-label={`Quitar a ${name}`} onClick={() => { const nextPeople = detail.people.filter((personName) => personName !== name && personName !== "Por asignar"); updateDetailField("people", nextPeople.length ? nextPeople : ["Por asignar"]); }}>×</button></span>; })}{detail.people.filter((name) => name !== "Por asignar").length === 0 && <small className="team-empty-selection">Sin equipo asignado</small>}</div><select value="" onChange={(event) => { const name = event.target.value; if (!name) return; const current = detail.people.filter((personName) => personName !== "Por asignar"); if (!current.includes(name)) updateDetailField("people", [...current, name]); event.currentTarget.value = ""; }}><option value="">Añadir persona…</option>{team.filter((person) => !detail.people.includes(person.name)).map((person) => <option key={person.id} value={person.name}>{person.name} · {person.role}</option>)}</select></div></div>
           <div className="sheet-note"><Sparkles /><p><strong>Lectura rápida</strong>{detail.priority === "Alta" ? "Está en zona de atención. Revisa fecha y responsables antes de cerrar." : "Parece controlado. No le añadamos épica administrativa."}</p></div>
