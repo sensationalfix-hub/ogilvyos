@@ -15003,3 +15003,38 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .readonly-mode .planner-task-block {
   cursor: pointer !important;
 }
+
+
+/* Ramiro viewer: visible data, zero drill-down */
+.readonly-mode .work-card,
+.readonly-mode .project-card,
+.readonly-mode .dashboard-project,
+.readonly-mode .dashboard-pulse-hit-card,
+.readonly-mode .dashboard-focus-accordion-card,
+.readonly-mode .deadline-ribbon-list button,
+.readonly-mode .roster-person,
+.readonly-mode .team-card,
+.readonly-mode .team-pulse-stack button,
+.readonly-mode .team-capacity-list button,
+.readonly-mode .team-radar-section button,
+.readonly-mode .mobile-person-card,
+.readonly-mode .mobile-next-card,
+.readonly-mode .mobile-focus-card,
+.readonly-mode .mobile-agenda-item,
+.readonly-mode .mobile-work-card,
+.readonly-mode .timeline-milestone-list button,
+.readonly-mode .timeline-project-row-v4,
+.readonly-mode .calendar-chip,
+.readonly-mode .calendar-event,
+.readonly-mode .account-card,
+.readonly-mode .account-overview-list button {
+  cursor: default !important;
+}
+.readonly-mode .work-card:hover,
+.readonly-mode .project-card:hover,
+.readonly-mode .dashboard-project:hover,
+.readonly-mode .timeline-project-row-v4:hover .timeline-project-bar-v4 {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
