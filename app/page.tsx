@@ -585,6 +585,7 @@ export default function Home() {
   const globalTimelineStart = operationalWeekStart;
   const globalTimelineEnd = useMemo(() => addDays(globalTimelineStart, timelineWeeks * 7), [globalTimelineStart, timelineWeeks]);
 
+  const dashboardTasks = useMemo(() => tasks.filter((task) => taskLane(task) !== "Backlog"), [tasks]);
   const upcomingDeadlines = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -655,7 +656,6 @@ export default function Home() {
 
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
-  const dashboardTasks = useMemo(() => tasks.filter((task) => taskLane(task) !== "Backlog"), [tasks]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
   const dashboardProjects = useMemo(() => projects.filter((project) => {
     const status = project.status.trim().toLocaleLowerCase("es");
