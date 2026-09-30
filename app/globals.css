@@ -13446,6 +13446,7 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 
 /* === People Cockpit employee detail v58 ================================ */
 .employee-cockpit{
+  z-index:540!important;
   width:min(1320px,calc(100vw - 80px))!important;
   max-width:none!important;
   height:min(860px,calc(100vh - 70px))!important;
