@@ -5,7 +5,7 @@ import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
   Check, LayoutDashboard, ListTodo, Plus, Save, Search, Sparkles, Star,
-  Target, TrendingUp, Users, X, Play, Pause, RotateCcw, MoreHorizontal,
+  Target, TrendingUp, Users, X, Play, Pause, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -291,7 +291,9 @@ export default function Home() {
   const [quickType, setQuickType] = useState("task");
   const [quickName, setQuickName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [mobileAgendaIndex, setMobileAgendaIndex] = useState(2);
+  const [mobileWorkMode, setMobileWorkMode] = useState<"tasks" | "projects">("tasks");
+  const [mobileTaskLane, setMobileTaskLane] = useState<TaskLane>("En progreso");
   const [calendarMonth, setCalendarMonth] = useState(1);
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
   const [calendarTaskDate, setCalendarTaskDate] = useState<string | null>(null);
@@ -654,6 +656,14 @@ export default function Home() {
       .slice(0,3);
     return { active, laneCounts, attention, next48, visualTasks };
   }, [tasks]);
+
+  const mobileAgendaDay = operationalWeekDays[Math.min(mobileAgendaIndex, operationalWeekDays.length - 1)] ?? operationalWeekStart;
+  const mobileAgendaKey = isoDate(mobileAgendaDay);
+  const mobileAgendaTasks = weeklyTasks
+    .filter((task) => dateOnly(task.dateStart) === mobileAgendaKey)
+    .sort((a,b) => plannerMinutes(a.dateStart) - plannerMinutes(b.dateStart));
+  const mobileAgendaMilestones = weeklyProjectMilestones.filter((event) => event.date === mobileAgendaKey);
+  const mobileAgendaHolidays = weeklyHolidays.filter((holiday) => holiday.start <= mobileAgendaKey && holiday.end >= mobileAgendaKey);
 
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
@@ -1229,20 +1239,16 @@ export default function Home() {
     <aside className="sidebar-shell">
       <div className="brand-lockup"><span>O</span><strong>OGILVY<br />OS</strong></div>
       <div className="nav-section-label"><span>ESPACIOS</span><small>9 vistas</small></div>
-      <div className="mobile-nav-deck">
-        <TabsList className="nav-list" variant="line" aria-label="Navegación principal">
-          {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
-        </TabsList>
-        <Dialog open={mobileMoreOpen} onOpenChange={setMobileMoreOpen}>
-          <DialogTrigger asChild><button className="mobile-more-trigger" aria-label="Más vistas"><MoreHorizontal /><span>Más</span></button></DialogTrigger>
-          <DialogContent className="mobile-more-sheet">
-            <DialogHeader><DialogTitle>Más espacios</DialogTitle><DialogDescription>Consulta el resto de vistas sin convertir la barra inferior en un mercadillo.</DialogDescription></DialogHeader>
-            <div className="mobile-more-grid">
-              {navigation.filter((item) => ["timeline","accounts","projects","team","holidays"].includes(item.value)).map(({ value, label, icon: Icon }) => <button key={value} onClick={() => { setActiveView(value as View); setMobileMoreOpen(false); }}><Icon /><span>{label}</span><ChevronRight /></button>)}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <TabsList className="nav-list desktop-nav-list" variant="line" aria-label="Navegación principal">
+        {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
+      </TabsList>
+      <nav className="mobile-app-nav" aria-label="Navegación móvil">
+        <button className={activeView === "week" ? "active" : ""} onClick={() => setActiveView("week")}><CalendarDays /><span>Agenda</span></button>
+        <button className={activeView === "tasks" ? "active" : ""} onClick={() => setActiveView("tasks")}><FolderKanban /><span>Trabajo</span></button>
+        <button className={`mobile-home-button ${activeView === "dashboard" ? "active" : ""}`} onClick={() => setActiveView("dashboard")}><LayoutDashboard /><span>Dashboard</span></button>
+        <button className={activeView === "accounts" ? "active" : ""} onClick={() => setActiveView("accounts")}><BriefcaseBusiness /><span>Cuentas</span></button>
+        <button className={activeView === "team" ? "active" : ""} onClick={() => setActiveView("team")}><Users /><span>Equipo</span></button>
+      </nav>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
       <form action="/api/auth/logout" method="post" className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
     </aside>
@@ -1264,6 +1270,47 @@ export default function Home() {
       </header>
 
       <TabsContent value="dashboard" className="view-content dashboard-view">
+        <section className="mobile-only mobile-dashboard">
+          <article className="mobile-today-card">
+            <div className="mobile-card-kicker"><span>HOY</span><i className={dataState === "live" ? "live" : ""} /></div>
+            <div className="mobile-today-date">
+              <strong>{new Date().toLocaleDateString("es-ES",{weekday:"long"})}</strong>
+              <span>{new Date().toLocaleDateString("es-ES",{day:"numeric",month:"long"})}</span>
+            </div>
+            <div className="mobile-today-stats">
+              <span><b>{dashboardTasks.length}</b><small>tareas</small></span>
+              <span><b>{dashboardProjects.length}</b><small>proyectos</small></span>
+              <span><b>{team.filter((person)=>person.load>=75).length}</b><small>carga alta</small></span>
+            </div>
+            <button className="mobile-next-card" onClick={() => upcomingDeadlines[0] && setDetail({kind:"task",...upcomingDeadlines[0]})}>
+              <span>PRÓXIMO</span>
+              <strong>{upcomingDeadlines[0]?.name || "Nada al horizonte"}</strong>
+              <small>{upcomingDeadlines[0] ? `${upcomingDeadlines[0].project} · ${upcomingDeadlines[0].date}` : "Sin fechas próximas"}</small>
+              <ArrowUpRight />
+            </button>
+          </article>
+
+          <div className="mobile-section-head"><div><span>RADAR</span><h2>Lo que merece ojo</h2></div></div>
+          <div className="mobile-card-carousel mobile-radar-carousel">
+            <article className="mobile-radar-card lime"><span>PRÓXIMAS 48H</span><strong>{taskViewStats.next48.length}</strong><small>tareas con fecha</small><b>{taskViewStats.next48[0]?.name || "Despejado"}</b></article>
+            <article className="mobile-radar-card dark"><span>CARGA</span><strong>{team.filter((person)=>person.load>=75).length}</strong><small>personas altas</small><b>{[...team].sort((a,b)=>b.load-a.load)[0]?.name || "Sin datos"}</b></article>
+            <article className="mobile-radar-card light"><span>CUENTAS</span><strong>{accountViewStats.moving.length}</strong><small>en movimiento</small><b>{accountViewStats.moving[0]?.name || "Sin actividad"}</b></article>
+          </div>
+
+          <div className="mobile-section-head"><div><span>EN FOCO</span><h2>Próximos movimientos</h2></div></div>
+          <div className="mobile-card-carousel mobile-focus-carousel">
+            {upcomingDeadlines.slice(0,5).map((task)=><button key={task.id} className="mobile-focus-card" onClick={()=>setDetail({kind:"task",...task})}>
+              <span>{task.account}</span><strong>{task.name}</strong><small>{task.project}</small><b>{task.date}</b>
+            </button>)}
+            {!upcomingDeadlines.length && <div className="mobile-empty-card">Nada urgente. Sospechoso, pero agradable.</div>}
+          </div>
+
+          <div className="mobile-focus-pill">
+            <span><small>FOCUS</small><b>{String(Math.floor(focusSeconds/60)).padStart(2,"0")}:{String(focusSeconds%60).padStart(2,"0")}</b></span>
+            <button onClick={()=>setFocusRunning((running)=>!running)}>{focusRunning?<Pause/>:<Play/>}</button>
+          </div>
+        </section>
+
         <section className="dashboard-hero-grid">
           <article className="dashboard-pulse-card">
             <div className="dashboard-hero-kicker"><span>PULSO DEL DÍA</span><i className={dataState === "live" ? "live" : ""} /></div>
@@ -1399,6 +1446,45 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="week" className="view-content week-view">
+        <section className="mobile-only mobile-agenda">
+          <header className="mobile-screen-head">
+            <span>AGENDA</span>
+            <h1>Esta semana</h1>
+            <p>{operationalWeekStart.toLocaleDateString("es-ES",{day:"2-digit",month:"short"}).replace(".","").toUpperCase()} — {operationalWeekEnd.toLocaleDateString("es-ES",{day:"2-digit",month:"short"}).replace(".","").toUpperCase()}</p>
+          </header>
+
+          <div className="mobile-week-summary">
+            <strong>{Math.floor(weekPlannerStats.totalMinutes/60)}h {String(weekPlannerStats.totalMinutes%60).padStart(2,"0")}</strong>
+            <span>planificadas</span>
+            <div><b>{weeklyTasks.length}</b><small>tareas</small><b>{weekPlannerStats.conflicts}</b><small>conflictos</small></div>
+          </div>
+
+          <div className="mobile-day-strip">
+            {operationalWeekDays.map((day,index)=><button key={isoDate(day)} className={index===mobileAgendaIndex?"active":""} onClick={()=>setMobileAgendaIndex(index)}>
+              <span>{day.toLocaleDateString("es-ES",{weekday:"narrow"}).toUpperCase()}</span>
+              <strong>{day.getDate()}</strong>
+              <i className={weeklyTasks.some((task)=>dateOnly(task.dateStart)===isoDate(day))?"has-items":""} />
+            </button>)}
+          </div>
+
+          <div className="mobile-agenda-day-head"><div><span>{mobileAgendaDay.toLocaleDateString("es-ES",{weekday:"long"})}</span><h2>{mobileAgendaDay.toLocaleDateString("es-ES",{day:"numeric",month:"long"})}</h2></div><small>{mobileAgendaTasks.length} items</small></div>
+
+          <div className="mobile-agenda-list">
+            {mobileAgendaTasks.map((task)=><button key={task.id} className={`mobile-agenda-item ${taskIsAllDay(task)?"all-day":""}`} onClick={()=>setDetail({kind:"task",...task})}>
+              <span className="mobile-agenda-time">{taskIsAllDay(task)?"TODO EL DÍA":plannerTimeLabel(plannerMinutes(task.dateStart))}</span>
+              <div><strong>{task.name}</strong><small>{task.project} · {task.account}</small></div>
+              <ChevronRight />
+            </button>)}
+            {mobileAgendaMilestones.map((event)=><button key={event.id} className="mobile-agenda-item milestone" onClick={()=>setSelectedProjectPage(event.project)}>
+              <span className="mobile-agenda-time">{event.label.toUpperCase()}</span><div><strong>{event.project.name}</strong><small>{event.project.account}</small></div><ChevronRight />
+            </button>)}
+            {mobileAgendaHolidays.map((holiday)=><div key={holiday.id || holiday.url} className="mobile-agenda-item holiday">
+              <span className="mobile-agenda-time">AUSENCIA</span><div><strong>{holiday.name}</strong><small>{holiday.type}</small></div><CalendarDays />
+            </div>)}
+            {!mobileAgendaTasks.length&&!mobileAgendaMilestones.length&&!mobileAgendaHolidays.length&&<div className="mobile-empty-card">Día despejado.</div>}
+          </div>
+        </section>
+
         <section className="week-hero-grid">
           <article className="week-pulse-card">
             <div className="week-widget-kicker"><span>SEMANA · {operationalWeekStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).replace(".", "").toUpperCase()} — {operationalWeekEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).replace(".", "").toUpperCase()}</span><i /></div>
@@ -1702,6 +1788,19 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="accounts" className="view-content accounts-view">
+        <section className="mobile-only mobile-accounts">
+          <header className="mobile-screen-head"><span>CUENTAS</span><h1>Vista macro</h1><p>{accountViewStats.items.length} cuentas activas</p></header>
+          <div className="mobile-card-carousel mobile-account-carousel">
+            {accountViewStats.items.map((account)=><button key={account.name} className="mobile-account-card" onClick={()=>setSelectedAccount(account)}>
+              <div className="mobile-card-kicker"><span>{account.contract || "CUENTA"}</span><i style={{background:account.color}} /></div>
+              <strong>{account.name}</strong>
+              <small>{account.activeProjects} proyectos activos · {account.activeTasks} tareas abiertas</small>
+              <div className="mobile-account-next"><span>PRÓXIMO</span><b>{account.nextDeadline?.name || "Nada al horizonte"}</b><small>{account.nextDeadline?.date || "Sin fecha próxima"}</small></div>
+              <div className="mobile-account-metrics"><span><b>{account.projects}</b><small>proyectos</small></span><span><b>{account.tasks ?? account.activeTasks}</b><small>tareas</small></span><span><b>{account.pulse}</b><small>pulso</small></span></div>
+            </button>)}
+          </div>
+        </section>
+
         <section className="accounts-hero-grid">
           <article className="accounts-pulse-card">
             <div className="accounts-widget-kicker"><span>PULSO DE CUENTAS</span><i /></div>
@@ -1814,6 +1913,44 @@ export default function Home() {
       <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelectedProjectPage(project)} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
       <TabsContent value="tasks" className="view-content tasks-view">
+        <section className="mobile-only mobile-work">
+          <header className="mobile-screen-head">
+            <span>TRABAJO</span>
+            <h1>Operativa</h1>
+            <div className="mobile-segmented">
+              <button className={mobileWorkMode==="tasks"?"active":""} onClick={()=>setMobileWorkMode("tasks")}>Tareas</button>
+              <button className={mobileWorkMode==="projects"?"active":""} onClick={()=>setMobileWorkMode("projects")}>Proyectos</button>
+            </div>
+          </header>
+
+          {mobileWorkMode==="tasks" ? <>
+            <div className="mobile-lane-strip">
+              {TASK_LANES.map((lane)=><button key={lane} className={mobileTaskLane===lane?"active":""} onClick={()=>setMobileTaskLane(lane)}><span>{lane}</span><b>{taskViewStats.laneCounts[lane]}</b></button>)}
+            </div>
+            <div className="mobile-work-list">
+              {filteredTasks.filter((task)=>taskLane(task)===mobileTaskLane).map((task)=><button key={task.id} className="mobile-work-card" onClick={()=>setDetail({kind:"task",...task})}>
+                <div className="mobile-work-card-top"><span>{task.account}</span><b>{task.date}</b></div>
+                <strong>{task.name}</strong><small>{task.project}</small>
+                <div className="mobile-work-card-bottom"><PeopleStack people={task.people}/><ChevronRight/></div>
+              </button>)}
+              {!filteredTasks.some((task)=>taskLane(task)===mobileTaskLane)&&<div className="mobile-empty-card">Nada aquí.</div>}
+            </div>
+          </> : <>
+            <div className="mobile-work-list">
+              {filteredProjects.map((project)=>{
+                const projectTasks=allTasks.filter((task)=>task.project===project.name);
+                const open=projectTasks.filter((task)=>!["Terminado","Cancelado"].includes(task.status)).length;
+                return <button key={project.id} className="mobile-project-card" onClick={()=>setSelectedProjectPage(project)}>
+                  <div className="mobile-work-card-top"><span>{project.account}</span><b>{project.status}</b></div>
+                  <strong>{project.name}</strong><small>{project.type} · {project.timing}</small>
+                  <div className="mobile-project-progress"><span><b>{projectTasks.length}</b> tareas</span><span><b>{open}</b> abiertas</span></div>
+                  <ChevronRight/>
+                </button>;
+              })}
+            </div>
+          </>}
+        </section>
+
         <section className="tasks-hero-grid">
           <article className="tasks-pulse-card">
             <div className="tasks-widget-kicker"><span>PULSO DE TAREAS</span><i /></div>
@@ -1869,6 +2006,20 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="team" className="view-content team-view-complete">
+        <section className="mobile-only mobile-team">
+          <header className="mobile-screen-head"><span>EQUIPO</span><h1>Capacidad</h1><p>{team.length} personas · {team.filter((person)=>person.load>=75).length} carga alta</p></header>
+          <div className="mobile-team-list">
+            {[...team].sort((a,b)=>b.load-a.load).map((person)=>{
+              const performance=personPerformance(person);
+              return <button key={person.id} className="mobile-person-card" onClick={()=>setSelectedPerson(person)}>
+                <div className={`avatar avatar-${person.tone}`}>{person.initials}</div>
+                <div><strong>{person.name}</strong><small>{person.role}</small><span>{person.activeProjects} proyectos · {person.activeTasks} tareas</span></div>
+                <div className="mobile-person-load"><b>{person.load}%</b><i><em style={{width:`${person.load}%`}} /></i><small>{performance.ratio ?? "—"}/100</small></div>
+              </button>;
+            })}
+          </div>
+        </section>
+
         <section className="people-summary">
           <article><Target /><span><b>{(liveCounts?.ratedTasks ?? 0) + (liveCounts?.ratedProjects ?? 0)}</b> elementos puntuados</span></article>
           <article><TrendingUp /><span><b>{team.filter((person) => person.evaluations >= 8).length}</b> fichas con muestra alta</span></article>
