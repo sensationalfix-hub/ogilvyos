@@ -578,6 +578,38 @@ export default function Home() {
       .sort((a, b) => new Date(a.dateStart || 0).getTime() - new Date(b.dateStart || 0).getTime())
       .slice(0, 3);
   }, [tasks]);
+  const accountViewStats = useMemo(() => {
+    const now = Date.now();
+    const items = accounts.map((account) => {
+      const accountProjects = projects.filter((project) => project.account === account.name);
+      const accountTasks = allTasks.filter((task) => task.account === account.name);
+      const activeProjects = accountProjects.filter((project) => {
+        const status = project.status.trim().toLocaleLowerCase("es");
+        const type = project.type.trim().toLocaleLowerCase("es");
+        return status !== "terminado" && status !== "cancelado" && status !== "daily" && type !== "daily";
+      });
+      const activeTasks = accountTasks.filter((task) => !["Terminado", "Cancelado"].includes(task.status));
+      const nextDeadline = accountTasks
+        .filter((task) => task.dateStart && new Date(task.dateStart).getTime() >= now)
+        .sort((a,b) => new Date(a.dateStart || 0).getTime() - new Date(b.dateStart || 0).getTime())[0] ?? null;
+      const people = Array.from(new Set([...accountProjects.flatMap((project) => project.people), ...accountTasks.flatMap((task) => task.people)]))
+        .filter((name) => name && name !== "Por asignar");
+      return {
+        ...account,
+        activeProjects: activeProjects.length,
+        activeTasks: activeTasks.length,
+        nextDeadline,
+        people,
+        activityScore: activeProjects.length * 3 + activeTasks.length + (account.activity ?? 0),
+      };
+    });
+    const totalProjects = items.reduce((sum,item) => sum + item.activeProjects,0);
+    const totalTasks = items.reduce((sum,item) => sum + item.activeTasks,0);
+    const highPriority = items.filter((item) => item.priority.trim().toLocaleLowerCase("es") === "alta").length;
+    const moving = [...items].sort((a,b) => b.activityScore - a.activityScore).slice(0,3);
+    return { items, totalProjects, totalTasks, highPriority, moving };
+  }, [accounts, projects, allTasks]);
+
   const q = search.trim().toLocaleLowerCase("es");
   const filteredTasks = useMemo(() => tasks.filter((task) => !q || `${task.name} ${task.project} ${task.account} ${task.people.join(" ")}`.toLowerCase().includes(q)), [tasks, q]);
   const filteredProjects = useMemo(() => projects.filter((project) => !q || `${project.name} ${project.account} ${project.type} ${project.people.join(" ")}`.toLowerCase().includes(q)), [projects, q]);
@@ -1584,7 +1616,102 @@ export default function Home() {
         </Dialog>
       </TabsContent>
 
-      <TabsContent value="accounts" className="view-content"><section className="accounts-grid">{accounts.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article key={account.name} className={`account-card ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`} style={{ "--account-color": account.color } as React.CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={(event) => moveToAccount(event, account.name)}><div className="account-card-head"><AccountMark name={account.name} /><span className={`priority-pill ${priorityClass(account.priority)}`}>{account.priority}</span></div><h2>{account.name}</h2><p>{account.contract}</p><div className="account-stats"><span><b>{account.projects}</b> proyectos</span><span><b>{account.pulse}</b> pulso</span></div><div className="account-bar"><i style={{ width: `${account.pulse}%` }} /></div><button onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button></article>)}</section></TabsContent>
+      <TabsContent value="accounts" className="view-content accounts-view">
+        <section className="accounts-hero-grid">
+          <article className="accounts-pulse-card">
+            <div className="accounts-widget-kicker"><span>PULSO DE CUENTAS</span><i /></div>
+            <div className="accounts-pulse-main">
+              <div>
+                <strong>{accounts.length}</strong>
+                <span>cuentas activas</span>
+              </div>
+              <div className="accounts-pulse-meta">
+                <span><b>{accountViewStats.totalProjects}</b><small>proyectos activos</small></span>
+                <span><b>{accountViewStats.totalTasks}</b><small>tareas abiertas</small></span>
+                <span><b>{accountViewStats.highPriority}</b><small>prioridad alta</small></span>
+              </div>
+            </div>
+            <div className="accounts-pulse-bars">
+              {accountViewStats.moving.map((account) => {
+                const max = Math.max(1,...accountViewStats.moving.map((item) => item.activityScore));
+                return <div key={account.name}><span>{account.name}</span><i><b style={{ width: `${Math.max(10,(account.activityScore/max)*100)}%` }} /></i><small>{account.activeProjects} p · {account.activeTasks} t</small></div>;
+              })}
+            </div>
+          </article>
+
+          <article className="accounts-moving-card">
+            <header className="module-head"><div><span>EN MOVIMIENTO</span><h2>Actividad por cuenta</h2></div><TrendingUp /></header>
+            <div className="accounts-moving-list">
+              {accountViewStats.moving.map((account,index) => <button key={account.name} onClick={() => setSelectedAccount(account)}>
+                <span>{String(index+1).padStart(2,"0")}</span>
+                <div><strong>{account.name}</strong><small>{account.activeProjects} proyectos · {account.activeTasks} tareas</small></div>
+                <ArrowUpRight />
+              </button>)}
+            </div>
+          </article>
+
+          <article className="accounts-attention-card">
+            <div className="accounts-widget-kicker"><span>ATENCIÓN</span><i /></div>
+            <strong>{accountViewStats.highPriority}</strong>
+            <small>cuentas en prioridad alta</small>
+            <div className="accounts-attention-next">
+              <span>PRÓXIMA ENTREGA</span>
+              {(() => {
+                const next = accountViewStats.items.flatMap((account) => account.nextDeadline ? [{ account: account.name, task: account.nextDeadline }] : [])
+                  .sort((a,b) => new Date(a.task.dateStart || 0).getTime() - new Date(b.task.dateStart || 0).getTime())[0];
+                return next ? <><strong>{next.task.name}</strong><small>{next.account} · {next.task.date}</small></> : <><strong>Sin urgencias</strong><small>No hay fechas próximas</small></>;
+              })()}
+            </div>
+          </article>
+        </section>
+
+        <section className="accounts-grid accounts-grid-redesign">
+          {accountViewStats.items.filter((account) => !q || account.name.toLowerCase().includes(q)).map((account) => <article
+            key={account.name}
+            className={`account-card account-card-redesign ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`}
+            style={{ "--account-color": account.color } as React.CSSProperties}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => moveToAccount(event, account.name)}
+          >
+            <div className="account-card-meta">
+              <span className="account-micro-accent" />
+              <span>{account.contract || "CUENTA"}</span>
+              <span className="account-priority">{account.priority}</span>
+            </div>
+
+            <div className="account-card-center">
+              <h2>{account.name}</h2>
+              <p>{account.activeProjects} proyectos activos · {account.activeTasks} tareas abiertas</p>
+              <div className="account-next-hit">
+                <span>PRÓXIMO</span>
+                <strong>{account.nextDeadline?.name || "Sin fecha próxima"}</strong>
+                <small>{account.nextDeadline ? account.nextDeadline.date : "Calendario despejado"}</small>
+              </div>
+            </div>
+
+            <div className="account-card-bottom">
+              <div className="account-metrics">
+                <span><b>{account.projects}</b><small>proyectos</small></span>
+                <span><b>{account.tasks ?? account.activeTasks}</b><small>tareas</small></span>
+                <span><b>{account.pulse}</b><small>pulso</small></span>
+              </div>
+              <PeopleStack people={account.people} />
+            </div>
+
+            <div className="account-card-hover">
+              <div>
+                <span>CUENTA</span>
+                <h3>{account.name}</h3>
+              </div>
+              <div className="account-hover-projects">
+                {projects.filter((project) => project.account === account.name).slice(0,2).map((project) => <span key={project.id}>{project.name}</span>)}
+                {!projects.some((project) => project.account === account.name) && <span>Sin proyectos activos</span>}
+              </div>
+              <button onClick={() => setSelectedAccount(account)}>Abrir cuenta <ArrowUpRight /></button>
+            </div>
+          </article>)}
+        </section>
+      </TabsContent>
 
       <TabsContent value="projects" className="view-content board-scroll"><section className="kanban-board project-board project-board-complete">{projectBoardStatuses.map((status) => { const items = filteredProjects.filter((project) => project.status === status); return <div key={status} className={`kanban-column ${dragging?.startsWith("project") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, status)}><div className="column-head"><span>{status === "Standby" ? "Stand by" : status}</span><b>{items.length}</b><Plus /></div><div className="column-body">{items.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelectedProjectPage(project)} onDragStart={() => setDragging(`project:${project.id}`)} onAssignPerson={(person) => assignPerson("project", project.id, person)} />)}{items.length === 0 && <EmptyDrop />}</div></div>; })}</section></TabsContent>
 
