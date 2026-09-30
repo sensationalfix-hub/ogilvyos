@@ -1,11 +1,12 @@
 type LoginProps = {
-  searchParams: Promise<{ error?: string; setup?: string }>;
+  searchParams: Promise<{ error?: string; setup?: string; confirmed?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginProps) {
   const params = await searchParams;
   const error = params.error === "1";
   const setup = params.setup === "1";
+  const confirmed = params.confirmed === "1";
 
   return (
     <main className="workos-login-shell">
@@ -23,6 +24,8 @@ export default async function LoginPage({ searchParams }: LoginProps) {
         </form>
         {error ? <small className="workos-login-error">Email o contraseña incorrectos.</small> : null}
         {setup ? <small className="workos-login-error">El acceso todavía no está configurado en el servidor.</small> : null}
+        {confirmed ? <small className="workos-login-success">Cuenta confirmada. Ya puedes entrar.</small> : null}
+        <a className="workos-login-link" href="/register">Crear mi acceso</a>
       </section>
     </main>
   );
