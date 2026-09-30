@@ -904,7 +904,7 @@ export default function Home() {
     if (!detail) return;
     const kind = detail.kind;
     if (kind === "task") {
-      const nextTask: Task = { ...detail, id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, people: detail.people, url: detail.url };
+      const nextTask: Task = { ...detail, id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, dateEnd: detail.dateEnd, people: detail.people, url: detail.url };
       setTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
       try {
         await syncNotion("task", detail.id, {
