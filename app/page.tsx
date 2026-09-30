@@ -688,7 +688,7 @@ export default function Home() {
 
   const projectViewStats = useMemo(() => {
     const now = Date.now();
-    const active = projects.filter((project) => !["Terminado","Cancelado"].includes(project.status));
+    const active = projects.filter((project) => desiredProjectBoardOrder.includes(project.status));
     const byStatus = Object.fromEntries(desiredProjectBoardOrder.map((status) => [status, active.filter((project) => project.status === status).length])) as Record<string, number>;
     const enriched = active.map((project) => {
       const projectTasks = allTasks.filter((task) => task.project === project.name && !["Terminado","Cancelado"].includes(task.status));
