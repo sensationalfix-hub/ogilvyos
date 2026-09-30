@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
-  Check, CircleDot, Inbox, KeyRound, LayoutDashboard, ListTodo, Megaphone, Plus, Save, Send, Sparkles, Star,
+  Check, CircleDot, Inbox, KeyRound, LayoutDashboard, ListTodo, Megaphone, NotebookPen, Plus, Save, Send, Sparkles, Star,
   Target, TrendingUp, Users, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -329,6 +329,8 @@ export default function Home() {
   const [requestMessage, setRequestMessage] = useState("");
   const [requestKind, setRequestKind] = useState("Petición");
   const [requestReplies, setRequestReplies] = useState<Record<string, string>>({});
+  const [quickNote, setQuickNote] = useState("");
+  const [quickNoteReady, setQuickNoteReady] = useState(false);
 
   async function loadBoard() {
     setBoardLoading(true);
@@ -440,6 +442,25 @@ export default function Home() {
       setActiveView("dashboard");
     }
   }, [sessionRole, activeView]);
+
+  useEffect(() => {
+    const key = `workos.quicknote.v1.${displaySessionName.toLowerCase().replace(/\s+/g, "-")}`;
+    try {
+      setQuickNote(window.localStorage.getItem(key) || "");
+    } catch {
+      setQuickNote("");
+    }
+    setQuickNoteReady(true);
+  }, [displaySessionName]);
+
+  useEffect(() => {
+    if (!quickNoteReady) return;
+    const key = `workos.quicknote.v1.${displaySessionName.toLowerCase().replace(/\s+/g, "-")}`;
+    try {
+      if (quickNote) window.localStorage.setItem(key, quickNote);
+      else window.localStorage.removeItem(key);
+    } catch {}
+  }, [quickNote, quickNoteReady, displaySessionName]);
 
   useEffect(() => {
     if (activeView !== "week") return;
@@ -1792,14 +1813,30 @@ export default function Home() {
               <button className="roster-footer" onClick={() => setActiveView("tasks")}>Abrir mi trabajo <ChevronRight /></button>
             </aside>
           ) : (
-          <aside className="team-roster">
-            <div className="roster-head module-head"><div><span>{team.length} PERSONAS</span><h2>Equipo</h2></div><button className="module-action" onClick={() => setActiveView("team")}>Ver equipo <ArrowUpRight /></button></div>
-            <div className="roster-list">{team.map((person) => { const performance = personPerformance(person); return <button key={person.name} className="roster-person" draggable
-              onDragStart={(event) => { event.dataTransfer.setData("text/plain", `person:${person.name}`); setDragging(`person:${person.name}`); }}
-              onDragEnd={() => setDragging(null)} onClick={() => setSelectedPerson(person)}>
-              <div className={`avatar avatar-${person.tone}`}>{person.initials}</div><span><strong>{person.name}</strong><small>{person.role}</small></span><i className={person.load >= 75 ? "hot" : person.load >= 45 ? "warm" : "cool"} title={`${person.load}% de carga relativa`} /><b className="roster-ratio">{performance.ratio ?? "—"}</b>
-            </button>; })}</div>
-            <button className="roster-footer" onClick={() => setActiveView("team")}>Abrir fichas completas <ChevronRight /></button>
+          <aside className="dashboard-side-stack">
+            <section className="team-roster dashboard-team-compact">
+              <div className="roster-head module-head"><div><span>{team.length} PERSONAS</span><h2>Equipo</h2></div><button className="module-action" onClick={() => setActiveView("team")}>Ver equipo <ArrowUpRight /></button></div>
+              <div className="roster-list">{team.map((person) => { const performance = personPerformance(person); return <button key={person.name} className="roster-person" draggable
+                onDragStart={(event) => { event.dataTransfer.setData("text/plain", `person:${person.name}`); setDragging(`person:${person.name}`); }}
+                onDragEnd={() => setDragging(null)} onClick={() => setSelectedPerson(person)}>
+                <div className={`avatar avatar-${person.tone}`}>{person.initials}</div><span><strong>{person.name}</strong><small>{person.role}</small></span><i className={person.load >= 75 ? "hot" : person.load >= 45 ? "warm" : "cool"} title={`${person.load}% de carga relativa`} /><b className="roster-ratio">{performance.ratio ?? "—"}</b>
+              </button>; })}</div>
+              <button className="roster-footer" onClick={() => setActiveView("team")}>Abrir fichas completas <ChevronRight /></button>
+            </section>
+
+            <section className="dashboard-quick-note">
+              <header>
+                <div><NotebookPen /><span><small>NOTAS</small><strong>Apunte rápido</strong></span></div>
+                {quickNote && <button type="button" onClick={() => setQuickNote("")} aria-label="Borrar nota"><X /></button>}
+              </header>
+              <Textarea
+                value={quickNote}
+                onChange={(event) => setQuickNote(event.target.value)}
+                placeholder="Escribe aquí algo que no quieras perder de vista…"
+                aria-label="Nota rápida personal"
+              />
+              <footer><span>Guardado solo en este navegador</span><i className={quickNote ? "saved" : ""} /></footer>
+            </section>
           </aside>
           )}
         </section>
@@ -2681,7 +2718,7 @@ export default function Home() {
 
             <div className="inbox-column inbox-requests-column">
               <header className="inbox-section-head">
-                <div><span>BUZÓN</span><h2>{canEdit ? "Peticiones al admin" : "Mis peticiones"}</h2></div>
+                <div><span>BUZÓN</span><h2>{canEdit ? "Mensaje a DC" : "Mis peticiones"}</h2></div>
                 <b>{boardRequests.filter((item) => item.status !== "Resuelta").length}</b>
               </header>
 
