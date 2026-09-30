@@ -16805,3 +16805,45 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     grid-template-rows:330px 178px!important;
   }
 }
+
+
+.inbox-card-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.inbox-card-actions button{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:9px;
+  background:rgba(20,25,21,.06);
+  color:#7d857e;
+  cursor:pointer;
+  transition:background .16s ease,color .16s ease,transform .16s ease;
+}
+
+.inbox-card-actions button:hover{
+  background:#111512;
+  color:#fff;
+  transform:translateY(-1px);
+}
+
+.inbox-card-actions button svg{
+  width:13px;
+  height:13px;
+}
+
+.inbox-announcement.important .inbox-card-actions button{
+  background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.58);
+}
+
+.inbox-announcement.important .inbox-card-actions button:hover{
+  background:#fff;
+  color:#111512;
+}
