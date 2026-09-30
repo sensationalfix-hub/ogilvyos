@@ -1,0 +1,19 @@
+{
+  "name": "WorkOS",
+  "short_name": "WorkOS",
+  "description": "Interfaz visual privada sobre el workspace operativo de Notion.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f3ed",
+  "theme_color": "#f4f3ed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
