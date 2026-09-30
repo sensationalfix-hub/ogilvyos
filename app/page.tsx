@@ -1702,11 +1702,11 @@ export default function Home() {
                 <h2>{account.name}</h2>
                 <p>{account.activeProjects} proyectos activos · {account.activeTasks} tareas abiertas</p>
 
-                {account.nextDeadline && <div className="account-next-hit">
+                <div className={`account-next-hit ${account.nextDeadline ? "" : "is-empty"}`}>
                   <span>PRÓXIMO</span>
-                  <strong>{account.nextDeadline.name}</strong>
-                  <small>{account.nextDeadline.date}</small>
-                </div>}
+                  <strong>{account.nextDeadline?.name || "Nada al horizonte"}</strong>
+                  <small>{account.nextDeadline ? account.nextDeadline.date : "Sin fecha próxima"}</small>
+                </div>
               </div>
 
               <div className="account-card-bottom">
