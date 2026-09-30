@@ -301,6 +301,11 @@ export default function Home() {
   const [sessionInitials, setSessionInitials] = useState("JC");
   const [sessionEmployeeName, setSessionEmployeeName] = useState<string | null>(null);
   const canEdit = sessionRole === "editor";
+  const displaySessionName = sessionRole === "employee" && sessionEmployeeName ? sessionEmployeeName : sessionName;
+  const displaySessionInitials = sessionRole === "employee" && sessionEmployeeName ? initials(sessionEmployeeName) : sessionInitials;
+  const visibleNavigation = sessionRole === "employee"
+    ? navigation.filter((item) => item.value !== "team" && item.value !== "holidays")
+    : navigation;
   const weekPlannerScrollRef = useRef<HTMLDivElement | null>(null);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [allTasks, setAllTasks] = useState<Task[]>(initialTasks);
@@ -326,6 +331,12 @@ export default function Home() {
       .catch(() => {});
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (sessionRole === "employee" && (activeView === "team" || activeView === "holidays")) {
+      setActiveView("dashboard");
+    }
+  }, [sessionRole, activeView]);
 
   useEffect(() => {
     if (activeView !== "week") return;
@@ -1466,19 +1477,21 @@ export default function Home() {
   >
     <aside className="sidebar-shell">
       <div className="brand-lockup"><img src="/workos.svg" alt="WorkOS" className="brand-logo" /></div>
-      <div className="nav-section-label"><span>ESPACIOS</span><small>9 vistas</small></div>
+      <div className="nav-section-label"><span>ESPACIOS</span><small>{visibleNavigation.length} vistas</small></div>
       <TabsList className="nav-list desktop-nav-list" variant="line" aria-label="Navegación principal">
-        {navigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
+        {visibleNavigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
       <nav className="mobile-app-nav" aria-label="Navegación móvil">
         <button className={activeView === "week" ? "active" : ""} onClick={() => setActiveView("week")}><CalendarDays /><span>Agenda</span></button>
         <button className={activeView === "tasks" ? "active" : ""} onClick={() => setActiveView("tasks")}><FolderKanban /><span>Trabajo</span></button>
         <button className={`mobile-home-button ${activeView === "dashboard" ? "active" : ""}`} onClick={() => setActiveView("dashboard")}><LayoutDashboard /><span>Dashboard</span></button>
         <button className={activeView === "accounts" ? "active" : ""} onClick={() => setActiveView("accounts")}><BriefcaseBusiness /><span>Cuentas</span></button>
-        <button className={activeView === "team" ? "active" : ""} onClick={() => setActiveView("team")}><Users /><span>Equipo</span></button>
+        {sessionRole === "employee"
+          ? <button className={activeView === "timeline" ? "active" : ""} onClick={() => setActiveView("timeline")}><TrendingUp /><span>Timeline</span></button>
+          : <button className={activeView === "team" ? "active" : ""} onClick={() => setActiveView("team")}><Users /><span>Equipo</span></button>}
       </nav>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
-      <form action="/api/auth/logout" method="post" className="user-chip"><span>{sessionInitials}</span><div><strong>{sessionName.toUpperCase()}</strong><small>{sessionRole === "editor" ? "Director Creativo" : sessionRole === "viewer" ? "Solo lectura" : "Empleado"}</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
+      <form action="/api/auth/logout" method="post" className="user-chip"><span>{displaySessionInitials}</span><div><strong>{displaySessionName.toUpperCase()}</strong><small>{sessionRole === "editor" ? "Director Creativo" : sessionRole === "viewer" ? "Solo lectura" : "Empleado"}</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
       {canEdit && <a href="/admin/access" className="admin-access-link">Gestionar accesos</a>}
     </aside>
 
@@ -1510,7 +1523,7 @@ export default function Home() {
             <div className="mobile-today-stats">
               <span><b>{dashboardTasks.length}</b><small>tareas</small></span>
               <span><b>{dashboardProjects.length}</b><small>proyectos</small></span>
-              <span><b>{team.filter((person)=>person.load>=75).length}</b><small>carga alta</small></span>
+              {sessionRole !== "employee" && <span><b>{team.filter((person)=>person.load>=75).length}</b><small>carga alta</small></span>}
             </div>
             <button className="mobile-next-card" onClick={() => upcomingDeadlines[0] && setDetail({kind:"task",...upcomingDeadlines[0]})}>
               <span>PRÓXIMO</span>
@@ -1523,7 +1536,9 @@ export default function Home() {
           <div className="mobile-section-head"><div><span>RADAR</span><h2>Lo que merece ojo</h2></div></div>
           <div className="mobile-card-carousel mobile-radar-carousel">
             <article className="mobile-radar-card lime"><span>PRÓXIMAS 48H</span><strong>{taskViewStats.next48.length}</strong><small>tareas con fecha</small><b>{taskViewStats.next48[0]?.name || "Despejado"}</b></article>
-            <article className="mobile-radar-card dark"><span>CARGA</span><strong>{team.filter((person)=>person.load>=75).length}</strong><small>personas altas</small><b>{[...team].sort((a,b)=>b.load-a.load)[0]?.name || "Sin datos"}</b></article>
+            {sessionRole === "employee"
+              ? <article className="mobile-radar-card dark"><span>SIGUIENTE</span><strong>{upcomingDeadlines[0]?.date || "—"}</strong><small>próxima entrega</small><b>{upcomingDeadlines[0]?.name || "Sin fecha"}</b></article>
+              : <article className="mobile-radar-card dark"><span>CARGA</span><strong>{team.filter((person)=>person.load>=75).length}</strong><small>personas altas</small><b>{[...team].sort((a,b)=>b.load-a.load)[0]?.name || "Sin datos"}</b></article>}
             <article className="mobile-radar-card light"><span>CUENTAS</span><strong>{accountViewStats.moving.length}</strong><small>en movimiento</small><b>{accountViewStats.moving[0]?.name || "Sin actividad"}</b></article>
           </div>
 
@@ -1655,6 +1670,26 @@ export default function Home() {
             </article>
           </div>
 
+          {sessionRole === "employee" ? (
+            <aside className="employee-work-widget">
+              <div className="employee-work-head module-head">
+                <div><span>EN CURSO</span><h2>{displaySessionName}</h2></div>
+                <button className="module-action" onClick={() => setActiveView("tasks")}>Mis tareas <ArrowUpRight /></button>
+              </div>
+              <div className="employee-work-list">
+                {upcomingDeadlines.length ? upcomingDeadlines.slice(0, 3).map((task, index) => (
+                  <button key={task.id} className="employee-work-item" onClick={() => setDetail({ kind: "task", ...task })}>
+                    <span className="employee-work-index">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="employee-work-copy"><strong>{task.name}</strong><small>{task.project} · {task.account}</small></span>
+                    <b>{task.date}</b>
+                  </button>
+                )) : (
+                  <div className="employee-work-empty"><strong>Sin entregas próximas</strong><small>No hay tareas con fecha al horizonte.</small></div>
+                )}
+              </div>
+              <button className="roster-footer" onClick={() => setActiveView("tasks")}>Abrir mi trabajo <ChevronRight /></button>
+            </aside>
+          ) : (
           <aside className="team-roster">
             <div className="roster-head module-head"><div><span>{team.length} PERSONAS</span><h2>Equipo</h2></div><button className="module-action" onClick={() => setActiveView("team")}>Ver equipo <ArrowUpRight /></button></div>
             <div className="roster-list">{team.map((person) => { const performance = personPerformance(person); return <button key={person.name} className="roster-person" draggable
@@ -1664,6 +1699,7 @@ export default function Home() {
             </button>; })}</div>
             <button className="roster-footer" onClick={() => setActiveView("team")}>Abrir fichas completas <ChevronRight /></button>
           </aside>
+          )}
         </section>
 
         <section className="account-dock">
