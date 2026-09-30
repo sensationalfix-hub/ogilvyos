@@ -15475,3 +15475,127 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     padding-top:10px!important;
   }
 }
+
+
+/* === Deadline rail: visible optical clipping v2 ========================== */
+/* The previous mask was too subtle on the lime glass. This adds a real
+   frosted edge over the scroll viewport, so clipped cards visibly dissolve. */
+.dashboard-view .deadline-ribbon{
+  position:relative!important;
+  overflow:hidden!important;
+}
+
+.dashboard-view .deadline-ribbon-list{
+  mask-image:linear-gradient(
+    to right,
+    #000 0,
+    #000 16px,
+    #000 calc(100% - 72px),
+    rgba(0,0,0,.78) calc(100% - 48px),
+    rgba(0,0,0,.35) calc(100% - 22px),
+    transparent 100%
+  )!important;
+  -webkit-mask-image:linear-gradient(
+    to right,
+    #000 0,
+    #000 16px,
+    #000 calc(100% - 72px),
+    rgba(0,0,0,.78) calc(100% - 48px),
+    rgba(0,0,0,.35) calc(100% - 22px),
+    transparent 100%
+  )!important;
+}
+
+.dashboard-view .deadline-ribbon::after{
+  content:""!important;
+  position:absolute!important;
+  z-index:6!important;
+  top:0!important;
+  right:0!important;
+  width:72px!important;
+  height:100%!important;
+  pointer-events:none!important;
+  background:linear-gradient(
+    to right,
+    rgba(231,255,63,0) 0%,
+    rgba(231,255,63,.10) 28%,
+    rgba(231,255,63,.40) 72%,
+    rgba(231,255,63,.72) 100%
+  )!important;
+  backdrop-filter:blur(9px)!important;
+  -webkit-backdrop-filter:blur(9px)!important;
+  mask-image:linear-gradient(to right,transparent,#000 42%,#000)!important;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 42%,#000)!important;
+}
+
+/* === Timeline widgets aligned with Tasks / Projects / Team =============== */
+@media (min-width: 761px){
+  .timeline-roadmap-view{
+    grid-template-rows:206px minmax(0,1fr)!important;
+    gap:12px!important;
+  }
+
+  .timeline-insights-grid{
+    grid-template-columns:minmax(0,1.16fr) minmax(330px,.84fr) 230px!important;
+    gap:12px!important;
+    align-items:stretch!important;
+  }
+
+  .timeline-insight-card{
+    height:206px!important;
+    min-height:206px!important;
+    max-height:206px!important;
+    padding:16px!important;
+    border:0!important;
+    border-radius:22px!important;
+    box-shadow:0 12px 30px rgba(34,43,36,.06)!important;
+  }
+
+  .timeline-load-card{
+    background:#0d120f!important;
+  }
+
+  .timeline-load-head strong,
+  .timeline-radar-main strong{
+    font-size:44px!important;
+    line-height:.95!important;
+  }
+
+  .timeline-density-bars{
+    height:62px!important;
+    margin-top:14px!important;
+  }
+
+  .timeline-milestone-list{
+    margin-top:12px!important;
+    gap:7px!important;
+  }
+
+  .timeline-milestone-list button{
+    min-height:42px!important;
+  }
+
+  .timeline-radar-stats{
+    margin-top:18px!important;
+    gap:8px!important;
+  }
+
+  .timeline-radar-stats div{
+    min-height:62px!important;
+    padding:10px!important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px){
+  .timeline-insights-grid{
+    grid-template-columns:minmax(0,1.16fr) minmax(300px,.84fr) 210px!important;
+  }
+  .timeline-roadmap-view{
+    grid-template-rows:198px minmax(0,1fr)!important;
+  }
+  .timeline-insight-card{
+    height:198px!important;
+    min-height:198px!important;
+    max-height:198px!important;
+  }
+}
