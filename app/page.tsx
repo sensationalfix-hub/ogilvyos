@@ -465,6 +465,108 @@ export default function Home() {
   }), [projects, operationalWeekStart, operationalWeekEnd]);
   const weeklyHolidays = useMemo(() => holidays.filter((holiday) => holiday.start <= isoDate(operationalWeekEnd) && holiday.end >= isoDate(operationalWeekStart)), [holidays, operationalWeekStart, operationalWeekEnd]);
 
+  const weekPlannerStats = useMemo(() => {
+    const timedTasks = weeklyTasks.filter((task) => !taskIsAllDay(task));
+    const dayMinutes = operationalWeekDays.map((day) => {
+      const key = isoDate(day);
+      return timedTasks
+        .filter((task) => dateOnly(task.dateStart) === key)
+        .reduce((sum, task) => {
+          const start = plannerMinutes(task.dateStart);
+          const end = plannerMinutes(task.dateEnd, start + 60);
+          return sum + Math.max(30, end - start);
+        }, 0);
+    });
+
+    let conflicts = 0;
+    operationalWeekDays.forEach((day) => {
+      const key = isoDate(day);
+      const items = timedTasks
+        .filter((task) => dateOnly(task.dateStart) === key)
+        .map((task) => {
+          const start = plannerMinutes(task.dateStart);
+          return { start, end: plannerMinutes(task.dateEnd, start + 60) };
+        })
+        .sort((a, b) => a.start - b.start);
+      for (let i = 0; i < items.length; i += 1) {
+        for (let j = i + 1; j < items.length; j += 1) {
+          if (items[j].start >= items[i].end) break;
+          if (items[j].start < items[i].end && items[j].end > items[i].start) conflicts += 1;
+        }
+      }
+    });
+
+    const freeSlots: Array<{ key: string; label: string; start: number; end: number; duration: number }> = [];
+    operationalWeekDays.forEach((day) => {
+      const key = isoDate(day);
+      const items = timedTasks
+        .filter((task) => dateOnly(task.dateStart) === key)
+        .map((task) => {
+          const start = Math.max(PLANNER_START, plannerMinutes(task.dateStart));
+          const end = Math.min(PLANNER_END, plannerMinutes(task.dateEnd, start + 60));
+          return { start, end };
+        })
+        .filter((item) => item.end > PLANNER_START && item.start < PLANNER_END)
+        .sort((a, b) => a.start - b.start);
+
+      const merged: Array<{ start: number; end: number }> = [];
+      items.forEach((item) => {
+        const last = merged[merged.length - 1];
+        if (!last || item.start > last.end) merged.push({ ...item });
+        else last.end = Math.max(last.end, item.end);
+      });
+
+      let cursor = PLANNER_START;
+      merged.forEach((item) => {
+        if (item.start - cursor >= 60) {
+          freeSlots.push({
+            key,
+            label: day.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase(),
+            start: cursor,
+            end: item.start,
+            duration: item.start - cursor,
+          });
+        }
+        cursor = Math.max(cursor, item.end);
+      });
+      if (PLANNER_END - cursor >= 60) {
+        freeSlots.push({
+          key,
+          label: day.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase(),
+          start: cursor,
+          end: PLANNER_END,
+          duration: PLANNER_END - cursor,
+        });
+      }
+    });
+
+    const totalMinutes = dayMinutes.reduce((sum, value) => sum + value, 0);
+    const maxDayMinutes = Math.max(1, ...dayMinutes);
+
+    const todayKey = isoDate(new Date());
+    const todayTasks = timedTasks.filter((task) => dateOnly(task.dateStart) === todayKey);
+    const todayMinutes = todayTasks.reduce((sum, task) => {
+      const start = plannerMinutes(task.dateStart);
+      const end = plannerMinutes(task.dateEnd, start + 60);
+      return sum + Math.max(30, end - start);
+    }, 0);
+    const nextToday = [...todayTasks].sort((a, b) => plannerMinutes(a.dateStart) - plannerMinutes(b.dateStart))[0] ?? null;
+
+    return {
+      timedTasks,
+      dayMinutes,
+      totalMinutes,
+      maxDayMinutes,
+      conflicts,
+      freeSlots: freeSlots.slice(0, 3),
+      todayMinutes,
+      todayTasks,
+      nextToday,
+      todayPercent: Math.round((todayMinutes / (PLANNER_END - PLANNER_START)) * 100),
+    };
+  }, [weeklyTasks, operationalWeekDays]);
+
+
   const globalTimelineStart = operationalWeekStart;
   const globalTimelineEnd = useMemo(() => addDays(globalTimelineStart, timelineWeeks * 7), [globalTimelineStart, timelineWeeks]);
 
@@ -1180,11 +1282,51 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="week" className="view-content week-view">
-        <section className="week-summary">
-          <article><span>ENTREGAS</span><strong>{weeklyTasks.length}</strong><small>Tareas con fecha</small></article>
-          <article><span>HITOS</span><strong>{weeklyProjectMilestones.length}</strong><small>Arranques y cierres</small></article>
-          <article><span>AUSENCIAS</span><strong>{weeklyHolidays.length}</strong><small>Personas fuera</small></article>
-          <article><span>ALTA / URGENTE</span><strong>{weeklyTasks.filter((task) => ["Alta", "Urgente"].includes(task.priority)).length}</strong><small>Necesitan ojo</small></article>
+        <section className="week-hero-grid">
+          <article className="week-pulse-card">
+            <div className="week-widget-kicker"><span>SEMANA · {operationalWeekStart.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).replace(".", "").toUpperCase()} — {operationalWeekEnd.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).replace(".", "").toUpperCase()}</span><i /></div>
+            <div className="week-pulse-main">
+              <div>
+                <strong>{Math.floor(weekPlannerStats.totalMinutes / 60)}h {String(weekPlannerStats.totalMinutes % 60).padStart(2, "0")}</strong>
+                <span>planificadas</span>
+              </div>
+              <div className="week-pulse-meta">
+                <span><b>{weekPlannerStats.timedTasks.length}</b><small>tareas</small></span>
+                <span><b>{weekPlannerStats.conflicts}</b><small>conflictos</small></span>
+                <span><b>{weeklyTasks.filter(taskIsAllDay).length}</b><small>todo el día</small></span>
+              </div>
+            </div>
+            <div className="week-load-bars" aria-label="Carga por día">
+              {weekPlannerStats.dayMinutes.map((minutes, index) => <div key={isoDate(operationalWeekDays[index])}>
+                <i><b style={{ height: `${Math.max(8, (minutes / weekPlannerStats.maxDayMinutes) * 100)}%` }} /></i>
+                <span>{operationalWeekDays[index].toLocaleDateString("es-ES", { weekday: "narrow" }).toUpperCase()}</span>
+              </div>)}
+            </div>
+          </article>
+
+          <article className="week-free-card">
+            <header className="module-head"><div><span>DISPONIBILIDAD</span><h2>Próximos huecos</h2></div><Clock3 /></header>
+            <div className="week-free-list">
+              {weekPlannerStats.freeSlots.map((slot) => <div key={slot.key + slot.start} className="week-free-slot">
+                <span>{slot.label}</span>
+                <strong>{plannerTimeLabel(slot.start)} — {plannerTimeLabel(slot.end)}</strong>
+                <small>{Math.floor(slot.duration / 60)}h{slot.duration % 60 ? " " + slot.duration % 60 + "m" : ""}</small>
+              </div>)}
+              {!weekPlannerStats.freeSlots.length && <div className="week-free-empty"><Check /><span>Semana compacta. Sin huecos largos.</span></div>}
+            </div>
+          </article>
+
+          <article className="week-today-card">
+            <div className="week-widget-kicker"><span>HOY</span><i /></div>
+            <strong>{Math.floor(weekPlannerStats.todayMinutes / 60)}h {String(weekPlannerStats.todayMinutes % 60).padStart(2, "0")}</strong>
+            <small>planificadas · {weekPlannerStats.todayTasks.length} tarea{weekPlannerStats.todayTasks.length === 1 ? "" : "s"}</small>
+            <div className="week-today-progress"><i><b style={{ width: `${Math.min(100, weekPlannerStats.todayPercent)}%` }} /></i><span>{weekPlannerStats.todayPercent}%</span></div>
+            <div className="week-today-next">
+              <span>{weekPlannerStats.nextToday ? "PRÓXIMA" : "ESTADO"}</span>
+              <strong>{weekPlannerStats.nextToday?.name || "Día despejado"}</strong>
+              <small>{weekPlannerStats.nextToday ? plannerTimeLabel(plannerMinutes(weekPlannerStats.nextToday.dateStart)) : "Sin tareas horarias hoy"}</small>
+            </div>
+          </article>
         </section>
 
         <section className="week-planner">
