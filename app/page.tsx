@@ -885,11 +885,15 @@ export default function Home() {
 
           <article className="dashboard-focus-card">
             <header><div><span>EN FOCO</span><h2>Próximos movimientos</h2></div><button onClick={() => setActiveView("calendar")}>Agenda <ArrowUpRight /></button></header>
-            <div className="dashboard-focus-list">
-              {upcomingDeadlines.slice(0, 3).map((task, index) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}>
-                <b>{String(index + 1).padStart(2, "0")}</b>
-                <span><strong>{task.name}</strong><small>{task.project} · {task.date}</small></span>
-                <ChevronRight />
+            <div className="dashboard-focus-stack">
+              {upcomingDeadlines.slice(0, 3).map((task, index) => <button
+                key={task.id}
+                className={`dashboard-focus-stack-card focus-card-${index + 1}`}
+                onClick={() => setDetail({ kind: "task", ...task })}
+              >
+                <span className="dashboard-focus-stack-index">{String(index + 1).padStart(2, "0")}</span>
+                <div className="dashboard-focus-stack-copy"><strong>{task.name}</strong><small>{task.project} · {task.date}</small></div>
+                <ArrowUpRight />
               </button>)}
               {!upcomingDeadlines.length && <div className="dashboard-focus-empty"><Check /><span>No hay entregas próximas con fecha.</span></div>}
             </div>
