@@ -226,6 +226,9 @@ function localPlannerIso(day: string, minutes: number) {
 function plannerTimeLabel(minutes: number) {
   return String(Math.floor(minutes / 60)).padStart(2, "0") + ":" + String(minutes % 60).padStart(2, "0");
 }
+const PLANNER_START = 9 * 60;
+const PLANNER_END = 19 * 60;
+const PLANNER_HOUR_PX = 64;
 function mondayForOperationalWeek(base = new Date()) {
   const date = new Date(base);
   date.setHours(0, 0, 0, 0);
@@ -637,8 +640,8 @@ export default function Home() {
     const oldStart = plannerMinutes(previous.dateStart);
     const oldEnd = plannerMinutes(previous.dateEnd, oldStart + 60);
     const duration = Math.max(30, oldEnd - oldStart);
-    const snappedStart = Math.max(7 * 60, Math.min(20 * 60, Math.round(startMinutes / 15) * 15));
-    const snappedEnd = Math.min(21 * 60, snappedStart + duration);
+    const snappedStart = Math.max(PLANNER_START, Math.min(PLANNER_END - 30, Math.round(startMinutes / 15) * 15));
+    const snappedEnd = Math.min(PLANNER_END, snappedStart + duration);
     const dateStart = localPlannerIso(destinationDate, snappedStart);
     const dateEnd = localPlannerIso(destinationDate, snappedEnd);
     const label = new Date(destinationDate + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
@@ -665,9 +668,9 @@ export default function Home() {
     let latestEnd = initialEnd;
 
     const move = (pointerEvent: PointerEvent) => {
-      const delta = Math.round(((pointerEvent.clientY - initialY) / 48) * 60 / 15) * 15;
-      if (edge === "start") latestStart = Math.max(7 * 60, Math.min(initialEnd - 30, initialStart + delta));
-      else latestEnd = Math.min(21 * 60, Math.max(initialStart + 30, initialEnd + delta));
+      const delta = Math.round(((pointerEvent.clientY - initialY) / PLANNER_HOUR_PX) * 60 / 15) * 15;
+      if (edge === "start") latestStart = Math.max(PLANNER_START, Math.min(initialEnd - 30, initialStart + delta));
+      else latestEnd = Math.min(PLANNER_END, Math.max(initialStart + 30, initialEnd + delta));
       const dateStart = localPlannerIso(dateOnly(task.dateStart) || isoDate(operationalWeekStart), latestStart);
       const dateEnd = localPlannerIso(dateOnly(task.dateStart) || isoDate(operationalWeekStart), latestEnd);
       setAllTasks((items) => items.map((item) => item.id === task.id ? { ...item, dateStart, dateEnd } : item));
@@ -1202,7 +1205,7 @@ export default function Home() {
           <div className="week-planner-scroll">
             <div className="week-planner-grid">
               <aside className="planner-time-axis">
-                {Array.from({ length: 15 }, (_, index) => 7 + index).map((hour) => <span key={hour} style={{ top: `${(hour - 7) * 48}px` }}>{String(hour).padStart(2, "0")}:00</span>)}
+                {Array.from({ length: 11 }, (_, index) => 9 + index).map((hour) => <span key={hour} style={{ top: `${(hour - 9) * PLANNER_HOUR_PX}px` }}>{String(hour).padStart(2, "0")}:00</span>)}
               </aside>
 
               {operationalWeekDays.map((day) => {
@@ -1216,36 +1219,43 @@ export default function Home() {
                     if (kind !== "task") return;
                     const rect = event.currentTarget.getBoundingClientRect();
                     const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-                    const minutes = 7 * 60 + (y / 48) * 60;
+                    const minutes = PLANNER_START + (y / PLANNER_HOUR_PX) * 60;
                     setDragging(null);
                     void movePlannerTask(id, key, minutes);
                   }}>
                   <div className="planner-hour-lines" aria-hidden="true">
-                    {Array.from({ length: 15 }, (_, index) => <i key={index} style={{ top: `${index * 48}px` }} />)}
+                    {Array.from({ length: 11 }, (_, index) => <i key={index} style={{ top: `${index * PLANNER_HOUR_PX}px` }} />)}
                   </div>
 
                   {dayTasks.map((task) => {
                     const startMinutes = plannerMinutes(task.dateStart);
                     const endMinutes = plannerMinutes(task.dateEnd, startMinutes + 60);
-                    const visibleStart = Math.max(7 * 60, Math.min(21 * 60, startMinutes));
-                    const visibleEnd = Math.max(visibleStart + 30, Math.min(21 * 60, endMinutes));
-                    const top = ((visibleStart - 7 * 60) / 60) * 48;
-                    const height = Math.max(28, ((visibleEnd - visibleStart) / 60) * 48);
-                    return <button key={task.id} draggable
+                    const visibleStart = Math.max(PLANNER_START, Math.min(PLANNER_END, startMinutes));
+                    const visibleEnd = Math.max(visibleStart + 30, Math.min(PLANNER_END, endMinutes));
+                    const top = ((visibleStart - PLANNER_START) / 60) * PLANNER_HOUR_PX;
+                    const height = Math.max(42, ((visibleEnd - visibleStart) / 60) * PLANNER_HOUR_PX);
+                    return <button key={task.id}
                       className={"planner-task-block " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")}
                       style={{ top: `${top}px`, height: `${height}px` }}
-                      onDragStart={(dragEvent) => {
-                        dragEvent.dataTransfer.setData("text/plain", `task:${task.id}`);
-                        dragEvent.dataTransfer.effectAllowed = "move";
-                        setDragging(`task:${task.id}`);
-                      }}
-                      onDragEnd={() => setDragging(null)}
                       onClick={() => setDetail({ kind: "task", ...task })}>
                       <span className="planner-resize-handle top" onPointerDown={(event) => startPlannerResize(task, "start", event)} />
                       <div className="planner-task-time">{plannerTimeLabel(startMinutes)}–{plannerTimeLabel(endMinutes)}</div>
                       <strong>{task.name}</strong>
                       <small>{task.project} · {task.account}</small>
-                      <GripVertical className="planner-task-grip" />
+                      <span
+                        className="planner-task-grip"
+                        draggable
+                        role="button"
+                        aria-label="Arrastrar tarea"
+                        onClick={(event) => event.stopPropagation()}
+                        onDragStart={(dragEvent) => {
+                          dragEvent.stopPropagation();
+                          dragEvent.dataTransfer.setData("text/plain", `task:${task.id}`);
+                          dragEvent.dataTransfer.effectAllowed = "move";
+                          setDragging(`task:${task.id}`);
+                        }}
+                        onDragEnd={() => setDragging(null)}
+                      ><GripVertical /></span>
                       <span className="planner-resize-handle bottom" onPointerDown={(event) => startPlannerResize(task, "end", event)} />
                     </button>;
                   })}
