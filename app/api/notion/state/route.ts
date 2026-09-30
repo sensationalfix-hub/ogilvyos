@@ -409,23 +409,7 @@ export async function GET(request: Request) {
       ]);
       const employeeAccounts = accounts.filter((account) => employeeAccountsSet.has(account.name));
       const employeeHolidays = holidays.filter((holiday) => holiday.name === employeeName);
-      const employeeTeam = team
-        .filter((person) => person.name === employeeName)
-        .map((person) => ({
-          ...person,
-          salary: null,
-          score: null,
-          taskScore: null,
-          projectScore: null,
-          evaluations: 0,
-          evaluationHistory: [],
-          evidence: 0,
-          ratedTasks: 0,
-          ratedProjects: 0,
-          ratio: null,
-          distribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
-          dimensions: { quality: null, timing: null, collaboration: null, autonomy: null, impact: null },
-        }));
+      const employeeTeam: never[] = [];
 
       return NextResponse.json({
         source: "notion",
@@ -438,7 +422,7 @@ export async function GET(request: Request) {
           activeProjects: employeeProjects.filter((project) => ACTIVE_PROJECT_STATUSES.has(project.status)).length,
           tasks: employeeTasks.length,
           activeTasks: employeeActiveTasks.length,
-          team: employeeTeam.length,
+          team: 0,
           holidays: employeeHolidays.length,
           evaluations: 0,
           ratedTasks: 0,
@@ -448,7 +432,7 @@ export async function GET(request: Request) {
         projects: employeeProjects,
         tasks: employeeActiveTasks,
         allTasks: employeeTasks,
-        team: employeeTeam,
+        team: [],
         holidays: employeeHolidays,
       }, {
         headers: { "Cache-Control": "private, no-store, max-age=0" },
