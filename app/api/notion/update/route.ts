@@ -33,7 +33,7 @@ async function taskProperties(changes: Record<string, unknown>) {
   if ("status" in changes) properties["Status"] = status(changes.status);
   if ("priority" in changes) properties["Prioridad"] = select(changes.priority);
   if ("rating" in changes) properties["Rating"] = select(changes.rating);
-  if ("dateStart" in changes) properties["Fecha"] = date(changes.dateStart);
+  if ("dateStart" in changes || "dateEnd" in changes) properties["Fecha"] = date(changes.dateStart, changes.dateEnd);
 
   if ("account" in changes) {
     const relation = await resolveRelation(DATA_SOURCES.accounts, "Nombre", changes.account ? [String(changes.account)] : []);
