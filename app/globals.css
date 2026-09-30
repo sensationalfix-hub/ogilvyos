@@ -12762,3 +12762,189 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .team-grid-redesign{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .team-view-complete .team-layout-redesign{grid-template-columns:minmax(0,1fr) 230px!important}
 }
+
+
+/* === Team profile cards v55 ============================================= */
+@media(min-width:761px){
+  .team-grid-redesign{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:12px!important;
+  }
+
+  .employee-card-redesign{
+    min-height:300px!important;
+    padding:18px 16px 0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    border:0!important;
+    border-radius:24px!important;
+    background:#fff!important;
+    color:#111512!important;
+    overflow:hidden!important;
+    box-shadow:0 10px 26px rgba(34,43,36,.055)!important;
+    transition:background .18s ease,color .18s ease,box-shadow .18s ease!important;
+  }
+
+  .employee-profile-main{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    text-align:center!important;
+    padding-top:4px!important;
+  }
+
+  .employee-avatar-large{
+    width:74px!important;
+    height:74px!important;
+    display:grid!important;
+    place-items:center!important;
+    border-radius:50%!important;
+    box-shadow:0 0 0 5px #fff,0 8px 20px rgba(34,43,36,.10)!important;
+    font-size:16px!important;
+    font-weight:850!important;
+    color:#111512!important;
+  }
+
+  .employee-profile-main h2{
+    width:100%!important;
+    margin:18px 0 0!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+    font-size:18px!important;
+    line-height:1!important;
+    font-weight:800!important;
+    letter-spacing:-.035em!important;
+    color:inherit!important;
+  }
+
+  .employee-profile-main p{
+    margin:6px 0 0!important;
+    color:#8f9790!important;
+    font-size:9px!important;
+  }
+
+  .employee-evidence-line{
+    margin-top:12px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:7px!important;
+  }
+
+  .employee-evidence-line>span{
+    padding:5px 8px!important;
+    border-radius:999px!important;
+    background:#f3f5f1!important;
+    color:#747c75!important;
+    font-size:6.5px!important;
+    font-weight:820!important;
+    text-transform:uppercase!important;
+  }
+
+  .employee-evidence-line>small{
+    color:#a0a7a1!important;
+    font-size:7px!important;
+  }
+
+  .employee-project-chips-profile{
+    margin-top:auto!important;
+    padding:18px 0 12px!important;
+    display:flex!important;
+    justify-content:center!important;
+    flex-wrap:wrap!important;
+    gap:6px!important;
+  }
+
+  .employee-project-chips-profile>span{
+    max-width:110px!important;
+    padding:7px 9px!important;
+    border-radius:999px!important;
+    background:#f4f6f2!important;
+    color:#747c75!important;
+    font-size:6.8px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  .employee-profile-stats{
+    margin:0 -16px!important;
+    display:grid!important;
+    grid-template-columns:repeat(3,1fr)!important;
+    border-top:1px solid rgba(17,21,18,.055)!important;
+    background:#fafbf9!important;
+  }
+
+  .employee-profile-stats>span{
+    min-height:68px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:4px!important;
+    border-right:1px solid rgba(17,21,18,.055)!important;
+  }
+
+  .employee-profile-stats>span:last-child{
+    border-right:0!important;
+  }
+
+  .employee-profile-stats b{
+    font-size:16px!important;
+    line-height:1!important;
+    color:#111512!important;
+  }
+
+  .employee-profile-stats small{
+    color:#8f9790!important;
+    font-size:6.5px!important;
+    text-transform:uppercase!important;
+    letter-spacing:.06em!important;
+  }
+
+  .employee-card-redesign:hover{
+    background:#111512!important;
+    color:#fff!important;
+    box-shadow:0 16px 34px rgba(17,21,18,.14)!important;
+  }
+
+  .employee-card-redesign:hover .employee-profile-main,
+  .employee-card-redesign:hover .employee-project-chips-profile,
+  .employee-card-redesign:hover .employee-profile-stats{
+    opacity:0!important;
+  }
+
+  .employee-card-redesign:hover .employee-dimensions{
+    opacity:1!important;
+  }
+
+  .employee-card-redesign:hover .employee-profile-stats{
+    background:transparent!important;
+  }
+
+  .employee-card-redesign:hover .employee-evidence-line>span{
+    background:rgba(255,255,255,.08)!important;
+    color:#fff!important;
+  }
+
+  .employee-dimensions{
+    left:18px!important;
+    right:18px!important;
+    top:20px!important;
+    bottom:18px!important;
+    padding-top:0!important;
+    justify-content:center!important;
+  }
+
+  .employee-dimensions>span{
+    font-size:8px!important;
+  }
+}
+
+@media(max-width:1180px) and (min-width:761px){
+  .team-grid-redesign{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
