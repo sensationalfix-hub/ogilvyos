@@ -1631,11 +1631,19 @@ export default function Home() {
                 <span><b>{accountViewStats.highPriority}</b><small>prioridad alta</small></span>
               </div>
             </div>
-            <div className="accounts-pulse-bars">
-              {accountViewStats.moving.map((account) => {
-                const max = Math.max(1,...accountViewStats.moving.map((item) => item.activityScore));
-                return <div key={account.name}><span>{account.name}</span><i><b style={{ width: `${Math.max(10,(account.activityScore/max)*100)}%` }} /></i><small>{account.activeProjects} p · {account.activeTasks} t</small></div>;
-              })}
+            <div className="accounts-pulse-stack">
+              {accountViewStats.moving.map((account,index) => <button
+                key={account.name}
+                className={`accounts-pulse-mini pulse-mini-${index + 1}`}
+                onClick={() => setSelectedAccount(account)}
+              >
+                <span>{String(index + 1).padStart(2,"0")}</span>
+                <div>
+                  <strong>{account.name}</strong>
+                  <small>{account.activeProjects} proyectos · {account.activeTasks} tareas</small>
+                </div>
+                <ArrowUpRight />
+              </button>)}
             </div>
           </article>
 
@@ -1695,7 +1703,7 @@ export default function Home() {
                 <span><b>{account.tasks ?? account.activeTasks}</b><small>tareas</small></span>
                 <span><b>{account.pulse}</b><small>pulso</small></span>
               </div>
-              <PeopleStack people={account.people} />
+              <div className="account-card-team"><span>EQUIPO</span><PeopleStack people={account.people} /></div>
             </div>
 
             <div className="account-card-hover">
