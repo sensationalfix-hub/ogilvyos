@@ -296,6 +296,9 @@ function timelinePercent(value: string | null | undefined, start: Date, end: Dat
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("dashboard");
+  const [sessionRole, setSessionRole] = useState<"editor" | "viewer">("editor");
+  const [sessionName, setSessionName] = useState("Jorge");
+  const canEdit = sessionRole === "editor";
   const weekPlannerScrollRef = useRef<HTMLDivElement | null>(null);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [allTasks, setAllTasks] = useState<Task[]>(initialTasks);
@@ -303,6 +306,22 @@ export default function Home() {
   const [accounts, setAccounts] = useState<Account[]>(fallbackAccounts);
   const [team, setTeam] = useState<TeamPerson[]>(fallbackTeam);
   const [holidays, setHolidays] = useState<Holiday[]>(fallbackHolidays);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unauthorized");
+        return response.json() as Promise<{ role: "editor" | "viewer"; name: string }>;
+      })
+      .then((session) => {
+        if (!active) return;
+        setSessionRole(session.role);
+        setSessionName(session.name);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (activeView !== "week") return;
@@ -839,6 +858,8 @@ export default function Home() {
     setDetailedMode(false); setDimensionScores({}); setIndividualMode(false); setIndividualScores(Object.fromEntries(target.people.map((name) => [name, 0])));
   }
   async function submitEvaluation() {
+    if (!canEdit) return;
+
     if (!evaluation || !score) return;
     const assigned = evaluation.people.filter((name) => name !== "Por asignar");
     const activeDimensions: DimensionKey[] = evaluation.kind === "task" ? ["quality", "timing", "collaboration", "autonomy"] : ["quality", "timing", "collaboration", "impact"];
@@ -917,6 +938,8 @@ export default function Home() {
   }
 
   async function syncNotion(kind: "task" | "project", id: string, changes: Record<string, unknown>) {
+    if (!canEdit) return;
+
     const response = await fetch("/api/notion/update", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -929,6 +952,8 @@ export default function Home() {
   }
 
   async function moveTaskLane(id: string, lane: TaskLane) {
+    if (!canEdit) return;
+
     const previous = tasks.find((task) => task.id === id);
     if (!previous) return;
     const status = notionStatusForLane(lane);
@@ -947,6 +972,8 @@ export default function Home() {
   }
 
   async function moveTask(id: string, status: TaskStatus) {
+    if (!canEdit) return;
+
     const previous = tasks.find((task) => task.id === id);
     setTasks((items) => items.map((task) => task.id === id ? { ...task, status } : task));
     setDragging(null);
@@ -959,6 +986,8 @@ export default function Home() {
     }
   }
   async function moveProject(id: string, status: ProjectStatus) {
+    if (!canEdit) return;
+
     const previous = projects.find((project) => project.id === id);
     setProjects((items) => items.map((project) => project.id === id ? { ...project, status } : project));
     setDragging(null);
@@ -971,6 +1000,8 @@ export default function Home() {
     }
   }
   async function setPlannerTaskAllDay(taskId: string, destinationDate: string) {
+    if (!canEdit) return;
+
     const previous = allTasks.find((task) => task.id === taskId);
     if (!previous) return;
     const label = new Date(destinationDate + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
@@ -988,6 +1019,8 @@ export default function Home() {
   }
 
   async function movePlannerTask(taskId: string, destinationDate: string, startMinutes: number) {
+    if (!canEdit) return;
+
     const previous = allTasks.find((task) => task.id === taskId);
     if (!previous) return;
     const oldStart = plannerMinutes(previous.dateStart);
@@ -1012,6 +1045,8 @@ export default function Home() {
   }
 
   function startPlannerResize(task: Task, edge: "start" | "end", event: React.PointerEvent<HTMLSpanElement>) {
+    if (!canEdit) return;
+
     event.preventDefault();
     event.stopPropagation();
     const initialY = event.clientY;
@@ -1051,6 +1086,8 @@ export default function Home() {
   }
 
   async function moveWeekItem(event: React.DragEvent, destinationDate: string) {
+    if (!canEdit) return;
+
     event.preventDefault();
     const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     setDragging(null);
@@ -1098,16 +1135,22 @@ export default function Home() {
   }
 
   function handleTaskLaneDrop(event: React.DragEvent, destination: TaskLane) {
+    if (!canEdit) return;
+
     event.preventDefault();
     const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind === "task") void moveTaskLane(id, destination);
   }
   function handleDrop(event: React.DragEvent, destination: TaskStatus | ProjectStatus) {
+    if (!canEdit) return;
+
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind === "task") moveTask(id, destination as TaskStatus);
     if (kind === "project") moveProject(id, destination as ProjectStatus);
   }
   async function assignPerson(kind: "task" | "project", id: string, person: string) {
+    if (!canEdit) return;
+
     const currentItem = kind === "task" ? tasks.find((task) => task.id === id) : projects.find((project) => project.id === id);
     if (!currentItem) return;
     const nextPeople = currentItem.people.includes(person) ? currentItem.people : [...currentItem.people.filter((name) => name !== "Por asignar"), person];
@@ -1124,6 +1167,8 @@ export default function Home() {
     }
   }
   async function moveToAccount(event: React.DragEvent, account: string) {
+    if (!canEdit) return;
+
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind !== "task" && kind !== "project") return;
     const previous = kind === "task" ? tasks.find((task) => task.id === id) : projects.find((project) => project.id === id);
@@ -1141,6 +1186,8 @@ export default function Home() {
     }
   }
   async function createQuickItem() {
+    if (!canEdit) return;
+
     const name = quickName.trim();
     if (!name) return;
     try {
@@ -1189,6 +1236,8 @@ export default function Home() {
     }
   }
   function updateDetailField(field: string, value: unknown) {
+    if (!canEdit) return;
+
     setDetail((currentDetail) => currentDetail ? ({ ...currentDetail, [field]: value } as Detail) : currentDetail);
   }
   function scrollProjectSection(id: string) {
@@ -1198,6 +1247,8 @@ export default function Home() {
   }
 
   async function updateProjectWorkspace(changes: Record<string, unknown>) {
+    if (!canEdit) return;
+
     if (!selectedProjectPage) return;
     const previous = selectedProjectPage;
     const next = { ...selectedProjectPage, ...changes } as Project;
@@ -1214,6 +1265,8 @@ export default function Home() {
   }
 
   async function updateWorkspaceTask(task: Task, changes: Record<string, unknown>) {
+    if (!canEdit) return;
+
     const next = { ...task, ...changes } as Task;
     setAllTasks((items) => items.map((item) => item.id === task.id ? next : item));
     setTasks((items) => items.map((item) => item.id === task.id ? next : item));
@@ -1227,6 +1280,8 @@ export default function Home() {
   }
 
   async function createTaskForSelectedProject() {
+    if (!canEdit) return;
+
     if (!selectedProjectPage || !projectTaskName.trim()) return;
     const name = projectTaskName.trim();
     try {
@@ -1267,6 +1322,8 @@ export default function Home() {
   }
 
   async function saveDetail() {
+    if (!canEdit) return;
+
     if (!detail) return;
     const kind = detail.kind;
     if (kind === "task") {
@@ -1313,6 +1370,8 @@ export default function Home() {
     return `${month.year}-${String(calendarMonth + 8).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
   async function createCalendarTask() {
+    if (!canEdit) return;
+
     const name = calendarTaskName.trim();
     const dateStart = calendarTaskDate;
     if (!name || !dateStart) return;
@@ -1361,7 +1420,7 @@ export default function Home() {
     }
   }
 
-  return <Tabs value={activeView} onValueChange={(value) => setActiveView(value as View)} orientation="vertical" className="os-shell">
+  return <Tabs value={activeView} onValueChange={(value) => setActiveView(value as View)} orientation="vertical" className={`os-shell ${canEdit ? "" : "readonly-mode"}`} onDragStartCapture={(event) => { if (!canEdit) event.preventDefault(); }}>
     <aside className="sidebar-shell">
       <div className="brand-lockup"><img src="/workos.svg" alt="WorkOS" className="brand-logo" /></div>
       <div className="nav-section-label"><span>ESPACIOS</span><small>9 vistas</small></div>
@@ -1376,17 +1435,18 @@ export default function Home() {
         <button className={activeView === "team" ? "active" : ""} onClick={() => setActiveView("team")}><Users /><span>Equipo</span></button>
       </nav>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
-      <form action="/api/auth/logout" method="post" className="user-chip"><span>JC</span><div><strong>JORGE</strong><small>Director Creativo</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
+      <form action="/api/auth/logout" method="post" className="user-chip"><span>{sessionRole === "viewer" ? "RM" : "JC"}</span><div><strong>{sessionName.toUpperCase()}</strong><small>{sessionRole === "viewer" ? "Solo lectura" : "Director Creativo"}</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
     </aside>
 
     <main className={`main-stage main-stage-${activeView}${selectedProjectPage ? " project-page-open" : ""}`} aria-hidden={selectedProjectPage ? true : undefined}>
       <header className="topbar">
         <div className="page-heading"><span>{current.eyebrow}</span><h1>{current.title}</h1><p>{current.description}</p></div>
         <div className="top-actions">
+          {!canEdit && <span className="readonly-chip">SOLO LECTURA</span>}
           <label className="search-box"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en el OS…" /></label>
           {queuedChanges > 0 && <button className="draft-chip" onClick={() => toast.info("Cambios de prototipo", { description: "Los conectaremos a Notion en la siguiente capa." })}>{queuedChanges} cambio{queuedChanges > 1 ? "s" : ""}</button>}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild><Button className="add-button"><Plus /> Añadir</Button></DialogTrigger>
+            {canEdit && <DialogTrigger asChild><Button className="add-button"><Plus /> Añadir</Button></DialogTrigger>}
             <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto y completa después el resto de propiedades.</DialogDescription></DialogHeader>
               <div className="quick-form"><Select value={quickType} onValueChange={setQuickType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="task">Tarea</SelectItem><SelectItem value="project">Proyecto</SelectItem></SelectContent></Select><input autoFocus value={quickName} onChange={(event) => setQuickName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createQuickItem(); }} placeholder={quickType === "task" ? "¿Qué hay que hacer?" : "Nombre del proyecto"} /></div>
               <DialogFooter><Button onClick={createQuickItem}>Crear</Button></DialogFooter>
@@ -2643,7 +2703,7 @@ export default function Home() {
           </div>
           <PageContent key={detail.id} pageId={detail.id} />
         </div>
-        <div className="sheet-actions sheet-actions-stacked"><Button className="close-evaluate-button" onClick={() => startEvaluation({ kind: detail.kind, id: detail.id, name: detail.name, people: detail.people })}><Star /> Cerrar y evaluar</Button><div><Button onClick={saveDetail} className="notion-button"><Save /> Guardar cambios</Button></div></div>
+        <div className="sheet-actions sheet-actions-stacked">{canEdit && <Button className="close-evaluate-button" onClick={() => startEvaluation({ kind: detail.kind, id: detail.id, name: detail.name, people: detail.people })}><Star /> Cerrar y evaluar</Button>}<div>{canEdit && <Button onClick={saveDetail} className="notion-button"><Save /> Guardar cambios</Button>}</div></div>
       </>}</DialogContent>
     </Dialog>
 
