@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
-  Check, LayoutDashboard, ListTodo, Plus, Save, Search, Sparkles, Star,
+  Check, KeyRound, LayoutDashboard, ListTodo, Plus, Save, Sparkles, Star,
   Target, TrendingUp, Users, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -1478,9 +1478,21 @@ export default function Home() {
     <aside className="sidebar-shell">
       <div className="brand-lockup"><img src="/workos.svg" alt="WorkOS" className="brand-logo" /></div>
       <div className="nav-section-label"><span>ESPACIOS</span><small>{visibleNavigation.length} vistas</small></div>
+      {canEdit && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <button type="button" className="sidebar-add-item"><Plus /><span>Añadir item</span></button>
+          </DialogTrigger>
+          <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto y completa después el resto de propiedades.</DialogDescription></DialogHeader>
+            <div className="quick-form"><Select value={quickType} onValueChange={setQuickType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="task">Tarea</SelectItem><SelectItem value="project">Proyecto</SelectItem></SelectContent></Select><input autoFocus value={quickName} onChange={(event) => setQuickName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createQuickItem(); }} placeholder={quickType === "task" ? "¿Qué hay que hacer?" : "Nombre del proyecto"} /></div>
+            <DialogFooter><Button onClick={createQuickItem}>Crear</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       <TabsList className="nav-list desktop-nav-list" variant="line" aria-label="Navegación principal">
         {visibleNavigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
+      {canEdit && <a href="/admin/access" className="sidebar-admin-link"><KeyRound /><span>Gestionar accesos</span></a>}
       <nav className="mobile-app-nav" aria-label="Navegación móvil">
         <button className={activeView === "week" ? "active" : ""} onClick={() => setActiveView("week")}><CalendarDays /><span>Agenda</span></button>
         <button className={activeView === "tasks" ? "active" : ""} onClick={() => setActiveView("tasks")}><FolderKanban /><span>Trabajo</span></button>
@@ -1492,24 +1504,11 @@ export default function Home() {
       </nav>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
       <form action="/api/auth/logout" method="post" className="user-chip"><span>{displaySessionInitials}</span><div><strong>{displaySessionName.toUpperCase()}</strong><small>{sessionRole === "editor" ? "Director Creativo" : sessionRole === "viewer" ? "Solo lectura" : "Empleado"}</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
-      {canEdit && <a href="/admin/access" className="admin-access-link">Gestionar accesos</a>}
     </aside>
 
     <main className={`main-stage main-stage-${activeView}${selectedProjectPage ? " project-page-open" : ""}`} aria-hidden={selectedProjectPage ? true : undefined}>
-      <header className="topbar">
+      <header className="topbar topbar-compact">
         <div className="page-heading"><span>{current.eyebrow}</span><h1>{current.title}</h1><p>{current.description}</p></div>
-        <div className="top-actions">
-          {!canEdit && <span className="readonly-chip">{sessionRole === "employee" ? "MI ESPACIO" : "SOLO LECTURA"}</span>}
-          <label className="search-box"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en el OS…" /></label>
-          {queuedChanges > 0 && <button className="draft-chip" onClick={() => toast.info("Cambios de prototipo", { description: "Los conectaremos a Notion en la siguiente capa." })}>{queuedChanges} cambio{queuedChanges > 1 ? "s" : ""}</button>}
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            {canEdit && <DialogTrigger asChild><Button className="add-button"><Plus /> Añadir</Button></DialogTrigger>}
-            <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto y completa después el resto de propiedades.</DialogDescription></DialogHeader>
-              <div className="quick-form"><Select value={quickType} onValueChange={setQuickType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="task">Tarea</SelectItem><SelectItem value="project">Proyecto</SelectItem></SelectContent></Select><input autoFocus value={quickName} onChange={(event) => setQuickName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createQuickItem(); }} placeholder={quickType === "task" ? "¿Qué hay que hacer?" : "Nombre del proyecto"} /></div>
-              <DialogFooter><Button onClick={createQuickItem}>Crear</Button></DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
       </header>
 
       <TabsContent value="dashboard" className="view-content dashboard-view">
