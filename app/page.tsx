@@ -949,17 +949,19 @@ export default function Home() {
               </div>
 
               <div className="dashboard-pulse-hits">
-                {upcomingDeadlines.slice(0, 3).map((task, index) => <button
-                  key={task.id}
-                  className={`dashboard-pulse-hit-card pulse-hit-${index + 1}`}
-                  onClick={() => setDetail({ kind: "task", ...task })}
-                >
-                  <span>{index === 0 ? "PRÓXIMO HITO" : task.date}</span>
-                  <strong>{task.name}</strong>
-                  <small>{task.project} · {task.date}</small>
-                  <ArrowUpRight />
-                </button>)}
-                {!upcomingDeadlines.length && <div className="dashboard-pulse-hit-empty"><Check /><span>Sin entregas próximas</span></div>}
+                {upcomingDeadlines[0] ? <>
+                  <div className="dashboard-pulse-hit-back pulse-hit-back-2" aria-hidden="true" />
+                  <div className="dashboard-pulse-hit-back pulse-hit-back-1" aria-hidden="true" />
+                  <button
+                    className="dashboard-pulse-hit-card pulse-hit-main"
+                    onClick={() => setDetail({ kind: "task", ...upcomingDeadlines[0] })}
+                  >
+                    <span>PRÓXIMO HITO</span>
+                    <strong>{upcomingDeadlines[0].name}</strong>
+                    <small>{upcomingDeadlines[0].project} · {upcomingDeadlines[0].date}</small>
+                    <ArrowUpRight />
+                  </button>
+                </> : <div className="dashboard-pulse-hit-empty"><Check /><span>Sin entregas próximas</span></div>}
               </div>
             </div>
           </article>
