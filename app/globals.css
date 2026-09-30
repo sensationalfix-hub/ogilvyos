@@ -8457,3 +8457,358 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     font-size: 14px !important;
   }
 }
+
+
+/* === My Week hourly planner + brighter lime glass v39 ==================== */
+
+/* More vivid lime while keeping the frosted effect */
+.dashboard-view .deadline-ribbon {
+  background: rgba(231,255,63,.76) !important;
+  backdrop-filter: blur(20px) saturate(1.18) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.18) !important;
+  box-shadow: 0 12px 28px rgba(123,143,18,.14) !important;
+}
+.dashboard-view .deadline-ribbon::before {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.035)),
+    rgba(231,255,63,.12) !important;
+  opacity: .58 !important;
+}
+
+/* Planner shell */
+.week-view {
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0,1fr) !important;
+  gap: 10px !important;
+}
+
+.week-planner {
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: 58px auto minmax(0,1fr) !important;
+  border: 0 !important;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,.72) !important;
+  box-shadow: var(--ui-shadow-sm) !important;
+  overflow: hidden !important;
+}
+
+.week-planner-head,
+.week-planner-allday,
+.week-planner-grid {
+  display: grid !important;
+  grid-template-columns: 78px repeat(5,minmax(0,1fr)) !important;
+}
+
+.week-planner-head {
+  border-bottom: 1px solid rgba(21,25,20,.055) !important;
+  background: rgba(255,255,255,.5) !important;
+}
+
+.planner-time-corner,
+.planner-day-head {
+  min-width: 0 !important;
+  padding: 10px 12px !important;
+}
+
+.planner-time-corner {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  border-right: 1px solid rgba(21,25,20,.055) !important;
+}
+
+.planner-time-corner span,
+.planner-day-head span,
+.planner-allday-label {
+  color: #959d96 !important;
+  font-size: 7px !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em !important;
+}
+
+.planner-time-corner small {
+  color: #b0b6b0 !important;
+  font-size: 6.5px !important;
+}
+
+.planner-day-head {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  grid-template-rows: auto auto !important;
+  align-content: center !important;
+  gap: 2px 8px !important;
+  border-right: 1px solid rgba(21,25,20,.045) !important;
+}
+
+.planner-day-head strong {
+  grid-column: 2 !important;
+  grid-row: 1 / 3 !important;
+  align-self: center !important;
+  color: var(--ui-ink) !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+  letter-spacing: -.04em !important;
+}
+
+.planner-day-head small {
+  color: #969e97 !important;
+  font-size: 7px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* all-day strip */
+.week-planner-allday {
+  min-height: 44px !important;
+  border-bottom: 1px solid rgba(21,25,20,.055) !important;
+  background: rgba(248,249,246,.64) !important;
+}
+
+.planner-allday-label {
+  padding: 12px !important;
+  border-right: 1px solid rgba(21,25,20,.055) !important;
+}
+
+.planner-allday-cell {
+  min-width: 0 !important;
+  padding: 6px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-content: flex-start !important;
+  gap: 4px !important;
+  border-right: 1px solid rgba(21,25,20,.045) !important;
+}
+
+.planner-all-day-chip {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 5px 7px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: #f0f2ee !important;
+  color: #4e574f !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
+
+.planner-all-day-chip i {
+  width: 5px !important;
+  height: 5px !important;
+  flex: none !important;
+  border-radius: 50% !important;
+  background: #ee5753 !important;
+}
+
+.planner-all-day-chip.holiday i { background: #69c96e !important; }
+
+.planner-all-day-chip span {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+}
+
+.planner-all-day-chip strong,
+.planner-all-day-chip small {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.planner-all-day-chip strong { font-size: 7.5px !important; }
+.planner-all-day-chip small { color: #929a93 !important; font-size: 6px !important; }
+
+/* scrollable hourly area */
+.week-planner-scroll {
+  min-height: 0 !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+.week-planner-grid {
+  position: relative !important;
+  min-width: 780px !important;
+  height: 672px !important; /* 14h x 48px */
+}
+
+.planner-time-axis {
+  position: relative !important;
+  height: 672px !important;
+  border-right: 1px solid rgba(21,25,20,.06) !important;
+  background: rgba(250,250,247,.72) !important;
+}
+
+.planner-time-axis span {
+  position: absolute !important;
+  right: 10px !important;
+  transform: translateY(-50%) !important;
+  color: #a0a7a0 !important;
+  font-size: 7px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.planner-day-column {
+  position: relative !important;
+  height: 672px !important;
+  min-width: 0 !important;
+  border-right: 1px solid rgba(21,25,20,.045) !important;
+  background: rgba(255,255,255,.38) !important;
+}
+
+.planner-day-column:hover {
+  background: rgba(231,255,63,.022) !important;
+}
+
+.planner-hour-lines {
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+}
+
+.planner-hour-lines i {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: rgba(21,25,20,.045) !important;
+}
+
+.planner-hour-lines i::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 24px !important;
+  height: 1px !important;
+  background: rgba(21,25,20,.022) !important;
+}
+
+/* timed task blocks */
+.planner-task-block {
+  position: absolute !important;
+  left: 6px !important;
+  right: 6px !important;
+  width: auto !important;
+  min-height: 28px !important;
+  padding: 7px 20px 7px 9px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  color: var(--ui-ink) !important;
+  box-shadow: 0 8px 18px rgba(34,43,36,.08) !important;
+  text-align: left !important;
+  cursor: grab !important;
+  transition:
+    transform .14s ease,
+    box-shadow .14s ease,
+    background .14s ease !important;
+}
+
+.planner-task-block:hover {
+  z-index: 5 !important;
+  transform: translateY(-1px) !important;
+  background: var(--ui-lime) !important;
+  box-shadow: 0 12px 24px rgba(153,173,32,.15) !important;
+}
+
+.planner-task-block:active { cursor: grabbing !important; }
+
+.planner-task-block.critical {
+  background: #fff !important;
+}
+.planner-task-block.critical::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 4px !important;
+  border-radius: 11px 0 0 11px !important;
+  background: #ef5350 !important;
+}
+
+.planner-task-time {
+  color: #889089 !important;
+  font-size: 6.5px !important;
+  font-weight: 760 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.planner-task-block strong {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 8.5px !important;
+  line-height: 1.15 !important;
+}
+
+.planner-task-block small {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: #919991 !important;
+  font-size: 6.5px !important;
+}
+
+.planner-task-grip {
+  position: absolute !important;
+  top: 8px !important;
+  right: 6px !important;
+  width: 10px !important;
+  color: #a5aca5 !important;
+}
+
+.planner-resize-handle {
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  height: 8px !important;
+  cursor: ns-resize !important;
+  z-index: 4 !important;
+}
+
+.planner-resize-handle.top { top: -2px !important; }
+.planner-resize-handle.bottom { bottom: -2px !important; }
+
+.planner-resize-handle::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 3px !important;
+  width: 22px !important;
+  height: 2px !important;
+  border-radius: 99px !important;
+  background: rgba(21,25,20,.16) !important;
+  transform: translateX(-50%) !important;
+  opacity: 0 !important;
+  transition: opacity .12s ease !important;
+}
+
+.planner-task-block:hover .planner-resize-handle::after {
+  opacity: 1 !important;
+}
+
+@media (max-width: 980px) {
+  .week-planner-head,
+  .week-planner-allday,
+  .week-planner-grid {
+    grid-template-columns: 68px repeat(5,minmax(138px,1fr)) !important;
+  }
+  .week-planner-grid { min-width: 820px !important; }
+}
