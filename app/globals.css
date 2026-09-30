@@ -11168,3 +11168,26 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     grid-template-columns:1fr!important;
   }
 }
+
+
+/* === Account next-hit equal height v48 =================================== */
+.account-next-hit{
+  min-height:52px!important;
+  justify-content:flex-start!important;
+}
+
+.account-next-hit.is-empty>strong{
+  color:#7f877f!important;
+}
+
+.account-next-hit.is-empty>small{
+  color:#adb3ad!important;
+}
+
+.account-card-redesign:hover .account-next-hit.is-empty>strong{
+  color:rgba(255,255,255,.72)!important;
+}
+
+.account-card-redesign:hover .account-next-hit.is-empty>small{
+  color:rgba(255,255,255,.38)!important;
+}
