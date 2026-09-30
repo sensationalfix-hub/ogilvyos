@@ -12948,3 +12948,80 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
   }
 }
+
+
+/* === Team finishing pass v56 ============================================ */
+@media(min-width:761px){
+  .team-view-complete{
+    overflow:auto!important;
+  }
+
+  .team-view-complete .team-layout-redesign{
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    align-items:start!important;
+  }
+
+  .team-grid-redesign{
+    max-height:none!important;
+    height:auto!important;
+    overflow:visible!important;
+    padding-bottom:28px!important;
+  }
+
+  .team-radar-card{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    align-self:start!important;
+    position:sticky!important;
+    top:12px!important;
+  }
+
+  .employee-index-stat{
+    background:color-mix(in srgb,var(--index-color) 16%,#fafbf9)!important;
+  }
+
+  .employee-index-stat b{
+    color:var(--index-color)!important;
+    font-weight:850!important;
+  }
+
+  .employee-index-stat small{
+    color:color-mix(in srgb,var(--index-color) 72%,#6f776f)!important;
+  }
+
+  .employee-dimensions{
+    gap:14px!important;
+  }
+
+  .employee-dimension-row>div{
+    align-items:center!important;
+  }
+
+  .employee-dimension-row small{
+    font-size:8.5px!important;
+    font-weight:760!important;
+    color:rgba(255,255,255,.66)!important;
+  }
+
+  .employee-dimension-row b{
+    min-width:34px!important;
+    text-align:right!important;
+    font-size:14px!important;
+    line-height:1!important;
+    color:#fff!important;
+  }
+
+  .employee-dimension-row i{
+    height:9px!important;
+    margin-top:6px!important;
+    border-radius:999px!important;
+    background:rgba(255,255,255,.09)!important;
+  }
+
+  .employee-dimension-row i>em{
+    background:var(--ui-lime)!important;
+  }
+}
