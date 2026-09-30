@@ -2618,21 +2618,37 @@ export default function Home() {
 
       <TabsContent value="inbox" className="view-content inbox-view">
         <section className="inbox-shell">
-          <section className="inbox-presence-card">
-            <div className="inbox-presence-copy">
-              <span className="inbox-kicker">PULSO DEL EQUIPO</span>
-              <strong>{boardPresence.length}</strong>
-              <small>online ahora</small>
-            </div>
-            <div className="inbox-presence-list">
-              {boardPresence.map((person) => <div className="inbox-presence-person" key={person.user_id}>
-                <span className="inbox-presence-avatar">{initials(person.display_name)}</span>
-                <div><strong>{person.display_name}</strong><small>{person.role === "admin" ? "Admin" : person.role === "viewer_global" ? "Viewer" : "Empleado"}</small></div>
-                <i />
-              </div>)}
-              {!boardPresence.length && <div className="inbox-empty-line">Nadie aparece online todavía.</div>}
-            </div>
-            <div className="inbox-live-dot"><CircleDot /></div>
+          <section className="inbox-top-grid">
+            <article className="inbox-online-card">
+              <div className="inbox-card-label"><span>ONLINE AHORA</span><CircleDot /></div>
+              <div className="inbox-online-value">
+                <strong>{boardPresence.length}</strong>
+                <span>de {Math.max(boardPresence.length, sessionRole === "employee" ? 1 : liveCounts?.team || boardPresence.length)} usuarios</span>
+              </div>
+              <small>Presencia actualizada en tiempo real</small>
+            </article>
+
+            <article className="inbox-people-card">
+              <div className="inbox-card-label"><span>QUIÉN ESTÁ DENTRO</span><Users /></div>
+              <div className="inbox-people-track">
+                {boardPresence.map((person) => <div className="inbox-person-tile" key={person.user_id}>
+                  <span>{initials(person.display_name)}</span>
+                  <div><strong>{person.display_name}</strong><small>{person.role === "admin" ? "Admin" : person.role === "viewer_global" ? "Viewer" : "Empleado"}</small></div>
+                  <i />
+                </div>)}
+                {!boardPresence.length && <div className="inbox-empty-line">Nadie aparece online todavía.</div>}
+              </div>
+            </article>
+
+            <article className="inbox-status-card">
+              <div className="inbox-card-label"><span>BUZÓN</span><Inbox /></div>
+              <strong>{boardRequests.filter((item) => item.status !== "Resuelta").length}</strong>
+              <span>peticiones pendientes</span>
+              <div className="inbox-status-meta">
+                <b>{boardRequests.filter((item) => item.status === "Nueva").length} nuevas</b>
+                <b>{boardRequests.filter((item) => item.status === "Revisando").length} revisando</b>
+              </div>
+            </article>
           </section>
 
           <section className="inbox-columns">
