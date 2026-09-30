@@ -1479,6 +1479,7 @@ export default function Home() {
       </nav>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
       <form action="/api/auth/logout" method="post" className="user-chip"><span>{sessionInitials}</span><div><strong>{sessionName.toUpperCase()}</strong><small>{sessionRole === "editor" ? "Director Creativo" : sessionRole === "viewer" ? "Solo lectura" : "Empleado"}</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
+      {canEdit && <a href="/admin/access" className="admin-access-link">Gestionar accesos</a>}
     </aside>
 
     <main className={`main-stage main-stage-${activeView}${selectedProjectPage ? " project-page-open" : ""}`} aria-hidden={selectedProjectPage ? true : undefined}>
