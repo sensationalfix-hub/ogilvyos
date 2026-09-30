@@ -32,6 +32,7 @@ async function taskProperties(changes: Record<string, unknown>) {
   if ("name" in changes) properties["Tarea"] = title(changes.name);
   if ("status" in changes) properties["Status"] = status(changes.status);
   if ("priority" in changes) properties["Prioridad"] = select(changes.priority);
+  if ("workosLane" in changes) properties["WorkOS Estado"] = select(changes.workosLane);
   if ("rating" in changes) properties["Rating"] = select(changes.rating);
   if ("dateStart" in changes || "dateEnd" in changes) properties["Fecha"] = date(changes.dateStart, changes.dateEnd);
 
