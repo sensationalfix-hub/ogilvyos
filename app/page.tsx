@@ -1162,31 +1162,97 @@ export default function Home() {
           <article><span>AUSENCIAS</span><strong>{weeklyHolidays.length}</strong><small>Personas fuera</small></article>
           <article><span>ALTA / URGENTE</span><strong>{weeklyTasks.filter((task) => ["Alta", "Urgente"].includes(task.priority)).length}</strong><small>Necesitan ojo</small></article>
         </section>
-        <section className="week-board">
-          {operationalWeekDays.map((day) => {
-            const key = isoDate(day);
-            const dayTasks = weeklyTasks.filter((task) => task.dateStart === key);
-            const dayProjects = weeklyProjectMilestones.filter((event) => event.date === key);
-            const dayHolidays = weeklyHolidays.filter((holiday) => holiday.start <= key && holiday.end >= key);
-            const weekDragActive = Boolean(dragging && (dragging.startsWith("task:") || dragging.startsWith("project-start:") || dragging.startsWith("project-end:")));
-            return <article key={key} className={`week-day ${weekDragActive ? "drop-ready" : ""}`}
-              onDragOver={(event) => { if (weekDragActive) event.preventDefault(); }}
-              onDrop={(event) => moveWeekItem(event, key)}>
-              <header><span>{day.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase()}</span><strong>{day.getDate()}</strong><small>{day.toLocaleDateString("es-ES", { month: "short" }).replace(".", "").toUpperCase()}</small></header>
-              <div className="week-day-body">
-                {dayProjects.map((event) => <button key={event.id} draggable className="week-item project"
+
+        <section className="week-planner">
+          <div className="week-planner-head">
+            <div className="planner-time-corner"><span>HORARIO</span><small>Arrastra · estira</small></div>
+            {operationalWeekDays.map((day) => {
+              const key = isoDate(day);
+              const count = weeklyTasks.filter((task) => dateOnly(task.dateStart) === key).length;
+              return <div key={key} className="planner-day-head">
+                <span>{day.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase()}</span>
+                <strong>{day.getDate()}</strong>
+                <small>{day.toLocaleDateString("es-ES", { month: "short" }).replace(".", "").toUpperCase()} · {count} tarea{count === 1 ? "" : "s"}</small>
+              </div>;
+            })}
+          </div>
+
+          <div className="week-planner-allday">
+            <div className="planner-allday-label">TODO EL DÍA</div>
+            {operationalWeekDays.map((day) => {
+              const key = isoDate(day);
+              const dayProjects = weeklyProjectMilestones.filter((event) => event.date === key);
+              const dayHolidays = weeklyHolidays.filter((holiday) => holiday.start <= key && holiday.end >= key);
+              return <div key={key} className="planner-allday-cell"
+                onDragOver={(event) => { if (dragging?.startsWith("project-")) event.preventDefault(); }}
+                onDrop={(event) => moveWeekItem(event, key)}>
+                {dayProjects.map((event) => <button key={event.id} draggable className="planner-all-day-chip project"
                   onDragStart={(dragEvent) => { dragEvent.dataTransfer.setData("text/plain", `project-${event.kind}:${event.project.id}`); dragEvent.dataTransfer.effectAllowed = "move"; setDragging(`project-${event.kind}:${event.project.id}`); }}
                   onDragEnd={() => setDragging(null)}
-                  onClick={() => setSelectedProjectPage(event.project)}><i /><span><strong>{event.project.name}</strong><small>{event.label} · {event.project.account}</small></span><GripVertical className="week-drag-handle" /></button>)}
-                {dayTasks.map((task) => <button key={task.id} draggable className={"week-item task " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")}
-                  onDragStart={(dragEvent) => { dragEvent.dataTransfer.setData("text/plain", `task:${task.id}`); dragEvent.dataTransfer.effectAllowed = "move"; setDragging(`task:${task.id}`); }}
-                  onDragEnd={() => setDragging(null)}
-                  onClick={() => setDetail({ kind: "task", ...task })}><i /><span><strong>{task.name}</strong><small>{task.project} · {task.account}</small></span><GripVertical className="week-drag-handle" /></button>)}
-                {dayHolidays.map((holiday) => <button key={holiday.id || holiday.name} className="week-item holiday" onClick={() => setActiveView("holidays")}><i /><span><strong>{holiday.name}</strong><small>{holiday.type}</small></span><ChevronRight /></button>)}
-                {dayTasks.length + dayProjects.length + dayHolidays.length === 0 && <div className="week-empty">{weekDragActive ? "Suelta aquí para cambiar la fecha" : "Sin hitos. Milagro administrativo."}</div>}
-              </div>
-            </article>;
-          })}
+                  onClick={() => setSelectedProjectPage(event.project)}>
+                  <i /><span><strong>{event.project.name}</strong><small>{event.label}</small></span>
+                </button>)}
+                {dayHolidays.map((holiday) => <button key={holiday.id || holiday.name} className="planner-all-day-chip holiday" onClick={() => setActiveView("holidays")}>
+                  <i /><span><strong>{holiday.name}</strong><small>{holiday.type}</small></span>
+                </button>)}
+              </div>;
+            })}
+          </div>
+
+          <div className="week-planner-scroll">
+            <div className="week-planner-grid">
+              <aside className="planner-time-axis">
+                {Array.from({ length: 15 }, (_, index) => 7 + index).map((hour) => <span key={hour} style={{ top: `${(hour - 7) * 48}px` }}>{String(hour).padStart(2, "0")}:00</span>)}
+              </aside>
+
+              {operationalWeekDays.map((day) => {
+                const key = isoDate(day);
+                const dayTasks = weeklyTasks.filter((task) => dateOnly(task.dateStart) === key);
+                return <div key={key} className="planner-day-column"
+                  onDragOver={(event) => { if (dragging?.startsWith("task:")) event.preventDefault(); }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
+                    if (kind !== "task") return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+                    const minutes = 7 * 60 + (y / 48) * 60;
+                    setDragging(null);
+                    void movePlannerTask(id, key, minutes);
+                  }}>
+                  <div className="planner-hour-lines" aria-hidden="true">
+                    {Array.from({ length: 15 }, (_, index) => <i key={index} style={{ top: `${index * 48}px` }} />)}
+                  </div>
+
+                  {dayTasks.map((task) => {
+                    const startMinutes = plannerMinutes(task.dateStart);
+                    const endMinutes = plannerMinutes(task.dateEnd, startMinutes + 60);
+                    const visibleStart = Math.max(7 * 60, Math.min(21 * 60, startMinutes));
+                    const visibleEnd = Math.max(visibleStart + 30, Math.min(21 * 60, endMinutes));
+                    const top = ((visibleStart - 7 * 60) / 60) * 48;
+                    const height = Math.max(28, ((visibleEnd - visibleStart) / 60) * 48);
+                    return <button key={task.id} draggable
+                      className={"planner-task-block " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")}
+                      style={{ top: `${top}px`, height: `${height}px` }}
+                      onDragStart={(dragEvent) => {
+                        dragEvent.dataTransfer.setData("text/plain", `task:${task.id}`);
+                        dragEvent.dataTransfer.effectAllowed = "move";
+                        setDragging(`task:${task.id}`);
+                      }}
+                      onDragEnd={() => setDragging(null)}
+                      onClick={() => setDetail({ kind: "task", ...task })}>
+                      <span className="planner-resize-handle top" onPointerDown={(event) => startPlannerResize(task, "start", event)} />
+                      <div className="planner-task-time">{plannerTimeLabel(startMinutes)}–{plannerTimeLabel(endMinutes)}</div>
+                      <strong>{task.name}</strong>
+                      <small>{task.project} · {task.account}</small>
+                      <GripVertical className="planner-task-grip" />
+                      <span className="planner-resize-handle bottom" onPointerDown={(event) => startPlannerResize(task, "end", event)} />
+                    </button>;
+                  })}
+                </div>;
+              })}
+            </div>
+          </div>
         </section>
       </TabsContent>
 
