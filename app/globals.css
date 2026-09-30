@@ -7407,3 +7407,185 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     transform:translate(-36%,-52%) scale(1.02)!important;
   }
 }
+
+
+/* === Unified module headers v30 =========================================== */
+.module-head,
+.ops-head.module-head,
+.roster-head.module-head,
+.calendar-month-head.module-head,
+.chronology-head.module-head,
+.holiday-head.module-head,
+.workspace-section-head.module-head,
+.dashboard-focus-card .module-head {
+  min-height: 64px !important;
+  padding: 14px 16px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.module-head > div,
+.ops-head.module-head > div,
+.roster-head.module-head > div,
+.calendar-month-head.module-head > div,
+.chronology-head.module-head > div,
+.holiday-head.module-head > div,
+.workspace-section-head.module-head > div,
+.dashboard-focus-card .module-head > div {
+  min-width: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+}
+
+.module-head > div > span,
+.ops-head.module-head > div > span,
+.roster-head.module-head > div > span,
+.calendar-month-head.module-head > div > span,
+.chronology-head.module-head > div > span,
+.holiday-head.module-head > div > span,
+.workspace-section-head.module-head > div > span,
+.dashboard-focus-card .module-head > div > span {
+  display: block !important;
+  color: #969e97 !important;
+  font-size: 8px !important;
+  font-weight: 860 !important;
+  line-height: 1 !important;
+  letter-spacing: .14em !important;
+  text-transform: uppercase !important;
+}
+
+.module-head h2,
+.ops-head.module-head h2,
+.roster-head.module-head h2,
+.calendar-month-head.module-head h2,
+.chronology-head.module-head h2,
+.holiday-head.module-head h2,
+.workspace-section-head.module-head h2,
+.dashboard-focus-card .module-head h2 {
+  margin: 0 !important;
+  color: var(--ui-ink) !important;
+  font-size: 17px !important;
+  font-weight: 560 !important;
+  line-height: 1.12 !important;
+  letter-spacing: -.028em !important;
+}
+
+/* Secondary exits from modules */
+.module-action,
+.ops-head.module-head .module-action,
+.roster-head.module-head .module-action,
+.dashboard-focus-card .module-action {
+  flex: none;
+  min-height: 28px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #7e867f !important;
+  box-shadow: none !important;
+  font-size: 8px !important;
+  font-weight: 760 !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+  transition: color .16s ease, transform .16s ease !important;
+}
+
+.module-action svg,
+.ops-head.module-head .module-action svg,
+.roster-head.module-head .module-action svg,
+.dashboard-focus-card .module-action svg {
+  width: 12px !important;
+  height: 12px !important;
+  stroke-width: 1.8 !important;
+  transition: transform .16s ease !important;
+}
+
+.module-action:hover,
+.ops-head.module-head .module-action:hover,
+.roster-head.module-head .module-action:hover,
+.dashboard-focus-card .module-action:hover {
+  color: var(--ui-ink) !important;
+  transform: translateY(-1px) !important;
+}
+
+.module-action:hover svg,
+.ops-head.module-head .module-action:hover svg,
+.roster-head.module-head .module-action:hover svg,
+.dashboard-focus-card .module-action:hover svg {
+  transform: translate(2px,-2px) !important;
+}
+
+/* Override older dashboard rule that hid module pre-titles */
+.dashboard-view .ops-head.module-head span,
+.dashboard-view .roster-head.module-head span {
+  display: block !important;
+}
+
+/* Keep module contents visually attached to the new editorial headers */
+.dashboard-view .ops-panel,
+.dashboard-view .team-roster {
+  overflow: hidden !important;
+}
+
+.dashboard-view .ops-head.module-head,
+.dashboard-view .roster-head.module-head {
+  padding-bottom: 10px !important;
+}
+
+.dashboard-focus-card .module-head {
+  min-height: 52px !important;
+  padding: 0 0 10px 0 !important;
+}
+
+/* Calendar and project workspace variations */
+.calendar-month-head.module-head {
+  min-height: 66px !important;
+}
+
+.workspace-section-head.module-head {
+  padding-inline: 0 !important;
+}
+
+.workspace-section-head.module-head > small {
+  margin-left: auto;
+  align-self: center;
+  color: #9ba29c;
+  font-size: 8px;
+}
+
+/* Avoid icon-only team header styling leaking from old rules */
+.roster-head.module-head > svg {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .module-head,
+  .ops-head.module-head,
+  .roster-head.module-head,
+  .calendar-month-head.module-head,
+  .chronology-head.module-head,
+  .holiday-head.module-head,
+  .workspace-section-head.module-head {
+    min-height: 58px !important;
+    padding: 12px 13px !important;
+  }
+
+  .module-head h2,
+  .ops-head.module-head h2,
+  .roster-head.module-head h2,
+  .calendar-month-head.module-head h2,
+  .chronology-head.module-head h2,
+  .holiday-head.module-head h2,
+  .workspace-section-head.module-head h2 {
+    font-size: 16px !important;
+  }
+}
