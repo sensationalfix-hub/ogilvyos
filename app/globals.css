@@ -4371,3 +4371,174 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     transition: none !important;
   }
 }
+
+
+/* === Dashboard cards v15 ==================================================
+   Active projects become compact semi-square cards. Also normalise hover
+   contrast so legacy light-theme text colours cannot leak onto dark cards. */
+.dashboard-view .project-overview-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(118px, auto) !important;
+  align-content: start !important;
+  gap: 9px !important;
+  padding: 4px 7px 8px !important;
+}
+
+.dashboard-view .dashboard-project {
+  min-width: 0 !important;
+  min-height: 118px !important;
+  height: auto !important;
+  display: grid !important;
+  grid-template-columns: 32px minmax(0, 1fr) auto !important;
+  grid-template-rows: auto minmax(42px, 1fr) auto !important;
+  grid-template-areas:
+    "mark stage stage"
+    "copy copy copy"
+    "people people drag" !important;
+  column-gap: 8px !important;
+  row-gap: 7px !important;
+  align-items: center !important;
+  padding: 12px !important;
+  border: 1px solid rgba(21,24,21,.07) !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.84) !important;
+  overflow: hidden !important;
+}
+
+.dashboard-view .dashboard-project > .account-mark {
+  grid-area: mark !important;
+  align-self: start !important;
+  width: 31px !important;
+  height: 31px !important;
+  margin: 0 !important;
+}
+
+.dashboard-view .dashboard-project > .dashboard-project-copy {
+  grid-area: copy !important;
+  min-width: 0 !important;
+  align-self: center !important;
+  gap: 5px !important;
+  margin: 0 !important;
+}
+
+.dashboard-view .dashboard-project-copy strong {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  white-space: normal !important;
+  text-overflow: ellipsis !important;
+  color: #202520 !important;
+  font-size: 12px !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.01em !important;
+}
+
+.dashboard-view .dashboard-project-copy small {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: #8b938d !important;
+  font-size: 7.5px !important;
+  line-height: 1.25 !important;
+}
+
+.dashboard-view .dashboard-project > .stage-chip {
+  grid-area: stage !important;
+  justify-self: end !important;
+  align-self: start !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 5px 7px !important;
+  border-radius: 999px !important;
+  font-size: 6.5px !important;
+  line-height: 1 !important;
+  letter-spacing: .035em !important;
+}
+
+.dashboard-view .dashboard-project > .people-stack {
+  grid-area: people !important;
+  justify-self: start !important;
+  justify-content: flex-start !important;
+  margin: 0 !important;
+}
+
+.dashboard-view .dashboard-project > .people-stack > span {
+  width: 23px !important;
+  height: 23px !important;
+  font-size: 7px !important;
+}
+
+.dashboard-view .dashboard-project > svg {
+  grid-area: drag !important;
+  justify-self: end !important;
+  align-self: end !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin: 0 !important;
+}
+
+.dashboard-view .dashboard-project:hover {
+  transform: translateY(-2px) !important;
+  background: var(--dash-ink) !important;
+  border-color: var(--dash-ink) !important;
+}
+
+.dashboard-view .dashboard-project:hover .dashboard-project-copy strong {
+  color: #fff !important;
+}
+
+.dashboard-view .dashboard-project:hover .dashboard-project-copy small {
+  color: rgba(255,255,255,.56) !important;
+}
+
+.dashboard-view .dashboard-project:hover > .stage-chip {
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: none !important;
+}
+
+.dashboard-view .dashboard-project:hover > svg {
+  color: rgba(255,255,255,.5) !important;
+}
+
+.dashboard-view .dashboard-project:hover .people-stack > span {
+  border-color: var(--dash-ink) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: var(--dash-ink) !important;
+}
+
+/* Fix legacy light-theme text colours leaking into dark hover states. */
+.dashboard-view .roster-person:hover strong {
+  color: #fff !important;
+}
+.dashboard-view .roster-person:hover small,
+.dashboard-view .roster-person:hover .roster-ratio {
+  color: rgba(255,255,255,.62) !important;
+}
+.dashboard-view .roster-person:hover .avatar {
+  color: #151815 !important;
+}
+
+/* Keep project cards usable when the project column gets narrow. */
+@media (max-width: 1240px) {
+  .dashboard-view .project-overview-list {
+    grid-template-columns: 1fr !important;
+  }
+  .dashboard-view .dashboard-project {
+    min-height: 104px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-view .project-overview-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-view .project-overview-list {
+    grid-template-columns: 1fr !important;
+  }
+}
