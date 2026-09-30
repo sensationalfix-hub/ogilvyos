@@ -1037,7 +1037,14 @@ export default function Home() {
                   <div className="dashboard-project-footer"><PeopleStack people={project.people} /></div>
                 </div>)}
               </div>
-              <div className="deadline-ribbon"><span><AlertTriangle />PRÓXIMAS FECHAS</span>{upcomingDeadlines.length ? upcomingDeadlines.map((task) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}><b>{task.date}</b> {task.name}</button>) : <small>Sin entregas próximas con fecha en Notion</small>}</div>
+              <div className="deadline-ribbon">
+                <div className="deadline-ribbon-title"><AlertTriangle /><span>PRÓXIMAS FECHAS</span></div>
+                <div className="deadline-ribbon-list">
+                  {upcomingDeadlines.length ? upcomingDeadlines.slice(0, 8).map((task) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}>
+                    <strong>{task.date}</strong><span>{task.name}</span>
+                  </button>) : <small>Sin entregas próximas con fecha en Notion</small>}
+                </div>
+              </div>
             </article>
           </div>
 
