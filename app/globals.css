@@ -15226,3 +15226,78 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .access-role { grid-column: 2; }
   .access-row button { grid-row: auto; }
 }
+
+
+.employee-work-widget {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-radius: 22px;
+  background: rgba(255,255,255,.82);
+  border: 1px solid rgba(28,34,28,.08);
+  overflow: hidden;
+}
+.employee-work-head {
+  padding: 16px 16px 10px;
+}
+.employee-work-list {
+  display: grid;
+  gap: 8px;
+  padding: 4px 12px 12px;
+}
+.employee-work-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 14px;
+  background: #f5f6f2;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease;
+}
+.employee-work-item:hover {
+  transform: translateY(-1px);
+  background: #eef1e9;
+}
+.employee-work-index {
+  font-size: 9px;
+  font-weight: 900;
+  color: #8c948b;
+}
+.employee-work-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.employee-work-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.employee-work-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #7b837a;
+  font-size: 9px;
+}
+.employee-work-item > b {
+  font-size: 9px;
+  color: #4e554e;
+  white-space: nowrap;
+}
+.employee-work-empty {
+  min-height: 142px;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  text-align: center;
+  color: #798079;
+}
+.employee-work-empty strong { font-size: 12px; color: #4d544d; }
+.employee-work-empty small { font-size: 9px; }
