@@ -5866,3 +5866,66 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     left: 130px !important;
   }
 }
+
+
+/* === Timeline milestone dots v23 ========================================== */
+.timeline-row-popover {
+  display: none !important;
+}
+
+.timeline-groups-v3 .global-task-marker {
+  position: absolute !important;
+  top: 50% !important;
+  width: 10px !important;
+  height: 10px !important;
+  transform: translate(-50%, -50%) !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  box-shadow:
+    0 0 0 1px rgba(21,24,21,.10),
+    0 4px 10px rgba(21,24,21,.08) !important;
+  cursor: help !important;
+  z-index: 3 !important;
+}
+
+.timeline-groups-v3 .global-task-marker.status-terminado { background: #68b878 !important; }
+.timeline-groups-v3 .global-task-marker.status-pausa { background: #e3ae51 !important; }
+.timeline-groups-v3 .global-task-marker.status-cancelado { background: #afb6af !important; }
+.timeline-groups-v3 .global-task-marker.status-pendiente,
+.timeline-groups-v3 .global-task-marker.status-en-progreso { background: #ef5350 !important; }
+
+.timeline-groups-v3 .timeline-marker-tooltip {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: calc(100% + 10px) !important;
+  z-index: 30 !important;
+  width: max-content !important;
+  max-width: 220px !important;
+  padding: 10px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  border: 1px solid #ecefea !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.98) !important;
+  color: #202520 !important;
+  box-shadow: 0 14px 28px rgba(21,24,21,.10) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translate(-50%, 4px) !important;
+  transition: opacity .14s ease, transform .14s ease !important;
+}
+
+.timeline-groups-v3 .timeline-marker-tooltip strong {
+  font-size: 10px !important;
+}
+
+.timeline-groups-v3 .timeline-marker-tooltip small {
+  color: #8e968f !important;
+  font-size: 8px !important;
+}
+
+.timeline-groups-v3 .global-task-marker:hover .timeline-marker-tooltip {
+  opacity: 1 !important;
+  transform: translate(-50%, 0) !important;
+}
