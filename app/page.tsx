@@ -950,8 +950,16 @@ export default function Home() {
 
               <div className="dashboard-pulse-hits">
                 {upcomingDeadlines[0] ? <>
-                  <div className="dashboard-pulse-hit-back pulse-hit-back-2" aria-hidden="true" />
-                  <div className="dashboard-pulse-hit-back pulse-hit-back-1" aria-hidden="true" />
+                  {upcomingDeadlines[2] && <div className="dashboard-pulse-hit-back pulse-hit-back-2" aria-hidden="true">
+                    <span>{upcomingDeadlines[2].date}</span>
+                    <strong>{upcomingDeadlines[2].name}</strong>
+                    <small>{upcomingDeadlines[2].project}</small>
+                  </div>}
+                  {upcomingDeadlines[1] && <div className="dashboard-pulse-hit-back pulse-hit-back-1" aria-hidden="true">
+                    <span>{upcomingDeadlines[1].date}</span>
+                    <strong>{upcomingDeadlines[1].name}</strong>
+                    <small>{upcomingDeadlines[1].project}</small>
+                  </div>}
                   <button
                     className="dashboard-pulse-hit-card pulse-hit-main"
                     onClick={() => setDetail({ kind: "task", ...upcomingDeadlines[0] })}
