@@ -108,6 +108,7 @@ const fallbackHolidays: Holiday[] = [];
 const navigation = [
   { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { value: "week", label: "Mi semana", icon: CalendarDays },
+  { value: "calendar", label: "Calendario", icon: CalendarRange },
   { value: "accounts", label: "Cuentas", icon: BriefcaseBusiness },
   { value: "projects", label: "Proyectos", icon: FolderKanban },
   { value: "tasks", label: "Tareas", icon: ListTodo },
