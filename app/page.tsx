@@ -1030,7 +1030,13 @@ export default function Home() {
     const thresholdDay = isCurrentMonth ? now.getDate() : 1;
     const upcoming = monthCalendarEvents
       .filter((event) => event.day >= thresholdDay)
-      .sort((a, b) => a.day - b.day || (a.kind === "holiday" ? 1 : -1) || a.title.localeCompare(b.title));
+      .sort((a, b) => {
+        if (a.day !== b.day) return a.day - b.day;
+        const aHoliday = a.kind === "holiday" ? 1 : 0;
+        const bHoliday = b.kind === "holiday" ? 1 : 0;
+        if (aHoliday !== bHoliday) return aHoliday - bHoliday;
+        return a.title.localeCompare(b.title);
+      });
     const nextEvent = upcoming.find((event) => event.kind !== "holiday") ?? upcoming[0] ?? null;
 
     const weekCount = Math.ceil((month.offset + month.days) / 7);
