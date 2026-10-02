@@ -17229,3 +17229,84 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .holidays-balance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .holidays-toolbar-redesign{align-items:flex-start;flex-direction:column}
 }
+
+
+/* === Floating week navigation ============================================ */
+.week-floating-nav {
+  position: fixed;
+  right: 28px;
+  bottom: 24px;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  background: rgba(13,18,15,.92);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  box-shadow: 0 14px 36px rgba(17,24,20,.22);
+}
+
+.week-floating-nav button {
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255,255,255,.76);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease, transform .16s ease;
+}
+
+.week-floating-nav > button:first-child,
+.week-floating-nav > button:last-child {
+  width: 38px;
+  flex: 0 0 38px;
+}
+
+.week-floating-nav button:hover {
+  background: rgba(255,255,255,.09);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.week-floating-nav button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.week-floating-nav .week-nav-current {
+  min-width: 124px;
+  padding: 0 12px;
+  gap: 7px;
+  color: rgba(255,255,255,.72);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.week-floating-nav .week-nav-current.is-current {
+  background: var(--ui-lime);
+  color: var(--ui-ink);
+}
+
+.week-floating-nav .week-nav-current.is-current:hover {
+  background: var(--ui-lime);
+  color: var(--ui-ink);
+}
+
+@media (max-width: 760px) {
+  .week-floating-nav {
+    right: 14px;
+    bottom: 78px;
+  }
+
+  .week-floating-nav .week-nav-current {
+    min-width: 108px;
+  }
+}
