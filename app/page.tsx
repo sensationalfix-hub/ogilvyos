@@ -2345,7 +2345,16 @@ export default function Home() {
         </section>
       </TabsContent>
 
-      <TabsContent value="calendar" className="view-content calendar-view">
+      <TabsContent
+        value="calendar"
+        className="view-content calendar-view"
+        onClick={(event) => {
+          if (selectedCalendarDay == null) return;
+          const target = event.target as HTMLElement;
+          if (target.closest(".calendar-day, button, a, input, textarea, select, [role='button']")) return;
+          setSelectedCalendarDay(null);
+        }}
+      >
         <section className="calendar-shell calendar-shell-v2">
           <header className="calendar-toolbar">
             <div className="month-switcher">
