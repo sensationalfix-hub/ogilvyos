@@ -60,6 +60,7 @@ type Evaluation = { kind: "task" | "project"; id: string; name: string; people: 
 type CalendarEvent = {
   key: string; month: number; day: number; kind: Exclude<CalendarFilter, "all">;
   title: string; meta: string; account?: string; id?: string;
+  time?: string | null; status?: string | null;
 };
 type Account = {
   id?: string; name: string; status?: string; priority: Priority; contract: string;
@@ -504,6 +505,7 @@ export default function Home() {
     return currentIndex >= 0 ? currentIndex : Math.max(0, calendarMonths.length - 1);
   });
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
   const [calendarTaskDate, setCalendarTaskDate] = useState<string | null>(null);
   const [calendarTaskName, setCalendarTaskName] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<TeamPerson | null>(null);
@@ -994,12 +996,41 @@ export default function Home() {
       return month >= 0 ? { month, day } : null;
     };
 
-    const taskEvents = tasks.flatMap((task) => {
+    const taskEvents = allTasks.flatMap((task) => {
       const dated = eventFromIso(task.dateStart);
-      if (dated) return [{ key: `task-${task.id}`, ...dated, kind: "task" as const, title: task.name, meta: task.project, account: task.account, id: task.id }];
+      const hasTime = Boolean(task.dateStart?.includes("T"));
+      const startMinutes = hasTime ? plannerMinutes(task.dateStart) : null;
+      const endMinutes = hasTime && task.dateEnd?.includes("T") ? plannerMinutes(task.dateEnd, (startMinutes ?? 0) + 60) : null;
+      const time = startMinutes == null
+        ? null
+        : endMinutes != null
+          ? `${plannerTimeLabel(startMinutes)}–${plannerTimeLabel(endMinutes)}`
+          : plannerTimeLabel(startMinutes);
+      if (dated) return [{
+        key: `task-${task.id}`,
+        ...dated,
+        kind: "task" as const,
+        title: task.name,
+        meta: task.project,
+        account: task.account,
+        id: task.id,
+        time,
+        status: task.status,
+      }];
       const match = task.date.match(/^(\d{1,2})\s+(AGO|SEP|OCT)$/i);
       if (!match) return [];
-      return [{ key: `task-${task.id}`, month: monthIndexByCode[match[2].toUpperCase()], day: Number(match[1]), kind: "task" as const, title: task.name, meta: task.project, account: task.account, id: task.id }];
+      return [{
+        key: `task-${task.id}`,
+        month: monthIndexByCode[match[2].toUpperCase()],
+        day: Number(match[1]),
+        kind: "task" as const,
+        title: task.name,
+        meta: task.project,
+        account: task.account,
+        id: task.id,
+        time,
+        status: task.status,
+      }];
     });
 
     const projectEvents = projects.flatMap((project) => {
@@ -1016,12 +1047,24 @@ export default function Home() {
       return [{ key: `holiday-${holiday.url}`, ...dated, kind: "holiday", title: holiday.name, meta: `${holiday.type} · ${holiday.label}` }];
     });
 
-    return [...taskEvents, ...projectEvents, ...holidayEvents].sort((a, b) => a.month - b.month || a.day - b.day || a.title.localeCompare(b.title));
-  }, [tasks, projects, holidays]);
+    return [...taskEvents, ...projectEvents, ...holidayEvents].sort((a, b) => {
+      if (a.month !== b.month) return a.month - b.month;
+      if (a.day !== b.day) return a.day - b.day;
+      if (a.kind === "task" && b.kind === "task") {
+        if (a.time && b.time) return a.time.localeCompare(b.time);
+        if (a.time && !b.time) return 1;
+        if (!a.time && b.time) return -1;
+      }
+      return a.title.localeCompare(b.title);
+    });
+  }, [allTasks, projects, holidays]);
 
   const monthCalendarEvents = calendarEvents.filter((event) => event.month === calendarMonth);
   const visibleCalendarEvents = monthCalendarEvents.filter((event) => calendarFilter === "all" || event.kind === calendarFilter);
   const visibleEventDays = Array.from(new Set(visibleCalendarEvents.map((event) => event.day))).sort((a, b) => a - b);
+  const selectedCalendarDayEvents = selectedCalendarDay == null
+    ? []
+    : monthCalendarEvents.filter((event) => event.day === selectedCalendarDay);
 
   const calendarInsights = useMemo(() => {
     const month = calendarMonths[calendarMonth];
@@ -1672,7 +1715,7 @@ export default function Home() {
   function openCalendarEvent(event: CalendarEvent) {
     if (sessionRole === "viewer") return;
     if (event.kind === "task") {
-      const task = tasks.find((item) => item.id === event.id);
+      const task = allTasks.find((item) => item.id === event.id);
       if (task) setDetail({ kind: "task", ...task });
     } else if (event.kind === "project") {
       const project = projects.find((item) => item.id === event.id);
@@ -2306,13 +2349,16 @@ export default function Home() {
         <section className="calendar-shell calendar-shell-v2">
           <header className="calendar-toolbar">
             <div className="month-switcher">
-              <button aria-label="Mes anterior" disabled={calendarMonth === 0} onClick={() => setCalendarMonth((month) => Math.max(0, month - 1))}><ChevronLeft /></button>
+              <button aria-label="Mes anterior" disabled={calendarMonth === 0} onClick={() => { setSelectedCalendarDay(null); setCalendarMonth((month) => Math.max(0, month - 1)); }}><ChevronLeft /></button>
               <div><span>CRONOLOGÍA</span><strong>{calendarMonths[calendarMonth].name} {calendarMonths[calendarMonth].year}</strong></div>
-              <button aria-label="Mes siguiente" disabled={calendarMonth === calendarMonths.length - 1} onClick={() => setCalendarMonth((month) => Math.min(calendarMonths.length - 1, month + 1))}><ChevronRight /></button>
+              <button aria-label="Mes siguiente" disabled={calendarMonth === calendarMonths.length - 1} onClick={() => { setSelectedCalendarDay(null); setCalendarMonth((month) => Math.min(calendarMonths.length - 1, month + 1)); }}><ChevronRight /></button>
               <button className="today-button" onClick={() => {
                 const now = new Date();
                 const index = calendarMonths.findIndex((month) => month.year === now.getFullYear() && (monthIndexByCode[month.short] + 7) === now.getMonth());
-                if (index >= 0) setCalendarMonth(index);
+                if (index >= 0) {
+                  setCalendarMonth(index);
+                  setSelectedCalendarDay(now.getDate());
+                }
               }}>Hoy</button>
             </div>
             <div className="calendar-filters" aria-label="Filtrar calendario">
@@ -2356,7 +2402,7 @@ export default function Home() {
               <div className="calendar-card-kicker"><span>CRUCES</span><AlertTriangle /></div>
               <strong>{calendarInsights.crossings.length ? `${calendarInsights.crossings.length} día${calendarInsights.crossings.length === 1 ? "" : "s"} a vigilar` : "Todo encaja"}</strong>
               <div className="calendar-cross-list">
-                {calendarInsights.crossings.map((crossing) => <button key={crossing.day} type="button" onClick={() => setCalendarFilter("all")}>
+                {calendarInsights.crossings.map((crossing) => <button key={crossing.day} type="button" onClick={() => { setCalendarFilter("all"); setSelectedCalendarDay(crossing.day); }}>
                   <span>{String(crossing.day).padStart(2, "0")} {calendarMonths[calendarMonth].short}</span>
                   <small>{crossing.holidayCount && crossing.workCount ? "ausencia + trabajo" : `${crossing.events.length} hitos`}</small>
                 </button>)}
@@ -2381,14 +2427,49 @@ export default function Home() {
                   const isToday = calendarMonths[calendarMonth].year === now.getFullYear()
                     && (monthIndexByCode[calendarMonths[calendarMonth].short] + 7) === now.getMonth()
                     && day === now.getDate();
-                  return <div key={day} className={"calendar-day" + (isToday ? " today" : "") + (dayEvents.length ? " has-events" : "")}>
+                  const visibleDayItems = dayEvents.slice(0, 2);
+                  const hiddenDayItems = dayEvents.slice(2);
+                  const hiddenTasks = hiddenDayItems.filter((event) => event.kind === "task").length;
+                  const hiddenNonTasks = hiddenDayItems.length - hiddenTasks;
+                  const moreLabel = hiddenNonTasks === 0
+                    ? `+${hiddenTasks} tarea${hiddenTasks === 1 ? "" : "s"}`
+                    : `+${hiddenDayItems.length} ítems`;
+                  return <div
+                    key={day}
+                    className={"calendar-day" + (isToday ? " today" : "") + (dayEvents.length ? " has-events" : "") + (selectedCalendarDay === day ? " selected" : "")}
+                    onClick={() => setSelectedCalendarDay(day)}
+                  >
                     <div className="calendar-day-head">
                       <span>{day}</span>
-                      <button className="calendar-day-add" title="Añadir tarea" aria-label={`Añadir tarea el día ${day}`} onClick={() => { setCalendarTaskDate(calendarIsoDate(day)); setCalendarTaskName(""); }}><Plus /></button>
+                      <button
+                        className="calendar-day-add"
+                        title="Añadir tarea"
+                        aria-label={`Añadir tarea el día ${day}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setCalendarTaskDate(calendarIsoDate(day));
+                          setCalendarTaskName("");
+                        }}
+                      ><Plus /></button>
                     </div>
                     <div className="calendar-day-items">
-                      {dayEvents.slice(0, 4).map((event) => <button key={event.key} className={"calendar-chip chip-" + event.kind} onClick={() => openCalendarEvent(event)} title={event.title}><i /><span>{event.title}</span></button>)}
-                      {dayEvents.length > 4 && <button className="calendar-more" onClick={() => setCalendarFilter("all")}>+{dayEvents.length - 4} más</button>}
+                      {visibleDayItems.map((event) => <button
+                        key={event.key}
+                        className={"calendar-chip chip-" + event.kind}
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
+                          openCalendarEvent(event);
+                        }}
+                        title={event.title}
+                      ><i /><span>{event.time ? `${event.time} · ` : ""}{event.title}</span></button>)}
+                      {hiddenDayItems.length > 0 && <button
+                        className="calendar-more"
+                        onClick={(clickEvent) => {
+                          clickEvent.stopPropagation();
+                          setCalendarFilter("all");
+                          setSelectedCalendarDay(day);
+                        }}
+                      >{moreLabel}</button>}
                     </div>
                   </div>;
                 })}
@@ -2396,15 +2477,45 @@ export default function Home() {
             </section>
 
             <aside className="calendar-side-stack">
-              <section className="chronology-card compact-chronology">
-                <div className="chronology-head module-head"><div><span>AGENDA</span><h2>Fechas clave</h2></div><strong>{visibleCalendarEvents.length}</strong></div>
-                <div className="chronology-list">
-                  {visibleEventDays.slice(0, 8).map((day) => <div className="chronology-day" key={day}>
-                    <div className="date-stamp"><strong>{day.toString().padStart(2, "0")}</strong><span>{calendarMonths[calendarMonth].short}</span></div>
-                    <div className="day-events">{visibleCalendarEvents.filter((event) => event.day === day).slice(0, 2).map((event) => <button key={event.key} className={"calendar-event event-" + event.kind} onClick={() => openCalendarEvent(event)}><i /><span><strong>{event.title}</strong><small>{event.meta}{event.account ? " · " + event.account : ""}</small></span></button>)}</div>
-                  </div>)}
-                  {visibleEventDays.length === 0 && <div className="calendar-empty compact"><CalendarDays /><strong>Sin fechas clave</strong></div>}
+              <section className={"chronology-card compact-chronology" + (selectedCalendarDay != null ? " is-day-detail" : "")}>
+                <div className="chronology-head module-head">
+                  <div>
+                    <span>{selectedCalendarDay != null ? "DÍA" : "AGENDA"}</span>
+                    <h2>{selectedCalendarDay != null ? `${String(selectedCalendarDay).padStart(2, "0")} ${calendarMonths[calendarMonth].short}` : "Fechas clave"}</h2>
+                  </div>
+                  <strong>{selectedCalendarDay != null ? selectedCalendarDayEvents.length : visibleCalendarEvents.length}</strong>
                 </div>
+
+                {selectedCalendarDay != null ? <div className="chronology-list calendar-day-detail-list">
+                  {selectedCalendarDayEvents.map((event) => <button
+                    key={event.key}
+                    className={"calendar-event event-" + event.kind}
+                    onClick={() => openCalendarEvent(event)}
+                  >
+                    <i />
+                    <span>
+                      <strong>{event.time ? `${event.time} · ` : ""}{event.title}</strong>
+                      <small>
+                        {event.meta}
+                        {event.account ? " · " + event.account : ""}
+                        {event.status ? " · " + event.status : ""}
+                      </small>
+                    </span>
+                    <ChevronRight />
+                  </button>)}
+                  {selectedCalendarDayEvents.length === 0 && <div className="calendar-empty compact"><CalendarDays /><strong>Sin ítems este día</strong><span>El calendario, por una vez, no tiene nada que objetar.</span></div>}
+                </div> : <div className="chronology-list">
+                  {visibleEventDays.slice(0, 8).map((day) => <button className="chronology-day calendar-agenda-day" key={day} onClick={() => setSelectedCalendarDay(day)}>
+                    <div className="date-stamp"><strong>{day.toString().padStart(2, "0")}</strong><span>{calendarMonths[calendarMonth].short}</span></div>
+                    <div className="day-events">
+                      {visibleCalendarEvents.filter((event) => event.day === day).slice(0, 2).map((event) => <span key={event.key} className={"calendar-event-preview event-" + event.kind}>
+                        <i />
+                        <span><strong>{event.time ? `${event.time} · ` : ""}{event.title}</strong><small>{event.meta}{event.account ? " · " + event.account : ""}</small></span>
+                      </span>)}
+                    </div>
+                  </button>)}
+                  {visibleEventDays.length === 0 && <div className="calendar-empty compact"><CalendarDays /><strong>Sin fechas clave</strong></div>}
+                </div>}
               </section>
             </aside>
           </div>
