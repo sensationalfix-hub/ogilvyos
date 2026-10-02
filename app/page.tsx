@@ -791,7 +791,7 @@ export default function Home() {
       todayMinutes,
       todayTasks,
       nextToday,
-      todayPercent: Math.round((todayMinutes / (PLANNER_END - PLANNER_START)) * 100),
+      todayPercent: Math.min(100, Math.round((todayMinutes / (8 * 60)) * 100)),
     };
   }, [weeklyTasks, operationalWeekDays]);
 
