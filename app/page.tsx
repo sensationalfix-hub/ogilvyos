@@ -498,7 +498,11 @@ export default function Home() {
   const [mobileAgendaIndex, setMobileAgendaIndex] = useState(2);
   const [mobileWorkMode, setMobileWorkMode] = useState<"tasks" | "projects">("tasks");
   const [mobileTaskLane, setMobileTaskLane] = useState<TaskLane>("En progreso");
-  const [calendarMonth, setCalendarMonth] = useState(1);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    const currentIndex = calendarMonths.findIndex((month) => month.year === now.getFullYear() && monthIndexByCode[month.short] === now.getMonth() - 7);
+    return currentIndex >= 0 ? currentIndex : Math.max(0, calendarMonths.length - 1);
+  });
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
   const [calendarTaskDate, setCalendarTaskDate] = useState<string | null>(null);
   const [calendarTaskName, setCalendarTaskName] = useState("");
@@ -978,26 +982,78 @@ export default function Home() {
     return status !== "daily" && type !== "daily";
   }), [projects]);
   const calendarEvents = useMemo<CalendarEvent[]>(() => {
+    const eventFromIso = (value: string | null | undefined) => {
+      const iso = dateOnly(value);
+      if (!iso) return null;
+      const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) return null;
+      const year = Number(match[1]);
+      const monthNumber = Number(match[2]);
+      const day = Number(match[3]);
+      const month = calendarMonths.findIndex((item) => item.year === year && (monthIndexByCode[item.short] + 8) === monthNumber);
+      return month >= 0 ? { month, day } : null;
+    };
+
     const taskEvents = tasks.flatMap((task) => {
+      const dated = eventFromIso(task.dateStart);
+      if (dated) return [{ key: `task-${task.id}`, ...dated, kind: "task" as const, title: task.name, meta: task.project, account: task.account, id: task.id }];
       const match = task.date.match(/^(\d{1,2})\s+(AGO|SEP|OCT)$/i);
       if (!match) return [];
       return [{ key: `task-${task.id}`, month: monthIndexByCode[match[2].toUpperCase()], day: Number(match[1]), kind: "task" as const, title: task.name, meta: task.project, account: task.account, id: task.id }];
     });
+
     const projectEvents = projects.flatMap((project) => {
+      const dated = eventFromIso(project.timingStart);
+      if (dated) return [{ key: `project-${project.id}`, ...dated, kind: "project" as const, title: project.name, meta: "Inicio de proyecto", account: project.account, id: project.id }];
       const match = project.timing.match(/(\d{1,2})\s+(AGO|SEP|OCT)/i);
       if (!match) return [];
       return [{ key: `project-${project.id}`, month: monthIndexByCode[match[2].toUpperCase()], day: Number(match[1]), kind: "project" as const, title: project.name, meta: "Inicio de proyecto", account: project.account, id: project.id }];
     });
+
     const holidayEvents: CalendarEvent[] = holidays.flatMap((holiday) => {
-      const date = new Date(holiday.start + "T00:00:00Z");
-      const month = date.getUTCMonth() - 7;
-      if (month < 0 || month > 2) return [];
-      return [{ key: `holiday-${holiday.url}`, month, day: date.getUTCDate(), kind: "holiday", title: holiday.name, meta: `${holiday.type} · ${holiday.label}` }];
+      const dated = eventFromIso(holiday.start);
+      if (!dated) return [];
+      return [{ key: `holiday-${holiday.url}`, ...dated, kind: "holiday", title: holiday.name, meta: `${holiday.type} · ${holiday.label}` }];
     });
+
     return [...taskEvents, ...projectEvents, ...holidayEvents].sort((a, b) => a.month - b.month || a.day - b.day || a.title.localeCompare(b.title));
   }, [tasks, projects, holidays]);
-  const visibleCalendarEvents = calendarEvents.filter((event) => event.month === calendarMonth && (calendarFilter === "all" || event.kind === calendarFilter));
+
+  const monthCalendarEvents = calendarEvents.filter((event) => event.month === calendarMonth);
+  const visibleCalendarEvents = monthCalendarEvents.filter((event) => calendarFilter === "all" || event.kind === calendarFilter);
   const visibleEventDays = Array.from(new Set(visibleCalendarEvents.map((event) => event.day))).sort((a, b) => a - b);
+
+  const calendarInsights = useMemo(() => {
+    const month = calendarMonths[calendarMonth];
+    const now = new Date();
+    const isCurrentMonth = month.year === now.getFullYear() && (monthIndexByCode[month.short] + 7) === now.getMonth();
+    const thresholdDay = isCurrentMonth ? now.getDate() : 1;
+    const upcoming = monthCalendarEvents
+      .filter((event) => event.day >= thresholdDay)
+      .sort((a, b) => a.day - b.day || (a.kind === "holiday" ? 1 : -1) || a.title.localeCompare(b.title));
+    const nextEvent = upcoming.find((event) => event.kind !== "holiday") ?? upcoming[0] ?? null;
+
+    const weekCount = Math.ceil((month.offset + month.days) / 7);
+    const weekBuckets = Array.from({ length: weekCount }, (_, index) => {
+      const startDay = Math.max(1, index * 7 - month.offset + 1);
+      const endDay = Math.min(month.days, (index + 1) * 7 - month.offset);
+      const count = monthCalendarEvents.filter((event) => event.day >= startDay && event.day <= endDay).length;
+      return { index, startDay, endDay, count };
+    });
+    const maxWeekCount = Math.max(1, ...weekBuckets.map((week) => week.count));
+    const busiestWeek = [...weekBuckets].sort((a, b) => b.count - a.count)[0] ?? null;
+
+    const dayGroups = Array.from({ length: month.days }, (_, index) => {
+      const day = index + 1;
+      const events = monthCalendarEvents.filter((event) => event.day === day);
+      const workCount = events.filter((event) => event.kind !== "holiday").length;
+      const holidayCount = events.filter((event) => event.kind === "holiday").length;
+      const crossing = events.length >= 3 || (workCount > 0 && holidayCount > 0);
+      return { day, events, workCount, holidayCount, crossing };
+    }).filter((item) => item.crossing).sort((a, b) => b.events.length - a.events.length || a.day - b.day);
+
+    return { nextEvent, weekBuckets, maxWeekCount, busiestWeek, crossings: dayGroups.slice(0, 2) };
+  }, [calendarMonth, monthCalendarEvents]);
   const holidayTimelineNames = Array.from(new Set(holidays.filter((holiday) => holiday.segment !== "Festivo").map((holiday) => holiday.name)));
   const holidayWindowStart = mondayForOperationalWeek(new Date());
   const holidayWindowEnd = addDays(holidayWindowStart, 55);
@@ -2247,12 +2303,61 @@ export default function Home() {
               <button aria-label="Mes anterior" disabled={calendarMonth === 0} onClick={() => setCalendarMonth((month) => Math.max(0, month - 1))}><ChevronLeft /></button>
               <div><span>CRONOLOGÍA</span><strong>{calendarMonths[calendarMonth].name} {calendarMonths[calendarMonth].year}</strong></div>
               <button aria-label="Mes siguiente" disabled={calendarMonth === calendarMonths.length - 1} onClick={() => setCalendarMonth((month) => Math.min(calendarMonths.length - 1, month + 1))}><ChevronRight /></button>
-              <button className="today-button" onClick={() => setCalendarMonth(1)}>Hoy</button>
+              <button className="today-button" onClick={() => {
+                const now = new Date();
+                const index = calendarMonths.findIndex((month) => month.year === now.getFullYear() && (monthIndexByCode[month.short] + 7) === now.getMonth());
+                if (index >= 0) setCalendarMonth(index);
+              }}>Hoy</button>
             </div>
             <div className="calendar-filters" aria-label="Filtrar calendario">
               {([["all", "Todo"], ["task", "Tareas"], ["project", "Proyectos"], ["holiday", "Ausencias"]] as [CalendarFilter, string][]).map(([value, label]) => <button key={value} className={calendarFilter === value ? "active" : ""} onClick={() => setCalendarFilter(value)}>{label}</button>)}
             </div>
           </header>
+
+          <section className="calendar-insight-grid">
+            <button
+              type="button"
+              className="calendar-top-card calendar-next-card"
+              onClick={() => calendarInsights.nextEvent && openCalendarEvent(calendarInsights.nextEvent)}
+              disabled={!calendarInsights.nextEvent}
+            >
+              <div className="calendar-card-kicker"><span>PRÓXIMO HITO</span><Target /></div>
+              {calendarInsights.nextEvent ? <>
+                <strong>{calendarInsights.nextEvent.title}</strong>
+                <p>{String(calendarInsights.nextEvent.day).padStart(2, "0")} {calendarMonths[calendarMonth].short} · {calendarInsights.nextEvent.account || calendarInsights.nextEvent.meta}</p>
+                <small>{Math.max(0, monthCalendarEvents.filter((event) => event.day >= calendarInsights.nextEvent!.day).length - 1)} hitos después</small>
+              </> : <>
+                <strong>Mes despejado</strong>
+                <p>No quedan hitos fechados en este mes.</p>
+              </>}
+            </button>
+
+            <article className="calendar-top-card calendar-pulse-card">
+              <div className="calendar-card-kicker"><span>PULSO DEL MES</span><Activity /></div>
+              <div className="calendar-month-pulse">
+                {calendarInsights.weekBuckets.map((week) => <div key={week.index} title={`Semana ${week.index + 1} · ${week.count} eventos`}>
+                  <i><b style={{ height: `${Math.max(8, (week.count / calendarInsights.maxWeekCount) * 100)}%` }} /></i>
+                  <span>S{week.index + 1}</span>
+                </div>)}
+              </div>
+              <footer>
+                <span>{monthCalendarEvents.length} eventos</span>
+                <strong>{calendarInsights.busiestWeek ? `${calendarInsights.busiestWeek.startDay}–${calendarInsights.busiestWeek.endDay} ${calendarMonths[calendarMonth].short}` : "Sin carga"}</strong>
+              </footer>
+            </article>
+
+            <article className="calendar-top-card calendar-cross-card">
+              <div className="calendar-card-kicker"><span>CRUCES</span><AlertTriangle /></div>
+              <strong>{calendarInsights.crossings.length ? `${calendarInsights.crossings.length} día${calendarInsights.crossings.length === 1 ? "" : "s"} a vigilar` : "Todo encaja"}</strong>
+              <div className="calendar-cross-list">
+                {calendarInsights.crossings.map((crossing) => <button key={crossing.day} type="button" onClick={() => setCalendarFilter("all")}>
+                  <span>{String(crossing.day).padStart(2, "0")} {calendarMonths[calendarMonth].short}</span>
+                  <small>{crossing.holidayCount && crossing.workCount ? "ausencia + trabajo" : `${crossing.events.length} hitos`}</small>
+                </button>)}
+                {!calendarInsights.crossings.length && <p>Sin concentraciones relevantes este mes.</p>}
+              </div>
+            </article>
+          </section>
 
           <div className="calendar-layout calendar-layout-v2">
             <section className="calendar-month-board">
@@ -2266,7 +2371,10 @@ export default function Home() {
                 {Array.from({ length: calendarMonths[calendarMonth].days }, (_, index) => index + 1).map((day) => {
                   const allDayEvents = calendarEvents.filter((event) => event.month === calendarMonth && event.day === day);
                   const dayEvents = allDayEvents.filter((event) => calendarFilter === "all" || event.kind === calendarFilter);
-                  const isToday = calendarMonth === 1 && day === 30;
+                  const now = new Date();
+                  const isToday = calendarMonths[calendarMonth].year === now.getFullYear()
+                    && (monthIndexByCode[calendarMonths[calendarMonth].short] + 7) === now.getMonth()
+                    && day === now.getDate();
                   return <div key={day} className={"calendar-day" + (isToday ? " today" : "") + (dayEvents.length ? " has-events" : "")}>
                     <div className="calendar-day-head">
                       <span>{day}</span>
@@ -2282,8 +2390,6 @@ export default function Home() {
             </section>
 
             <aside className="calendar-side-stack">
-              <article className="calendar-insight compact-insight"><Sparkles /><span>LECTURA RÁPIDA</span><h2>{visibleCalendarEvents.length ? `${visibleCalendarEvents.length} hitos visibles este mes.` : "Mes despejado."}</h2><p>El calendario enseña ahora el trabajo donde ocurre: dentro de cada día. Revolucionario, aparentemente.</p></article>
-
               <section className="chronology-card compact-chronology">
                 <div className="chronology-head module-head"><div><span>AGENDA</span><h2>Fechas clave</h2></div><strong>{visibleCalendarEvents.length}</strong></div>
                 <div className="chronology-list">
