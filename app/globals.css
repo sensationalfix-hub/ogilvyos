@@ -17592,3 +17592,126 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     padding: 12px;
   }
 }
+
+
+/* === Calendar day selection + overflow-safe detail ======================= */
+.calendar-day {
+  cursor: pointer;
+}
+
+.calendar-day.selected {
+  border-color: #b7c18c !important;
+  box-shadow: 0 0 0 2px rgba(216,239,94,.34), 0 10px 22px rgba(37,49,36,.08) !important;
+  background:
+    linear-gradient(180deg, rgba(231,255,63,.12), rgba(231,255,63,.025)),
+    #fff !important;
+}
+
+.calendar-day-items {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.calendar-more {
+  min-height: 18px !important;
+  padding: 2px 6px !important;
+  border-radius: 7px !important;
+  background: rgba(21,25,20,.05) !important;
+  color: #697169 !important;
+  font-size: 7px !important;
+  font-weight: 820 !important;
+  cursor: pointer !important;
+}
+
+.calendar-more:hover {
+  background: var(--ui-lime) !important;
+  color: var(--ui-ink) !important;
+}
+
+.calendar-day-detail-list {
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  overflow-y: auto !important;
+}
+
+.calendar-day-detail-list .calendar-event {
+  flex: 0 0 auto;
+  min-height: 48px !important;
+}
+
+.calendar-agenda-day {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-agenda-day:hover {
+  background: rgba(21,25,20,.025);
+}
+
+.calendar-event-preview {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 8px;
+  display: grid;
+  grid-template-columns: 5px minmax(0,1fr);
+  gap: 8px;
+  align-items: center;
+  border-radius: 10px;
+  background: #fbfcf9;
+}
+
+.calendar-event-preview > i {
+  width: 5px;
+  height: 24px;
+  border-radius: 99px;
+}
+
+.calendar-event-preview.event-task > i { background: var(--ogilvy-red); }
+.calendar-event-preview.event-project > i { background: var(--ogilvy-ink); }
+.calendar-event-preview.event-holiday > i { background: #83b949; }
+
+.calendar-event-preview > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-event-preview strong,
+.calendar-event-preview small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-event-preview strong {
+  color: #293029;
+  font-size: 8.5px;
+}
+
+.calendar-event-preview small {
+  color: #8b938c;
+  font-size: 7px;
+}
+
+.compact-chronology.is-day-detail .chronology-head {
+  background: rgba(231,255,63,.12) !important;
+}
+
+.compact-chronology.is-day-detail .chronology-head h2 {
+  font-size: 17px !important;
+}
+
+@media (max-width: 760px) {
+  .calendar-day-detail-list {
+    max-height: 420px;
+  }
+}
