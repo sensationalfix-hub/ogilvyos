@@ -507,6 +507,7 @@ export default function Home() {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
   const [timelineWeeks, setTimelineWeeks] = useState(8);
+  const [weekOffset, setWeekOffset] = useState(0);
   const [projectTaskName, setProjectTaskName] = useState("");
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [score, setScore] = useState(0);
@@ -673,7 +674,8 @@ export default function Home() {
     ? Object.entries(liveSchema.health).flatMap(([source, checks]) => checks.map((check) => ({ ...check, source })))
     : [];
   const schemaIssues = schemaChecks.filter((check) => !check.ok);
-  const operationalWeekStart = useMemo(() => mondayForOperationalWeek(), []);
+  const currentOperationalWeekStart = useMemo(() => mondayForOperationalWeek(), []);
+  const operationalWeekStart = useMemo(() => addDays(currentOperationalWeekStart, weekOffset * 7), [currentOperationalWeekStart, weekOffset]);
   const operationalWeekDays = useMemo(() => Array.from({ length: 5 }, (_, index) => addDays(operationalWeekStart, index)), [operationalWeekStart]);
   const operationalWeekEnd = useMemo(() => addDays(operationalWeekStart, 4), [operationalWeekStart]);
   const weeklyTasks = useMemo(() => allTasks.filter((task) => {
@@ -773,7 +775,7 @@ export default function Home() {
       day.getDate() === now.getDate()
     );
     const todayKey = todayPlannerDay ? isoDate(todayPlannerDay) : isoDate(now);
-    const todayTasks = timedTasks.filter((task) => dateOnly(task.dateStart) === todayKey);
+    const todayTasks = allTasks.filter((task) => !taskIsAllDay(task) && dateOnly(task.dateStart) === todayKey);
     const todayMinutes = todayTasks.reduce((sum, task) => {
       const start = plannerMinutes(task.dateStart);
       const end = plannerMinutes(task.dateEnd, start + 60);
@@ -793,10 +795,10 @@ export default function Home() {
       nextToday,
       todayPercent: Math.min(100, Math.round((todayMinutes / (8 * 60)) * 100)),
     };
-  }, [weeklyTasks, operationalWeekDays]);
+  }, [weeklyTasks, operationalWeekDays, allTasks]);
 
 
-  const globalTimelineStart = operationalWeekStart;
+  const globalTimelineStart = currentOperationalWeekStart;
   const globalTimelineEnd = useMemo(() => addDays(globalTimelineStart, timelineWeeks * 7), [globalTimelineStart, timelineWeeks]);
 
   const timelineInsights = useMemo(() => {
@@ -2102,6 +2104,24 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <nav className="week-floating-nav" aria-label="Navegación por semanas">
+          <button type="button" aria-label="Semana anterior" title="Semana anterior" onClick={() => setWeekOffset((offset) => offset - 1)}>
+            <ChevronLeft />
+          </button>
+          <button
+            type="button"
+            className={"week-nav-current" + (weekOffset === 0 ? " is-current" : "")}
+            onClick={() => setWeekOffset(0)}
+            title="Volver a la semana actual"
+          >
+            <CalendarRange />
+            <span>Semana actual</span>
+          </button>
+          <button type="button" aria-label="Semana siguiente" title="Semana siguiente" onClick={() => setWeekOffset((offset) => offset + 1)}>
+            <ChevronRight />
+          </button>
+        </nav>
       </TabsContent>
 
       <TabsContent value="timeline" className="view-content global-timeline-view">
