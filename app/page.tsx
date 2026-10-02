@@ -996,7 +996,7 @@ export default function Home() {
       return month >= 0 ? { month, day } : null;
     };
 
-    const taskEvents = allTasks.flatMap((task) => {
+    const taskEvents: CalendarEvent[] = allTasks.flatMap((task) => {
       const dated = eventFromIso(task.dateStart);
       const hasTime = Boolean(task.dateStart?.includes("T"));
       const startMinutes = hasTime ? plannerMinutes(task.dateStart) : null;
@@ -1033,7 +1033,7 @@ export default function Home() {
       }];
     });
 
-    const projectEvents = projects.flatMap((project) => {
+    const projectEvents: CalendarEvent[] = projects.flatMap((project) => {
       const dated = eventFromIso(project.timingStart);
       if (dated) return [{ key: `project-${project.id}`, ...dated, kind: "project" as const, title: project.name, meta: "Inicio de proyecto", account: project.account, id: project.id }];
       const match = project.timing.match(/(\d{1,2})\s+(AGO|SEP|OCT)/i);
