@@ -766,7 +766,13 @@ export default function Home() {
     const totalMinutes = dayMinutes.reduce((sum, value) => sum + value, 0);
     const maxDayMinutes = Math.max(1, ...dayMinutes);
 
-    const todayKey = isoDate(new Date());
+    const now = new Date();
+    const todayPlannerDay = operationalWeekDays.find((day) =>
+      day.getFullYear() === now.getFullYear() &&
+      day.getMonth() === now.getMonth() &&
+      day.getDate() === now.getDate()
+    );
+    const todayKey = todayPlannerDay ? isoDate(todayPlannerDay) : isoDate(now);
     const todayTasks = timedTasks.filter((task) => dateOnly(task.dateStart) === todayKey);
     const todayMinutes = todayTasks.reduce((sum, task) => {
       const start = plannerMinutes(task.dateStart);
@@ -1145,14 +1151,18 @@ export default function Home() {
   async function moveTask(id: string, status: TaskStatus) {
     if (!canEdit) return;
 
-    const previous = tasks.find((task) => task.id === id);
+    const previous = allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id);
+    setAllTasks((items) => items.map((task) => task.id === id ? { ...task, status } : task));
     setTasks((items) => items.map((task) => task.id === id ? { ...task, status } : task));
     setDragging(null);
     try {
       await syncNotion("task", id, { status });
       toast.success(`Tarea movida a ${status}`, { description: "Sincronizado con Notion." });
     } catch {
-      if (previous) setTasks((items) => items.map((task) => task.id === id ? previous : task));
+      if (previous) {
+        setAllTasks((items) => items.map((task) => task.id === id ? previous : task));
+        setTasks((items) => items.map((task) => task.id === id ? previous : task));
+      }
       toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
   }
@@ -1322,17 +1332,23 @@ export default function Home() {
   async function assignPerson(kind: "task" | "project", id: string, person: string) {
     if (!canEdit) return;
 
-    const currentItem = kind === "task" ? tasks.find((task) => task.id === id) : projects.find((project) => project.id === id);
+    const currentItem = kind === "task" ? (allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id)) : projects.find((project) => project.id === id);
     if (!currentItem) return;
     const nextPeople = currentItem.people.includes(person) ? currentItem.people : [...currentItem.people.filter((name) => name !== "Por asignar"), person];
-    if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, people: nextPeople } : task));
+    if (kind === "task") {
+      setAllTasks((items) => items.map((task) => task.id === id ? { ...task, people: nextPeople } : task));
+      setTasks((items) => items.map((task) => task.id === id ? { ...task, people: nextPeople } : task));
+    }
     else setProjects((items) => items.map((project) => project.id === id ? { ...project, people: nextPeople } : project));
     setDragging(null);
     try {
       await syncNotion(kind, id, { people: nextPeople });
       toast.success(`${person} asignado`, { description: "Relación actualizada en Notion." });
     } catch {
-      if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, people: currentItem.people } : task));
+      if (kind === "task") {
+        setAllTasks((items) => items.map((task) => task.id === id ? { ...task, people: currentItem.people } : task));
+        setTasks((items) => items.map((task) => task.id === id ? { ...task, people: currentItem.people } : task));
+      }
       else setProjects((items) => items.map((project) => project.id === id ? { ...project, people: currentItem.people } : project));
       toast.error("No se pudo asignar en Notion");
     }
@@ -1342,16 +1358,22 @@ export default function Home() {
 
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind !== "task" && kind !== "project") return;
-    const previous = kind === "task" ? tasks.find((task) => task.id === id) : projects.find((project) => project.id === id);
+    const previous = kind === "task" ? (allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id)) : projects.find((project) => project.id === id);
     if (!previous) return;
-    if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, account } : task));
+    if (kind === "task") {
+      setAllTasks((items) => items.map((task) => task.id === id ? { ...task, account } : task));
+      setTasks((items) => items.map((task) => task.id === id ? { ...task, account } : task));
+    }
     else setProjects((items) => items.map((project) => project.id === id ? { ...project, account } : project));
     setDragging(null);
     try {
       await syncNotion(kind, id, { account });
       toast.success(`Movido a ${account}`, { description: "Relación actualizada en Notion." });
     } catch {
-      if (kind === "task") setTasks((items) => items.map((task) => task.id === id ? { ...task, account: previous.account } : task));
+      if (kind === "task") {
+        setAllTasks((items) => items.map((task) => task.id === id ? { ...task, account: previous.account } : task));
+        setTasks((items) => items.map((task) => task.id === id ? { ...task, account: previous.account } : task));
+      }
       else setProjects((items) => items.map((project) => project.id === id ? { ...project, account: previous.account } : project));
       toast.error("No se pudo cambiar la cuenta en Notion");
     }
@@ -1371,7 +1393,7 @@ export default function Home() {
       if (!response.ok) throw new Error(body?.error || "No se pudo crear en Notion");
 
       if (quickType === "task") {
-        setTasks((items) => [{
+        const createdTask: Task = {
           id: body.id,
           name,
           status: "Pendiente",
@@ -1383,7 +1405,9 @@ export default function Home() {
           dateStart: null,
           people: ["Por asignar"],
           url: body.url || "https://www.notion.so",
-        }, ...items]);
+        };
+        setTasks((items) => [createdTask, ...items]);
+        setAllTasks((items) => [createdTask, ...items]);
         await syncNotion("task", body.id, { status: "Pendiente", workosLane: "Backlog" });
       } else {
         setProjects((items) => [{
@@ -1499,6 +1523,7 @@ export default function Home() {
     const kind = detail.kind;
     if (kind === "task") {
       const nextTask: Task = { ...detail, id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, dateEnd: detail.dateEnd, people: detail.people, url: detail.url };
+      setAllTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
       setTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
       try {
         await syncNotion("task", detail.id, {
