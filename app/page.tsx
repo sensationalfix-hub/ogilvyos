@@ -44,7 +44,7 @@ type LiveSchema = {
   health: Record<string, Array<{ name: string; ok: boolean; type: string | null }>>;
 };
 
-type TaskLane = "En progreso" | "En espera" | "Por hacer" | "Backlog";
+type TaskLane = "En progreso" | "Pausa" | "Pendiente" | "Backlog" | "Terminado" | "Cancelado";
 type Task = {
   id: string; name: string; status: TaskStatus; priority: Priority; project: string;
   account: string; date: string; dateStart?: string | null; dateEnd?: string | null; people: string[]; url: string;
@@ -273,18 +273,23 @@ const PLANNER_DEFAULT_START = 9 * 60;
 const PLANNER_HOUR_PX = 64;
 const PLANNER_HOURS = (PLANNER_END - PLANNER_START) / 60;
 const PLANNER_HEIGHT = PLANNER_HOURS * PLANNER_HOUR_PX;
-const TASK_LANES: TaskLane[] = ["En progreso", "En espera", "Por hacer", "Backlog"];
-const DASHBOARD_TASK_LANES: TaskLane[] = ["En progreso", "En espera", "Por hacer"];
+const TASK_LANES: TaskLane[] = ["En progreso", "Pausa", "Pendiente", "Backlog", "Terminado", "Cancelado"];
+const DASHBOARD_TASK_LANES: TaskLane[] = ["En progreso", "Pausa", "Pendiente"];
 function taskLane(task: Pick<Task, "status" | "workosLane">): TaskLane {
-  if (task.workosLane && TASK_LANES.includes(task.workosLane)) return task.workosLane;
-  if (task.status === "En progreso") return "En progreso";
-  if (task.status === "Pausa") return "En espera";
-  return "Por hacer";
+  if (task.status === "Terminado" || task.status === "Cancelado") return task.status;
+  if (task.workosLane === "Backlog") return "Backlog";
+  if (task.status === "En progreso" || task.status === "Pausa" || task.status === "Pendiente") return task.status;
+  // Compatibilidad con los estados auxiliares antiguos de WorkOS. Ya no son fuente de verdad.
+  if (task.workosLane === "En progreso") return "En progreso";
+  if ((task.workosLane as string | null | undefined) === "En espera") return "Pausa";
+  if ((task.workosLane as string | null | undefined) === "Por hacer") return "Pendiente";
+  return "Pendiente";
 }
 function notionStatusForLane(lane: TaskLane): TaskStatus {
-  if (lane === "En progreso") return "En progreso";
-  if (lane === "En espera") return "Pausa";
-  return "Pendiente";
+  return lane === "Backlog" ? "Pendiente" : lane;
+}
+function workosLaneForLane(lane: TaskLane): TaskLane | null {
+  return lane === "Backlog" ? "Backlog" : null;
 }
 function mondayForOperationalWeek(base = new Date()) {
   const date = new Date(base);
@@ -660,8 +665,9 @@ export default function Home() {
         if (!active) return;
         setAccounts(state.accounts.filter((account) => account.status === "Activa"));
         setProjects(state.projects);
-        setTasks(state.tasks);
-        setAllTasks(state.allTasks || state.tasks);
+        const hydratedTasks = state.allTasks || state.tasks;
+        setTasks(hydratedTasks);
+        setAllTasks(hydratedTasks);
         setTeam(state.team);
         setHolidays(state.holidays);
         setLiveCounts(state.counts);
@@ -866,7 +872,7 @@ export default function Home() {
     return { visibleProjects, visibleTasks, density, maxDensity, peakStart, peakEnd, missingEnd, nextMilestones, overlaps };
   }, [projects, allTasks, globalTimelineStart, globalTimelineEnd, timelineWeeks]);
 
-  const dashboardTasks = useMemo(() => tasks.filter((task) => taskLane(task) !== "Backlog"), [tasks]);
+  const dashboardTasks = useMemo(() => tasks.filter((task) => DASHBOARD_TASK_LANES.includes(taskLane(task))), [tasks]);
   const upcomingDeadlines = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -910,10 +916,10 @@ export default function Home() {
   const taskViewStats = useMemo(() => {
     const now = Date.now();
     const fortyEightHours = now + 48 * 60 * 60 * 1000;
-    const active = tasks;
-    const laneCounts = Object.fromEntries(TASK_LANES.map((lane) => [lane, active.filter((task) => taskLane(task) === lane).length])) as Record<TaskLane, number>;
+    const all = tasks;
+    const active = all.filter((task) => DASHBOARD_TASK_LANES.includes(taskLane(task)));
+    const laneCounts = Object.fromEntries(TASK_LANES.map((lane) => [lane, all.filter((task) => taskLane(task) === lane).length])) as Record<TaskLane, number>;
     const attention = [...active]
-      .filter((task) => taskLane(task) !== "Backlog")
       .sort((a,b) => {
         const aScore = (a.priority === "Alta" ? 10000000000000 : 0) + (a.dateStart ? -new Date(a.dateStart).getTime() : 0);
         const bScore = (b.priority === "Alta" ? 10000000000000 : 0) + (b.dateStart ? -new Date(b.dateStart).getTime() : 0);
@@ -921,10 +927,9 @@ export default function Home() {
       })
       .slice(0,3);
     const next48 = active
-      .filter((task) => taskLane(task) !== "Backlog" && task.dateStart && new Date(task.dateStart).getTime() >= now && new Date(task.dateStart).getTime() <= fortyEightHours)
+      .filter((task) => task.dateStart && new Date(task.dateStart).getTime() >= now && new Date(task.dateStart).getTime() <= fortyEightHours)
       .sort((a,b) => new Date(a.dateStart || 0).getTime() - new Date(b.dateStart || 0).getTime());
     const visualTasks = active
-      .filter((task) => taskLane(task) !== "Backlog")
       .sort((a,b) => {
         if (a.dateStart && b.dateStart) return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
         if (a.dateStart) return -1;
@@ -932,7 +937,7 @@ export default function Home() {
         return a.name.localeCompare(b.name);
       })
       .slice(0,3);
-    return { active, laneCounts, attention, next48, visualTasks };
+    return { all, active, laneCounts, attention, next48, visualTasks };
   }, [tasks]);
 
   const mobileAgendaDay = operationalWeekDays[Math.min(mobileAgendaIndex, operationalWeekDays.length - 1)] ?? operationalWeekStart;
@@ -1245,16 +1250,17 @@ export default function Home() {
   async function moveTaskLane(id: string, lane: TaskLane) {
     if (!canEdit) return;
 
-    const previous = tasks.find((task) => task.id === id);
+    const previous = allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id);
     if (!previous) return;
     const status = notionStatusForLane(lane);
-    const next = { ...previous, status, workosLane: lane };
+    const workosLane = workosLaneForLane(lane);
+    const next = { ...previous, status, workosLane };
     setTasks((items) => items.map((task) => task.id === id ? next : task));
     setAllTasks((items) => items.map((task) => task.id === id ? next : task));
     setDragging(null);
     try {
-      await syncNotion("task", id, { status, workosLane: lane });
-      toast.success(`Tarea movida a ${lane}`, { description: "Sincronizado con Notion." });
+      await syncNotion("task", id, { status, workosLane });
+      toast.success(`Tarea movida a ${lane}`, { description: "Estado unificado y sincronizado con Notion." });
     } catch {
       setTasks((items) => items.map((task) => task.id === id ? previous : task));
       setAllTasks((items) => items.map((task) => task.id === id ? previous : task));
@@ -1549,6 +1555,23 @@ export default function Home() {
 
     setDetail((currentDetail) => currentDetail ? ({ ...currentDetail, [field]: value } as Detail) : currentDetail);
   }
+  function updateDetailTaskLane(lane: TaskLane) {
+    if (!canEdit) return;
+    setDetail((currentDetail) => {
+      if (!currentDetail || currentDetail.kind !== "task") return currentDetail;
+      return {
+        ...currentDetail,
+        status: notionStatusForLane(lane),
+        workosLane: workosLaneForLane(lane),
+      };
+    });
+  }
+  function updateWorkspaceTaskLane(task: Task, lane: TaskLane) {
+    void updateWorkspaceTask(task, {
+      status: notionStatusForLane(lane),
+      workosLane: workosLaneForLane(lane),
+    });
+  }
   function scrollProjectSection(id: string) {
     const target = document.getElementById(id);
     if (!target) return;
@@ -1605,7 +1628,7 @@ export default function Home() {
         id: body.id,
         name,
         status: "Pendiente",
-        workosLane: "Por hacer",
+        workosLane: null,
         priority: "Media",
         project: selectedProjectPage.name,
         account: selectedProjectPage.account,
@@ -1616,7 +1639,7 @@ export default function Home() {
       };
       await syncNotion("task", task.id, {
         status: "Pendiente",
-        workosLane: "Por hacer",
+        workosLane: null,
         project: selectedProjectPage.name,
         account: selectedProjectPage.account,
         people: task.people,
@@ -1636,13 +1659,17 @@ export default function Home() {
     if (!detail) return;
     const kind = detail.kind;
     if (kind === "task") {
-      const nextTask: Task = { ...detail, id: detail.id, name: detail.name, status: detail.status, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, dateEnd: detail.dateEnd, people: detail.people, url: detail.url };
+      const lane = taskLane(detail);
+      const normalizedStatus = notionStatusForLane(lane);
+      const normalizedWorkosLane = workosLaneForLane(lane);
+      const nextTask: Task = { ...detail, id: detail.id, name: detail.name, status: normalizedStatus, workosLane: normalizedWorkosLane, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, dateEnd: detail.dateEnd, people: detail.people, url: detail.url };
       setAllTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
       setTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
       try {
         await syncNotion("task", detail.id, {
           name: detail.name,
-          status: detail.status,
+          status: normalizedStatus,
+          workosLane: normalizedWorkosLane,
           priority: detail.priority,
           project: detail.project,
           account: detail.account,
@@ -1698,7 +1725,7 @@ export default function Home() {
         id: body.id,
         name,
         status: "Pendiente",
-        workosLane: "Por hacer",
+        workosLane: null,
         priority: "Media",
         project: "Por asignar",
         account: "Sin cuenta",
@@ -1707,7 +1734,7 @@ export default function Home() {
         people: ["Por asignar"],
         url: body.url || "https://www.notion.so",
       };
-      await syncNotion("task", task.id, { dateStart, status: "Pendiente", workosLane: "Por hacer" });
+      await syncNotion("task", task.id, { dateStart, status: "Pendiente", workosLane: null });
       setTasks((items) => [task, ...items]);
       setAllTasks((items) => [task, ...items]);
       setCalendarTaskName("");
@@ -2823,7 +2850,7 @@ export default function Home() {
           </article>
         </section>
 
-        <section className="kanban-board task-board active-task-board task-board-four">
+        <section className="kanban-board task-board active-task-board task-board-four task-board-unified">
           {taskBoardLanes.map((lane) => {
             const items = filteredTasks.filter((task) => taskLane(task) === lane);
             return <div key={lane} className={`kanban-column task-lane task-lane-${lane.toLowerCase().replaceAll(" ","-")} ${dragging?.startsWith("task") ? "is-drop-ready" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleTaskLaneDrop(event, lane)}>
@@ -3317,7 +3344,7 @@ export default function Home() {
               <div className="project-task-table">
                 {projectTasks.map((task) => <div key={task.id} className="project-task-row">
                   <button className="project-task-name" onClick={() => setDetail({ kind: "task", ...task })}><span className={"project-task-check status-" + task.status.toLowerCase().replaceAll(" ", "-")}>{task.status === "Terminado" ? <Check /> : null}</span><span><strong>{task.name}</strong><small>{task.people.filter((name) => name !== "Por asignar").join(", ") || "Sin asignar"}</small></span></button>
-                  <select value={task.status} onChange={(event) => updateWorkspaceTask(task, { status: event.target.value })}>{taskStatusOptions.map((status) => <option key={status}>{status}</option>)}</select>
+                  <select value={taskLane(task)} onChange={(event) => updateWorkspaceTaskLane(task, event.target.value as TaskLane)}>{TASK_LANES.map((status) => <option key={status}>{status}</option>)}</select>
                   <select value={task.priority} onChange={(event) => updateWorkspaceTask(task, { priority: event.target.value })}>{taskPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select>
                   <input type="date" value={task.dateStart || ""} onChange={(event) => { const value = event.target.value || null; const label = value ? new Date(value + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "") : "SIN FECHA"; updateWorkspaceTask(task, { dateStart: value, date: label }); }} />
                   <button onClick={() => setDetail({ kind: "task", ...task })}><ChevronRight /></button>
@@ -3408,7 +3435,9 @@ export default function Home() {
           <div className="detail-properties-editor">
           <label className="editor-field full"><span>Nombre</span><input value={detail.name} readOnly={!canEdit} disabled={!canEdit} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
           <div className="editor-grid">
-            <div className="editor-field"><span>Estado</span><Select value={detail.status} disabled={!canEdit} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskStatusOptions : projectStatusOptions).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></div>
+            <div className="editor-field"><span>Estado</span>{detail.kind === "task"
+              ? <Select value={taskLane(detail)} disabled={!canEdit} onValueChange={(value) => updateDetailTaskLane(value as TaskLane)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TASK_LANES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
+              : <Select value={detail.status} disabled={!canEdit} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectStatusOptions.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>}</div>
             <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} disabled={!canEdit} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskPriorityOptions : projectPriorityOptions).map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div className="editor-field"><span>Cuenta</span><Select value={detail.account} disabled={!canEdit} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accounts.map((account) => <SelectItem key={account.name} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
