@@ -17715,3 +17715,38 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     max-height: 420px;
   }
 }
+
+
+/* === Planner clickable task titles v46 === */
+.planner-task-title {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit !important;
+  line-height: inherit !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.planner-task-title strong {
+  display: block !important;
+  pointer-events: none !important;
+}
+
+.planner-task-title:hover strong,
+.planner-task-title:focus-visible strong {
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 2px !important;
+}
+
+.planner-task-title:focus-visible {
+  outline: 1px solid currentColor !important;
+  outline-offset: 2px !important;
+  border-radius: 3px !important;
+}
