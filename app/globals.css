@@ -17750,3 +17750,19 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   outline-offset: 2px !important;
   border-radius: 3px !important;
 }
+
+
+/* === Critical planner hover fix v47 === */
+.planner-task-block.critical {
+  color: var(--ui-ink) !important;
+}
+
+.planner-task-block.critical:hover {
+  background: #111512 !important;
+  color: #fff !important;
+}
+
+.planner-task-block.critical:hover .planner-task-title,
+.planner-task-block.critical:hover .planner-task-title strong {
+  color: #fff !important;
+}
