@@ -105,7 +105,7 @@ function starNumber(value: unknown) {
   return Number.isFinite(numericValue) ? Math.max(1, Math.min(5, Math.round(numericValue))) : null;
 }
 
-const ACTIVE_TASK_STATUSES = new Set(["Pendiente", "En progreso"]);
+const ACTIVE_TASK_STATUSES = new Set(["Pendiente", "En progreso", "Pausa"]);
 const ACTIVE_PROJECT_STATUSES = new Set(["Brief", "Ideas", "Pre-Producción", "Producción", "Seguimiento", "Daily"]);
 const VISIBLE_PROJECT_STATUSES = new Set(["Standby", ...ACTIVE_PROJECT_STATUSES]);
 
@@ -487,7 +487,7 @@ export async function GET(request: Request) {
         },
         accounts: employeeAccounts,
         projects: employeeProjects,
-        tasks: employeeActiveTasks,
+        tasks: employeeTasks,
         allTasks: employeeTasks,
         team: [],
         holidays: employeeHolidays,
@@ -514,7 +514,7 @@ export async function GET(request: Request) {
       },
       accounts,
       projects: visibleProjects,
-      tasks: activeTasks,
+      tasks,
       allTasks: tasks,
       team,
       holidays,
