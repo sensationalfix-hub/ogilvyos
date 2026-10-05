@@ -17810,3 +17810,41 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .planner-task-block .planner-task-title strong {
   color: #fff !important;
 }
+
+
+/* === Unified six-state task board v55 === */
+@media (min-width: 761px) {
+  .task-board-four.task-board-unified {
+    display: flex !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    gap: 10px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 5px !important;
+    scroll-snap-type: x proximity !important;
+  }
+
+  .task-board-four.task-board-unified > .kanban-column {
+    flex: 0 0 calc((100% - 30px) / 4) !important;
+    min-width: 230px !important;
+    width: auto !important;
+    scroll-snap-align: start !important;
+  }
+
+  .task-board-four.task-board-unified::-webkit-scrollbar {
+    height: 6px !important;
+  }
+}
+
+.task-lane-terminado .column-head {
+  opacity: .72 !important;
+}
+
+.task-lane-cancelado .column-head {
+  opacity: .58 !important;
+}
+
+.task-lane-backlog .column-head {
+  background: rgba(17,21,18,.035) !important;
+}
