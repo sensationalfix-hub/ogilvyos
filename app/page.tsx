@@ -2133,7 +2133,18 @@ export default function Home() {
                   void moveWeekItem(event, key);
                 }}>
                 {allDayTasks.map((task) => <div key={task.id} className="planner-all-day-chip task" title={task.name}>
-                  <i /><span><strong>{task.name}</strong><small>{task.project}</small></span>
+                  <i /><span>
+                    <button
+                      type="button"
+                      className="planner-task-title"
+                      title={`Abrir ${task.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (sessionRole !== "viewer") setDetail({ kind: "task", ...task });
+                      }}
+                    ><strong>{task.name}</strong></button>
+                    <small>{task.project}</small>
+                  </span>
                   <span className="planner-all-day-grip" draggable onDragStart={(dragEvent) => { dragEvent.dataTransfer.setData("text/plain", `task:${task.id}`); dragEvent.dataTransfer.effectAllowed = "move"; setDragging(`task:${task.id}`); }} onDragEnd={() => setDragging(null)}><GripVertical /></span>
                 </div>)}
                 {dayProjects.map((event) => <button key={event.id} draggable className="planner-all-day-chip project"
@@ -2181,12 +2192,20 @@ export default function Home() {
                     const visibleEnd = Math.max(visibleStart + 30, Math.min(PLANNER_END, endMinutes));
                     const top = ((visibleStart - PLANNER_START) / 60) * PLANNER_HOUR_PX;
                     const height = Math.max(42, ((visibleEnd - visibleStart) / 60) * PLANNER_HOUR_PX);
-                    return <button key={task.id}
+                    return <div key={task.id}
                       className={"planner-task-block " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")}
                       style={{ top: `${top}px`, height: `calc(${height}px - 4px)` }}>
                       <span className="planner-resize-handle top" onPointerDown={(event) => startPlannerResize(task, "start", event)} />
                       <div className="planner-task-time">{plannerTimeLabel(startMinutes)}–{plannerTimeLabel(endMinutes)}</div>
-                      <strong>{task.name}</strong>
+                      <button
+                        type="button"
+                        className="planner-task-title"
+                        title={`Abrir ${task.name}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (sessionRole !== "viewer") setDetail({ kind: "task", ...task });
+                        }}
+                      ><strong>{task.name}</strong></button>
                       <small>{task.project} · {task.account}</small>
                       <span
                         className="planner-task-grip"
@@ -2203,7 +2222,7 @@ export default function Home() {
                         onDragEnd={() => setDragging(null)}
                       ><GripVertical /></span>
                       <span className="planner-resize-handle bottom" onPointerDown={(event) => startPlannerResize(task, "end", event)} />
-                    </button>;
+                    </div>;
                   })}
                 </div>;
               })}
