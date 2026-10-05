@@ -154,6 +154,12 @@ function priorityClass(priority: Priority) {
   if (priority === "Baja") return "priority-low";
   return "priority-none";
 }
+function plannerPriorityClass(priority: Priority) {
+  if (priority === "Urgente" || priority === "Alta") return "planner-priority-high";
+  if (priority === "Media") return "planner-priority-mid";
+  if (priority === "Baja") return "planner-priority-low";
+  return "planner-priority-none";
+}
 function timelinePosition(start: string, end: string) {
   const rangeStart = Date.UTC(2026, 7, 31);
   const rangeEnd = Date.UTC(2026, 9, 21);
@@ -2193,7 +2199,7 @@ export default function Home() {
                     const top = ((visibleStart - PLANNER_START) / 60) * PLANNER_HOUR_PX;
                     const height = Math.max(42, ((visibleEnd - visibleStart) / 60) * PLANNER_HOUR_PX);
                     return <div key={task.id}
-                      className={"planner-task-block " + (["Alta", "Urgente"].includes(task.priority) ? "critical" : "")}
+                      className={`planner-task-block ${plannerPriorityClass(task.priority)}`}
                       style={{ top: `${top}px`, height: `calc(${height}px - 4px)` }}>
                       <span className="planner-resize-handle top" onPointerDown={(event) => startPlannerResize(task, "start", event)} />
                       <div className="planner-task-time">{plannerTimeLabel(startMinutes)}–{plannerTimeLabel(endMinutes)}</div>
