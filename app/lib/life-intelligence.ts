@@ -237,10 +237,31 @@ function nextWeekday(now: Date, weekday: number) {
 
 function findNamedMatch(input: string, names: string[]) {
   const haystack = normalized(input);
-  return names
-    .filter(Boolean)
+  const cleanNames = names.filter(Boolean);
+  const exact = [...cleanNames]
     .sort((a, b) => b.length - a.length)
-    .find((name) => haystack.includes(normalized(name))) || null;
+    .find((name) => haystack.includes(normalized(name)));
+  if (exact) return exact;
+
+  const meaningful = (value: string) => normalized(value)
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 4);
+
+  const candidates = cleanNames
+    .map((name) => {
+      const tokens = meaningful(name);
+      const matched = tokens.filter((token) => haystack.includes(token));
+      return { name, tokens, matched };
+    })
+    .filter((item) => item.matched.length > 0)
+    .sort((a, b) => b.matched.length - a.matched.length || a.tokens.length - b.tokens.length);
+
+  if (!candidates.length) return null;
+  if (candidates[0].matched.length >= 2) return candidates[0].name;
+
+  const winningToken = candidates[0].matched[0];
+  const tokenOwners = candidates.filter((item) => item.tokens.includes(winningToken));
+  return tokenOwners.length === 1 ? candidates[0].name : null;
 }
 
 export function parseSmartCapture(
