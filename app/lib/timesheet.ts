@@ -13,6 +13,8 @@ export type TimesheetDay = {
 };
 
 const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[-_\s]+/g, " ").trim();
+// Personal imputation exclusions: Carmen is proactive; ING is daily work with negligible dedication.
+const excludedFromImputation = (value: string) => ["carmen", "ing"].includes(normalize(value));
 const assigned = (value: string) => Boolean(value && !["sin cuenta", "por asignar", "sin asignar"].includes(normalize(value)));
 const madridDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
 
@@ -61,11 +63,12 @@ export function buildTimesheet(input: {
   personName: string; weekStart: string;
 }): TimesheetDay[] {
   const end = shiftDate(input.weekStart, 4);
-  const open = input.projects.filter(project => isOpen(project) && assigned(project.account));
+  const open = input.projects.filter(project => isOpen(project) && assigned(project.account) && !excludedFromImputation(project.name));
   const seen = new Set<string>();
   const tasks = input.tasks.filter(task => {
     if (seen.has(task.id)) return false;
     seen.add(task.id);
+    if (excludedFromImputation(task.project)) return false;
     const linked = input.projects.filter(project => project.name === task.project);
     if (linked.length > 0 && linked.every(project => !isOpen(project))) return false;
     const status = normalize(task.workosLane || task.status);
@@ -89,7 +92,7 @@ export function buildTimesheet(input: {
     const weights: Record<string, number> = {};
     const evidence: TimesheetDay["evidence"] = {};
     const add = (account: string, weight: number, kind: "projects" | "tasks", name: string) => {
-      if (!assigned(account)) return;
+      if (!assigned(account) || excludedFromImputation(account)) return;
       weights[account] = (weights[account] || 0) + weight;
       evidence[account] ||= { projects: [], tasks: [] };
       if (!evidence[account][kind].includes(name)) evidence[account][kind].push(name);
@@ -140,7 +143,8 @@ export function restoreDay(value: unknown): SavedDay | null {
     const resume = restoreDay({ off: false, hours: resumeHours });
     if (resume) return { off, hours: {}, resumeHours: resume.hours };
   }
-  return { off, hours: Object.fromEntries(entries) };
+  const eligible = entries.filter(([name]) => !excludedFromImputation(name));
+  return { off, hours: !off && eligible.length !== entries.length ? allocate(Object.fromEntries(eligible)) : Object.fromEntries(eligible) };
 }
 
 export function toggleWorkingDay(current: SavedDay, fallbackHours: Record<string, number>): SavedDay {

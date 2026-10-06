@@ -109,3 +109,22 @@ test('toggling a working day off and on preserves its manual allocation', async 
   const restored = restoreDay(JSON.parse(JSON.stringify(off)));
   assert.deepEqual(toggleWorkingDay(restored, { ONCE: 3, Iberdrola: 3 }), current);
 });
+
+test('Carmen and ING do not receive hours even with active projects and scheduled tasks', async () => {
+  const { buildTimesheet } = await load();
+  const [day] = buildTimesheet(input({ projects: [project('ONCE'), project('CARMEN'), project('ING', 'Daily')], tasks: [task('CARMEN'), task('ING', { dateStart: '2026-10-05' })] }));
+  assert.deepEqual(day.hours, { ONCE: 6 });
+  assert.equal(day.office, 2);
+});
+
+test('Carmen is excluded as a project even when its account is another name', async () => {
+  const { buildTimesheet } = await load();
+  const [day] = buildTimesheet(input({ projects: [project('ONCE'), project('Proactivos', 'Ideas', 'Carmen')], tasks: [task('Proactivos', { project: 'Carmen' })] }));
+  assert.deepEqual(day.hours, { ONCE: 6 });
+});
+
+test('previous saved allocations remove excluded accounts and redistribute their hours', async () => {
+  const { restoreDay } = await load();
+  assert.deepEqual(restoreDay({ off: false, hours: { ONCE: 2, Iberdrola: 1, Carmen: 1, ING: 2 } }), { off: false, hours: { ONCE: 4, Iberdrola: 2 } });
+  assert.deepEqual(restoreDay({ off: true, hours: {}, resumeHours: { ONCE: 3, ING: 3 } }), { off: true, hours: {}, resumeHours: { ONCE: 6 } });
+});
