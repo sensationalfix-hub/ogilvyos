@@ -210,6 +210,106 @@ export function nextActionForProject<T extends IntelligenceTask>(
   return rankTasks(tasks.filter((task) => task.project === projectName), projects, now)[0] ?? null;
 }
 
+
+export type PlanningSuggestion<T extends IntelligenceTask = IntelligenceTask> = {
+  task: T;
+  score: number;
+  dateStart: string;
+  dateEnd: string;
+  label: string;
+  reason: string;
+};
+
+function mondayForWeek(base: Date) {
+  const date = startOfLocalDay(base);
+  const day = date.getDay();
+  const delta = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + delta);
+  return date;
+}
+
+function localDateTime(date: Date) {
+  return withLocalOffset(date);
+}
+
+function overlaps(start: Date, end: Date, busyStart: Date, busyEnd: Date) {
+  return start < busyEnd && end > busyStart;
+}
+
+export function buildWeekPlan<T extends IntelligenceTask>(
+  tasks: T[],
+  projects: IntelligenceProject[] = [],
+  now = new Date(),
+  maxSuggestions = 3,
+): PlanningSuggestion<T>[] {
+  const ranked = rankTasks(tasks, projects, now);
+  const candidates = ranked.filter((item) => {
+    if (!item.task.dateStart) return item.score >= 28;
+    return item.overdue && item.score >= 45;
+  });
+
+  if (!candidates.length) return [];
+
+  const weekStart = mondayForWeek(now);
+  const occupied = tasks
+    .filter((task) => task.dateStart?.includes("T") && !["terminado", "cancelado"].includes(normalized(task.status)))
+    .flatMap((task) => {
+      const start = task.dateStart ? new Date(task.dateStart) : null;
+      if (!start || Number.isNaN(start.getTime())) return [];
+      const end = task.dateEnd ? new Date(task.dateEnd) : new Date(start.getTime() + 60 * 60000);
+      return Number.isNaN(end.getTime()) ? [] : [{ start, end }];
+    });
+
+  const suggestions: PlanningSuggestion<T>[] = [];
+  const reserved: Array<{ start: Date; end: Date }> = [];
+
+  for (const candidate of candidates) {
+    let chosen: { start: Date; end: Date } | null = null;
+
+    for (let dayOffset = 0; dayOffset < 5 && !chosen; dayOffset += 1) {
+      const day = new Date(weekStart);
+      day.setDate(day.getDate() + dayOffset);
+
+      if (day < startOfLocalDay(now)) continue;
+
+      for (let minutes = 9 * 60; minutes <= 18 * 60; minutes += 30) {
+        const start = new Date(day);
+        start.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+        const end = new Date(start.getTime() + 60 * 60000);
+
+        if (start <= now) continue;
+        const conflict = [...occupied, ...reserved].some((slot) => overlaps(start, end, slot.start, slot.end));
+        if (!conflict) {
+          chosen = { start, end };
+          break;
+        }
+      }
+    }
+
+    if (!chosen) continue;
+    reserved.push(chosen);
+
+    const dayLabel = chosen.start.toLocaleDateString("es-ES", { weekday: "short", day: "numeric" }).replace(".", "");
+    const timeLabel = chosen.start.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    const reason = !candidate.task.dateStart
+      ? `Está en ${candidate.score} de atención y todavía no tiene hueco.`
+      : `Está vencida y sigue en ${candidate.score} de atención.`;
+
+    suggestions.push({
+      task: candidate.task,
+      score: candidate.score,
+      dateStart: localDateTime(chosen.start),
+      dateEnd: localDateTime(chosen.end),
+      label: `${dayLabel} · ${timeLabel}–${chosen.end.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`,
+      reason,
+    });
+
+    if (suggestions.length >= maxSuggestions) break;
+  }
+
+  return suggestions;
+}
+
 function localDateKey(date: Date) {
   return [
     date.getFullYear(),
