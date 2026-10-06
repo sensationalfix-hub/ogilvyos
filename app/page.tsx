@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
-  Check, CircleDot, Inbox, KeyRound, LayoutDashboard, ListTodo, Megaphone, NotebookPen, Plus, Save, Send, Sparkles, Star,
+  Check, KeyRound, LayoutDashboard, ListTodo, NotebookPen, Plus, Save, Sparkles, Star,
   Target, Trash2, TrendingUp, Users, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-type View = "dashboard" | "week" | "imputation" | "timeline" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "inbox" | "holidays";
+type View = "dashboard" | "week" | "imputation" | "timeline" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "holidays";
 type Priority = string;
 type TaskStatus = string;
 type ProjectStatus = string;
@@ -89,9 +89,6 @@ type Holiday = {
   id?: string; name: string; type: string; segment?: "Persona" | "Festivo" | string; category?: "Vacaciones" | "Extra" | "Turno especial" | "Festivo" | "Otra" | string;
   year?: string | null; start: string; end: string; label: string; color: string; url: string;
 };
-type BoardPresence = { user_id: string; display_name: string; role: "admin" | "viewer_global" | "employee"; last_seen: string };
-type BoardAnnouncement = { id: string; title: string; body: string; priority: "normal" | "important"; pinned: boolean; created_by_name: string; created_at: string; updated_at: string };
-type BoardRequest = { id: string; author_name: string; subject: string; kind: string; message: string; status: "Nueva" | "Revisando" | "Resuelta"; admin_reply: string | null; created_at: string; updated_at: string };
 type LiveState = {
   source: "notion"; loadedAt: string;
   counts: {
@@ -118,7 +115,6 @@ const navigation = [
   { value: "tasks", label: "Tareas", icon: ListTodo },
   { value: "team", label: "Equipo", icon: Users },
   { value: "timeline", label: "Timeline", icon: TrendingUp },
-  { value: "inbox", label: "Buzón", icon: Inbox },
   { value: "holidays", label: "Vacaciones", icon: CalendarDays },
 ] as const;
 
@@ -132,7 +128,6 @@ const viewCopy: Record<View, { eyebrow: string; title: string; description: stri
   projects: { eyebrow: "PIPELINE", title: "Proyectos", description: "Arrastra cada proyecto a su siguiente fase. El papeleo que se mueva solo, gracias." },
   tasks: { eyebrow: "OPERATIVA", title: "Tareas", description: "Un tablero para mover el trabajo, no para contemplarlo." },
   team: { eyebrow: "CAPACIDAD", title: "Equipo", description: "Carga visible antes de que alguien empiece a arder en silencio." },
-  inbox: { eyebrow: "TABLÓN", title: "Buzón", description: "Presencia, comunicados y peticiones sin convertir WorkOS en otro chat." },
   holidays: { eyebrow: "AUSENCIAS", title: "Vacaciones", description: "Solapes, puentes y planes B sin montar un comité de crisis." },
 };
 
@@ -342,113 +337,8 @@ export default function Home() {
   const [imputationProjects, setImputationProjects] = useState<Project[]>(initialProjects);
   const [imputationHolidays, setImputationHolidays] = useState<Holiday[]>(fallbackHolidays);
   const [holidayFilter, setHolidayFilter] = useState<"Todas" | "Vacaciones" | "Extras" | "Semana Santa" | "Navidad">("Todas");
-  const [boardPresence, setBoardPresence] = useState<BoardPresence[]>([]);
-  const [boardAnnouncements, setBoardAnnouncements] = useState<BoardAnnouncement[]>([]);
-  const [boardRequests, setBoardRequests] = useState<BoardRequest[]>([]);
-  const [boardLoading, setBoardLoading] = useState(false);
-  const [announcementTitle, setAnnouncementTitle] = useState("");
-  const [announcementBody, setAnnouncementBody] = useState("");
-  const [announcementImportant, setAnnouncementImportant] = useState(false);
-  const [requestSubject, setRequestSubject] = useState("");
-  const [requestMessage, setRequestMessage] = useState("");
-  const [requestKind, setRequestKind] = useState("Petición");
-  const [requestReplies, setRequestReplies] = useState<Record<string, string>>({});
   const [quickNote, setQuickNote] = useState("");
   const [quickNoteReady, setQuickNoteReady] = useState(false);
-
-  async function loadBoard() {
-    setBoardLoading(true);
-    try {
-      const response = await fetch("/api/board", { cache: "no-store" });
-      if (!response.ok) throw new Error("No se pudo cargar el buzón");
-      const data = await response.json();
-      setBoardPresence(Array.isArray(data.presence) ? data.presence : []);
-      setBoardAnnouncements(Array.isArray(data.announcements) ? data.announcements : []);
-      setBoardRequests(Array.isArray(data.requests) ? data.requests : []);
-      setRequestReplies((current) => {
-        const next = { ...current };
-        for (const item of (Array.isArray(data.requests) ? data.requests : [])) {
-          if (next[item.id] == null) next[item.id] = item.admin_reply || "";
-        }
-        return next;
-      });
-    } catch {
-      toast.error("No se pudo cargar el buzón.");
-    } finally {
-      setBoardLoading(false);
-    }
-  }
-
-  async function sendHeartbeat() {
-    await fetch("/api/board", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "heartbeat" }),
-    }).catch(() => {});
-  }
-
-  async function publishAnnouncement() {
-    const response = await fetch("/api/board", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "announcement",
-        title: announcementTitle,
-        body: announcementBody,
-        priority: announcementImportant ? "important" : "normal",
-      }),
-    });
-    if (!response.ok) return toast.error("No se pudo publicar el comunicado.");
-    setAnnouncementTitle("");
-    setAnnouncementBody("");
-    setAnnouncementImportant(false);
-    toast.success("Comunicado publicado.");
-    await loadBoard();
-  }
-
-  async function submitBoardRequest() {
-    const response = await fetch("/api/board", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "request", subject: requestSubject, message: requestMessage, kind: requestKind }),
-    });
-    if (!response.ok) return toast.error("No se pudo enviar la petición.");
-    setRequestSubject("");
-    setRequestMessage("");
-    setRequestKind("Petición");
-    toast.success("Petición enviada.");
-    await loadBoard();
-  }
-
-  async function updateBoardRequest(id: string, status: BoardRequest["status"], adminReply?: string) {
-    const response = await fetch("/api/board", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status, adminReply }),
-    });
-    if (!response.ok) return toast.error("No se pudo actualizar la petición.");
-    await loadBoard();
-  }
-
-  async function deleteBoardItem(kind: "announcement" | "request", id: string) {
-    const response = await fetch(`/api/board?kind=${kind}&id=${id}`, { method: "DELETE" });
-    if (!response.ok) return toast.error(kind === "announcement" ? "No se pudo borrar el comunicado." : "No se pudo borrar el mensaje.");
-    toast.success(kind === "announcement" ? "Comunicado borrado." : "Mensaje borrado.");
-    await loadBoard();
-  }
-
-  useEffect(() => {
-    void sendHeartbeat();
-    const heartbeat = window.setInterval(() => void sendHeartbeat(), 45000);
-    return () => window.clearInterval(heartbeat);
-  }, []);
-
-  useEffect(() => {
-    if (activeView !== "inbox") return;
-    void loadBoard();
-    const refresh = window.setInterval(() => void loadBoard(), 20000);
-    return () => window.clearInterval(refresh);
-  }, [activeView]);
 
   useEffect(() => {
     let active = true;
@@ -3024,108 +2914,6 @@ export default function Home() {
 
             <p className="team-radar-note">El índice observado se interpreta junto a la muestra. La carga es una señal operativa separada, no una nota de desempeño.</p>
           </aside>
-        </section>
-      </TabsContent>
-
-      <TabsContent value="inbox" className="view-content inbox-view">
-        <section className="inbox-shell">
-          <section className="inbox-top-grid">
-            <article className="inbox-online-card">
-              <div className="inbox-card-label"><span>ONLINE AHORA</span><CircleDot /></div>
-              <div className="inbox-online-value">
-                <strong>{boardPresence.length}</strong>
-                <span>de {Math.max(boardPresence.length, sessionRole === "employee" ? 1 : liveCounts?.team || boardPresence.length)} usuarios</span>
-              </div>
-              <small>Presencia actualizada en tiempo real</small>
-            </article>
-
-            <article className="inbox-people-card">
-              <div className="inbox-card-label"><span>QUIÉN ESTÁ DENTRO</span><Users /></div>
-              <div className="inbox-people-track">
-                {boardPresence.map((person) => <div className="inbox-person-tile" key={person.user_id}>
-                  <span>{initials(person.display_name)}</span>
-                  <div><strong>{person.display_name}</strong><small>{person.role === "admin" ? "Admin" : person.role === "viewer_global" ? "Viewer" : "Empleado"}</small></div>
-                  <i />
-                </div>)}
-                {!boardPresence.length && <div className="inbox-empty-line">Nadie aparece online todavía.</div>}
-              </div>
-            </article>
-
-            <article className="inbox-status-card">
-              <div className="inbox-card-label"><span>BUZÓN</span><Inbox /></div>
-              <strong>{boardRequests.filter((item) => item.status !== "Resuelta").length}</strong>
-              <span>peticiones pendientes</span>
-              <div className="inbox-status-meta">
-                <b>{boardRequests.filter((item) => item.status === "Nueva").length} nuevas</b>
-                <b>{boardRequests.filter((item) => item.status === "Revisando").length} revisando</b>
-              </div>
-            </article>
-          </section>
-
-          <section className="inbox-columns">
-            <div className="inbox-column inbox-announcements-column">
-              <header className="inbox-section-head">
-                <div><span>COMUNICADOS</span><h2>Tablón público</h2></div>
-                <b>{boardAnnouncements.length}</b>
-              </header>
-
-              {canEdit && <article className="inbox-composer">
-                <div className="inbox-composer-title"><Megaphone /><strong>Nuevo comunicado</strong></div>
-                <input value={announcementTitle} onChange={(event) => setAnnouncementTitle(event.target.value)} placeholder="Título" />
-                <Textarea value={announcementBody} onChange={(event) => setAnnouncementBody(event.target.value)} placeholder="Escribe el comunicado…" />
-                <footer>
-                  <label><input type="checkbox" checked={announcementImportant} onChange={(event) => setAnnouncementImportant(event.target.checked)} /> Importante</label>
-                  <button onClick={() => void publishAnnouncement()} disabled={!announcementTitle.trim() || !announcementBody.trim()}><Send /> Publicar</button>
-                </footer>
-              </article>}
-
-              <div className="inbox-announcement-list">
-                {boardAnnouncements.map((item) => <article key={item.id} className={`inbox-announcement ${item.priority === "important" ? "important" : ""}`}>
-                  <header><span>{item.priority === "important" ? "IMPORTANTE" : "COMUNICADO"}</span><div className="inbox-card-actions"><time>{new Date(item.created_at).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</time>{canEdit && <button type="button" onClick={() => void deleteBoardItem("announcement", item.id)} aria-label="Borrar comunicado"><Trash2 /></button>}</div></header>
-                  <h3>{item.title}</h3>
-                  <p>{item.body}</p>
-                  <footer>{item.created_by_name}</footer>
-                </article>)}
-                {!boardAnnouncements.length && <div className="inbox-empty-card">Todavía no hay comunicados.</div>}
-              </div>
-            </div>
-
-            <div className="inbox-column inbox-requests-column">
-              <header className="inbox-section-head">
-                <div><span>BUZÓN</span><h2>{canEdit ? "Mensaje a DC" : "Mis peticiones"}</h2></div>
-                <b>{boardRequests.filter((item) => item.status !== "Resuelta").length}</b>
-              </header>
-
-              {!canEdit && <article className="inbox-composer inbox-request-composer">
-                <div className="inbox-composer-title"><Inbox /><strong>Nueva petición</strong></div>
-                <select value={requestKind} onChange={(event) => setRequestKind(event.target.value)}>
-                  {["Petición","Bloqueo","Necesito decisión","Acceso","Otro"].map((kind) => <option key={kind}>{kind}</option>)}
-                </select>
-                <input value={requestSubject} onChange={(event) => setRequestSubject(event.target.value)} placeholder="Asunto" />
-                <Textarea value={requestMessage} onChange={(event) => setRequestMessage(event.target.value)} placeholder="Cuéntale al administrador qué necesitas…" />
-                <footer><span>Solo tú y el administrador veis esta petición.</span><button onClick={() => void submitBoardRequest()} disabled={!requestSubject.trim() || !requestMessage.trim()}><Send /> Enviar</button></footer>
-              </article>}
-
-              <div className="inbox-request-list">
-                {boardRequests.map((item) => <article key={item.id} className={`inbox-request status-${item.status.toLowerCase()}`}>
-                  <header><span>{item.kind}</span><div className="inbox-card-actions"><b>{item.status}</b><button type="button" onClick={() => void deleteBoardItem("request", item.id)} aria-label="Borrar mensaje"><Trash2 /></button></div></header>
-                  <h3>{item.subject}</h3>
-                  {canEdit && <small className="inbox-request-author">{item.author_name}</small>}
-                  <p>{item.message}</p>
-                  {item.admin_reply && !canEdit && <div className="inbox-admin-reply"><span>RESPUESTA</span><p>{item.admin_reply}</p></div>}
-                  {canEdit && <div className="inbox-admin-tools">
-                    <Textarea value={requestReplies[item.id] ?? item.admin_reply ?? ""} onChange={(event) => setRequestReplies((current) => ({ ...current, [item.id]: event.target.value }))} placeholder="Respuesta breve…" />
-                    <div>
-                      <button onClick={() => void updateBoardRequest(item.id,"Revisando",requestReplies[item.id])}>Revisando</button>
-                      <button className="resolve" onClick={() => void updateBoardRequest(item.id,"Resuelta",requestReplies[item.id])}>Resolver</button>
-                    </div>
-                  </div>}
-                  <footer>{new Date(item.created_at).toLocaleString("es-ES",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</footer>
-                </article>)}
-                {!boardRequests.length && <div className="inbox-empty-card">{boardLoading ? "Cargando buzón…" : "No hay peticiones todavía."}</div>}
-              </div>
-            </div>
-          </section>
         </section>
       </TabsContent>
 
