@@ -1,7 +1,7 @@
 "use client";
 
 import { localDateKey } from "@/app/lib/local-date";
-import { buildLifeIntelligence, nextActionForProject, parseSmartCapture } from "@/app/lib/life-intelligence";
+import { buildLifeIntelligence, buildWeekPlan, nextActionForProject, parseSmartCapture } from "@/app/lib/life-intelligence";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -903,6 +903,10 @@ export default function Home() {
     () => buildLifeIntelligence(dashboardTasks, projects),
     [dashboardTasks, projects],
   );
+  const weekPlanSuggestions = useMemo(
+    () => buildWeekPlan(dashboardTasks, projects),
+    [dashboardTasks, projects],
+  );
   const smartCapturePreview = useMemo(
     () => parseSmartCapture(quickName, projects.map((project) => project.name), accounts.map((account) => account.name)),
     [quickName, projects, accounts],
@@ -1551,6 +1555,21 @@ export default function Home() {
     }
   }
 
+  async function applyWeekPlanSuggestion(suggestion: (typeof weekPlanSuggestions)[number]) {
+    if (!canEdit) return;
+    const date = new Date(suggestion.dateStart);
+    const label = Number.isNaN(date.getTime())
+      ? suggestion.task.date
+      : date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
+    await updateWorkspaceTask(suggestion.task, {
+      dateStart: suggestion.dateStart,
+      dateEnd: suggestion.dateEnd,
+      date: label,
+      workosLane: suggestion.task.workosLane === "Backlog" ? null : suggestion.task.workosLane,
+    });
+    toast.success("Hueco aplicado", { description: `${suggestion.task.name} · ${suggestion.label}` });
+  }
+
   async function createTaskForSelectedProject() {
     if (!canEdit) return;
 
@@ -1933,6 +1952,24 @@ export default function Home() {
             </div>
           </article>
         </section>
+
+        <section className="life-week-plan" aria-label="Plan propuesto por LifeOS">
+          <div className="life-week-plan-head">
+            <div><span><Sparkles /> PLAN PROPUESTO</span><h2>Huecos que LifeOS aprovecharía</h2></div>
+            <small>{weekPlanSuggestions.length ? "Basado en presión, fechas y disponibilidad real" : "No hace falta recolocar nada ahora mismo"}</small>
+          </div>
+          {weekPlanSuggestions.length ? <div className="life-week-plan-list">
+            {weekPlanSuggestions.map((suggestion) => <article key={suggestion.task.id}>
+              <button className="life-week-plan-task" onClick={() => setDetail({ kind: "task", ...suggestion.task })}>
+                <span className="life-week-plan-score">{suggestion.score}</span>
+                <div><strong>{suggestion.task.name}</strong><small>{suggestion.task.project} · {suggestion.reason}</small></div>
+              </button>
+              <div className="life-week-plan-slot"><CalendarRange /><span>{suggestion.label}</span></div>
+              {canEdit && <button className="life-week-plan-apply" onClick={() => void applyWeekPlanSuggestion(suggestion)}>Colocar <ArrowUpRight /></button>}
+            </article>)}
+          </div> : <div className="life-week-plan-empty"><Check /><span>La semana no pide intervención. Milagro administrativo documentado.</span></div>}
+        </section>
+
         <section className="control-room">
           <div className="dashboard-workbench">
             <article className="ops-panel tasks-overview">
