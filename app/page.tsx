@@ -1,5 +1,7 @@
 "use client";
 
+import { localDateKey } from "@/app/lib/local-date";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
@@ -240,7 +242,7 @@ function ProjectCard({ project, onOpen, onDragStart, onAssignPerson }: { project
 }
 function EmptyDrop() { return <div className="empty-drop">Suelta aquí</div>; }
 function isoDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return localDateKey(date);
 }
 function dateOnly(value: string | null | undefined) {
   return value ? value.slice(0, 10) : null;
@@ -3249,7 +3251,7 @@ export default function Home() {
           {detail.kind === "task"
             ? <div className="editor-field full task-schedule-editor">
                 <div className="task-schedule-head"><span>Planificación</span><label className="task-all-day-toggle"><span>Todo el día</span><Switch checked={taskIsAllDay(detail)} disabled={!canEdit} onCheckedChange={(checked) => {
-                  const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
+                  const day = dateOnly(detail.dateStart) || isoDate(new Date());
                   updateDetailField("dateStart", checked ? day : localPlannerIso(day, 9 * 60));
                   updateDetailField("dateEnd", checked ? null : localPlannerIso(day, 10 * 60));
                   updateDetailField("date", new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", ""));
@@ -3267,12 +3269,12 @@ export default function Home() {
                   }} /></label>
                   {!taskIsAllDay(detail) && <>
                     <label><small>Inicio</small><input type="time" step="900" disabled={!canEdit} value={plannerTimeLabel(plannerMinutes(detail.dateStart, 9 * 60))} onChange={(event) => {
-                      const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
+                      const day = dateOnly(detail.dateStart) || isoDate(new Date());
                       const [h,m] = event.target.value.split(":").map(Number);
                       updateDetailField("dateStart", localPlannerIso(day, h * 60 + m));
                     }} /></label>
                     <label><small>Fin</small><input type="time" step="900" disabled={!canEdit} value={plannerTimeLabel(plannerMinutes(detail.dateEnd, 10 * 60))} onChange={(event) => {
-                      const day = dateOnly(detail.dateStart) || new Date().toISOString().slice(0, 10);
+                      const day = dateOnly(detail.dateStart) || isoDate(new Date());
                       const [h,m] = event.target.value.split(":").map(Number);
                       updateDetailField("dateEnd", localPlannerIso(day, h * 60 + m));
                     }} /></label>
