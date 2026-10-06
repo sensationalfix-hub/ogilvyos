@@ -17929,3 +17929,52 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .timesheet-actions button { flex: 1; padding: 10px; }
   .timesheet-sheet-foot { padding: 16px 18px; }
 }
+
+
+/* === Completed tasks remain visible in Mi semana v56 ===================== */
+.planner-task-block.is-completed {
+  opacity: .42 !important;
+  filter: saturate(.28) !important;
+  background: #3c413d !important;
+  box-shadow: none !important;
+}
+
+.planner-task-block.is-completed::before {
+  background: rgba(255,255,255,.12) !important;
+}
+
+.planner-task-block.is-completed .planner-task-title strong {
+  text-decoration: line-through !important;
+  text-decoration-thickness: 1px !important;
+  text-decoration-color: rgba(255,255,255,.62) !important;
+}
+
+.planner-task-block.is-completed .planner-task-time,
+.planner-task-block.is-completed small,
+.planner-task-block.is-completed .planner-task-grip {
+  color: rgba(255,255,255,.54) !important;
+}
+
+.planner-task-block.is-completed:hover {
+  opacity: .62 !important;
+  filter: saturate(.4) !important;
+  background: #272b28 !important;
+  transform: none !important;
+  box-shadow: 0 8px 18px rgba(16,21,18,.08) !important;
+}
+
+.planner-all-day-chip.task.is-completed {
+  opacity: .46 !important;
+  filter: saturate(.3) !important;
+  background: #e5e8e3 !important;
+}
+
+.planner-all-day-chip.task.is-completed .planner-task-title strong {
+  text-decoration: line-through !important;
+  text-decoration-thickness: 1px !important;
+  text-decoration-color: rgba(78,87,79,.55) !important;
+}
+
+.planner-all-day-chip.task.is-completed:hover {
+  opacity: .68 !important;
+}
