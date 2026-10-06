@@ -2082,7 +2082,7 @@ export default function Home() {
                   if (kind === "task") { void setPlannerTaskAllDay(id, key); return; }
                   void moveWeekItem(event, key);
                 }}>
-                {allDayTasks.map((task) => <div key={task.id} className="planner-all-day-chip task" title={task.name}>
+                {allDayTasks.map((task) => <div key={task.id} className={`planner-all-day-chip task ${taskLane(task) === "Terminado" ? "is-completed" : ""}`} title={task.name}>
                   <i /><span>
                     <button
                       type="button"
@@ -2143,7 +2143,7 @@ export default function Home() {
                     const top = ((visibleStart - PLANNER_START) / 60) * PLANNER_HOUR_PX;
                     const height = Math.max(42, ((visibleEnd - visibleStart) / 60) * PLANNER_HOUR_PX);
                     return <div key={task.id}
-                      className={`planner-task-block ${plannerPriorityClass(task.priority)}`}
+                      className={`planner-task-block ${plannerPriorityClass(task.priority)} ${taskLane(task) === "Terminado" ? "is-completed" : ""}`}
                       style={{ top: `${top}px`, height: `calc(${height}px - 4px)` }}>
                       <span className="planner-resize-handle top" onPointerDown={(event) => startPlannerResize(task, "start", event)} />
                       <div className="planner-task-time">{plannerTimeLabel(startMinutes)}–{plannerTimeLabel(endMinutes)}</div>
