@@ -1,6 +1,7 @@
 "use client";
 
 import { localDateKey } from "@/app/lib/local-date";
+import { buildLifeIntelligence, nextActionForProject, parseSmartCapture } from "@/app/lib/life-intelligence";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -108,7 +109,7 @@ const fallbackTeam: TeamPerson[] = [];
 const fallbackHolidays: Holiday[] = [];
 
 const navigation = [
-  { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { value: "dashboard", label: "Hoy", icon: LayoutDashboard },
   { value: "week", label: "Mi semana", icon: CalendarDays },
   { value: "imputation", label: "Imputación", icon: Clock3 },
   { value: "calendar", label: "Calendario", icon: CalendarRange },
@@ -121,7 +122,7 @@ const navigation = [
 ] as const;
 
 const viewCopy: Record<View, { eyebrow: string; title: string; description: string }> = {
-  dashboard: { eyebrow: "HOY · NOTION LIVE", title: "Todo bajo control. Más o menos.", description: "El pulso real de cuentas, equipo y fechas sin bucear por seis bases de datos." },
+  dashboard: { eyebrow: "LIFEOS · HOY", title: "Qué merece tu atención.", description: "Trabajo, presión y siguientes acciones leídos como contexto, no como otra lista más." },
   week: { eyebrow: "FOCO · ESTA SEMANA", title: "Mi semana", description: "Entregas, hitos, ausencias y carga crítica. Lo que merece atención antes de que sea tarde." },
   imputation: { eyebrow: "DEDICACIÓN SEMANAL", title: "Imputación", description: "Horas por cuenta y oficina." },
   timeline: { eyebrow: "MAPA TEMPORAL", title: "Timeline", description: "Todo lo activo colocado en el tiempo sin obligarte a viajar horizontalmente hasta noviembre." },
@@ -898,6 +899,14 @@ export default function Home() {
     const type = project.type.trim().toLocaleLowerCase("es");
     return status !== "daily" && type !== "daily";
   }), [projects]);
+  const lifeIntelligence = useMemo(
+    () => buildLifeIntelligence(dashboardTasks, projects),
+    [dashboardTasks, projects],
+  );
+  const smartCapturePreview = useMemo(
+    () => parseSmartCapture(quickName, projects.map((project) => project.name), accounts.map((account) => account.name)),
+    [quickName, projects, accounts],
+  );
   const calendarEvents = useMemo<CalendarEvent[]>(() => {
     const eventFromIso = (value: string | null | undefined) => {
       const iso = dateOnly(value);
@@ -1417,8 +1426,12 @@ export default function Home() {
   async function createQuickItem() {
     if (!canEdit) return;
 
-    const name = quickName.trim();
-    if (!name) return;
+    const rawName = quickName.trim();
+    if (!rawName) return;
+    const parsed = quickType === "task"
+      ? parseSmartCapture(rawName, projects.map((project) => project.name), accounts.map((account) => account.name))
+      : null;
+    const name = parsed?.title || rawName;
     try {
       const response = await fetch("/api/notion/create", {
         method: "POST",
@@ -1429,22 +1442,37 @@ export default function Home() {
       if (!response.ok) throw new Error(body?.error || "No se pudo crear en Notion");
 
       if (quickType === "task") {
+        const inferredAccount = parsed?.account || (parsed?.project ? projects.find((project) => project.name === parsed.project)?.account : null) || null;
+        const hasContext = Boolean(parsed?.dateStart || parsed?.project || inferredAccount || (parsed?.priority && parsed.priority !== "Media"));
+        const dateLabel = parsed?.dateStart
+          ? new Date(parsed.dateStart.includes("T") ? parsed.dateStart : parsed.dateStart + "T00:00:00")
+              .toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "")
+          : "SIN FECHA";
         const createdTask: Task = {
           id: body.id,
           name,
           status: "Pendiente",
-          workosLane: "Backlog",
-          priority: "Media",
-          project: "Por asignar",
-          account: "Sin cuenta",
-          date: "SIN FECHA",
-          dateStart: null,
+          workosLane: hasContext ? null : "Backlog",
+          priority: parsed?.priority || "Media",
+          project: parsed?.project || "Por asignar",
+          account: inferredAccount || "Sin cuenta",
+          date: dateLabel,
+          dateStart: parsed?.dateStart || null,
+          dateEnd: parsed?.dateEnd || null,
           people: ["Por asignar"],
           url: body.url || "https://www.notion.so",
         };
         setTasks((items) => [createdTask, ...items]);
         setAllTasks((items) => [createdTask, ...items]);
-        await syncNotion("task", body.id, { status: "Pendiente", workosLane: "Backlog" });
+        await syncNotion("task", body.id, {
+          status: "Pendiente",
+          workosLane: createdTask.workosLane,
+          priority: createdTask.priority,
+          project: parsed?.project || undefined,
+          account: inferredAccount || undefined,
+          dateStart: createdTask.dateStart,
+          dateEnd: createdTask.dateEnd,
+        });
       } else {
         setProjects((items) => [{
           id: body.id,
@@ -1461,7 +1489,7 @@ export default function Home() {
         }, ...items]);
       }
       setQuickName(""); setDialogOpen(false);
-      toast.success("Creado en Notion", { description: quickType === "task" ? "Tarea real creada." : "Proyecto real creado." });
+      toast.success("Creado en Notion", { description: quickType === "task" && parsed?.signals.length ? "LifeOS ha interpretado fecha, prioridad o contexto." : quickType === "task" ? "Tarea real creada." : "Proyecto real creado." });
     } catch (error) {
       toast.error("No se pudo crear", { description: error instanceof Error ? error.message : "Error desconocido" });
     }
@@ -1721,8 +1749,15 @@ export default function Home() {
             <button type="button" className="sidebar-add-item"><Plus /><span>Añadir item</span></button>
           </DialogTrigger>
           <DialogContent className="quick-dialog"><DialogHeader><DialogTitle>Añadir sin ceremonia</DialogTitle><DialogDescription>Crea una tarea o proyecto y completa después el resto de propiedades.</DialogDescription></DialogHeader>
-            <div className="quick-form"><Select value={quickType} onValueChange={setQuickType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="task">Tarea</SelectItem><SelectItem value="project">Proyecto</SelectItem></SelectContent></Select><input autoFocus value={quickName} onChange={(event) => setQuickName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createQuickItem(); }} placeholder={quickType === "task" ? "¿Qué hay que hacer?" : "Nombre del proyecto"} /></div>
-            <DialogFooter><Button onClick={createQuickItem}>Crear</Button></DialogFooter>
+            <div className="quick-form"><Select value={quickType} onValueChange={setQuickType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="task">Tarea</SelectItem><SelectItem value="project">Proyecto</SelectItem></SelectContent></Select><input autoFocus value={quickName} onChange={(event) => setQuickName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createQuickItem(); }} placeholder={quickType === "task" ? "Ej. mañana revisar keynote de Rasca a las 17 durante 1h" : "Nombre del proyecto"} /></div>
+            {quickType === "task" && quickName.trim() && <div className="smart-capture-preview">
+              <div className="smart-capture-head"><Sparkles /><span>INTERPRETACIÓN</span><b>{Math.round(smartCapturePreview.confidence * 100)}%</b></div>
+              <strong>{smartCapturePreview.title}</strong>
+              <div className="smart-capture-signals">
+                {smartCapturePreview.signals.length ? smartCapturePreview.signals.map((signal) => <span key={signal}>{signal}</span>) : <span>Sin metadatos detectados · irá a Backlog</span>}
+              </div>
+            </div>}
+            <DialogFooter><Button onClick={createQuickItem}>{quickType === "task" ? <><Sparkles /> Crear interpretando</> : "Crear"}</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       )}
@@ -1859,6 +1894,43 @@ export default function Home() {
               <button aria-label="Reiniciar" onClick={() => { setFocusRunning(false); setFocusSeconds(25 * 60); }}><RotateCcw /></button>
             </div>
             <span className="dashboard-sync-status"><i className={dataState === "live" ? "ok" : ""} /> {dataState === "live" ? "Notion sincronizado" : "Sincronizando"}</span>
+          </article>
+        </section>
+
+        <section className="life-intelligence-grid" aria-label="LifeOS Intelligence">
+          <article className="life-intelligence-brief">
+            <div className="life-intelligence-kicker"><Sparkles /><span>LIFEOS INTELLIGENCE</span><i /></div>
+            <h2>{lifeIntelligence.summary}</h2>
+            <p>{lifeIntelligence.detail}</p>
+            <div className="life-intelligence-metrics">
+              <span><b>{lifeIntelligence.stats.overdue}</b><small>vencidas</small></span>
+              <span><b>{lifeIntelligence.stats.next48}</b><small>próx. 48h</small></span>
+              <span><b>{lifeIntelligence.stats.undatedHigh}</b><small>importantes sin fecha</small></span>
+            </div>
+          </article>
+
+          <article className="life-next-action">
+            <header><div><span>SIGUIENTE MEJOR ACCIÓN</span><h3>Qué haría ahora</h3></div><Target /></header>
+            {lifeIntelligence.top ? <button onClick={() => setDetail({ kind: "task", ...lifeIntelligence.top!.task })}>
+              <div className="life-attention-score"><strong>{lifeIntelligence.top.score}</strong><small>atención</small></div>
+              <div className="life-next-copy">
+                <strong>{lifeIntelligence.top.task.name}</strong>
+                <span>{lifeIntelligence.top.task.project} · {lifeIntelligence.top.task.date}</span>
+                <small>{lifeIntelligence.top.reasons[0] || "Mejor combinación de prioridad, estado y calendario."}</small>
+              </div>
+              <ArrowUpRight />
+            </button> : <div className="life-intelligence-empty"><Check /><span>Nada activo reclama atención.</span></div>}
+          </article>
+
+          <article className="life-risk-card">
+            <header><span>RIESGO DETECTADO</span><Activity /></header>
+            <p>{lifeIntelligence.risk}</p>
+            <div className="life-risk-top">
+              {lifeIntelligence.ranked.slice(0, 3).map((item, index) => <button key={item.task.id} onClick={() => setDetail({ kind: "task", ...item.task })}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{item.task.name}</strong><small>{item.score} atención · {item.task.priority}</small></div>
+              </button>)}
+            </div>
           </article>
         </section>
         <section className="control-room">
@@ -3050,6 +3122,7 @@ export default function Home() {
       const completionBase = projectTasks.filter((task) => task.status !== "Cancelado").length;
       const completion = completionBase ? Math.round((completedTasks / completionBase) * 100) : 0;
       const projectPeople = selectedProjectPage.people.filter((name) => name !== "Por asignar");
+      const projectNextAction = nextActionForProject(selectedProjectPage.name, activeProjectTasks, projects);
       const endLabel = selectedProjectPage.timingEnd
         ? new Date(selectedProjectPage.timingEnd + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
         : "Sin fecha";
@@ -3183,6 +3256,15 @@ export default function Home() {
                   })}
                   {datedTasks.length === 0 && <div className="workspace-empty">Añade fechas a las tareas y el timeline se irá pintando solo.</div>}
                 </div>
+              </article>
+
+              <article className="project-intelligence-card">
+                <div className="project-intelligence-head"><span><Sparkles /> SIGUIENTE MEJOR ACCIÓN</span><b>{projectNextAction ? projectNextAction.score : 0}</b></div>
+                {projectNextAction ? <button onClick={() => setDetail({ kind: "task", ...projectNextAction.task })}>
+                  <strong>{projectNextAction.task.name}</strong>
+                  <small>{projectNextAction.reasons[0] || "Es la tarea con mayor presión dentro de este proyecto."}</small>
+                  <span>{projectNextAction.task.date} <ArrowUpRight /></span>
+                </button> : <div className="project-intelligence-empty"><Check /><span>Sin tareas activas. El siguiente movimiento es definir una.</span></div>}
               </article>
 
               <article className="project-glance-card">
