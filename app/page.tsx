@@ -332,6 +332,7 @@ export default function Home() {
   const [allTasks, setAllTasks] = useState<Task[]>(initialTasks);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [accounts, setAccounts] = useState<Account[]>(fallbackAccounts);
+  const [accountOptions, setAccountOptions] = useState<Account[]>([]);
   const [team, setTeam] = useState<TeamPerson[]>(fallbackTeam);
   const [holidays, setHolidays] = useState<Holiday[]>(fallbackHolidays);
   const [imputationProjects, setImputationProjects] = useState<Project[]>(initialProjects);
@@ -561,6 +562,7 @@ export default function Home() {
       })
       .then((state) => {
         if (!active) return;
+        setAccountOptions([...state.accounts].sort((a, b) => a.name.localeCompare(b.name, "es")));
         setAccounts(state.accounts.filter((account) => account.status === "Activa"));
         setProjects(state.projects);
         const hydratedTasks = state.allTasks || state.tasks;
@@ -3125,7 +3127,7 @@ export default function Home() {
                 <label><span>Estado</span><select value={selectedProjectPage.status} onChange={(event) => updateProjectWorkspace({ status: event.target.value })}>{projectStatusOptions.map((status) => <option key={status}>{status}</option>)}</select></label>
                 <label><span>Prioridad</span><select value={selectedProjectPage.priority} onChange={(event) => updateProjectWorkspace({ priority: event.target.value })}>{projectPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select></label>
                 <label><span>Tipo</span><select value={selectedProjectPage.type} onChange={(event) => updateProjectWorkspace({ type: event.target.value })}>{projectTypeOptions.map((type) => <option key={type}>{type}</option>)}</select></label>
-                <label><span>Cuenta</span><select value={selectedProjectPage.account} onChange={(event) => updateProjectWorkspace({ account: event.target.value })}>{accounts.map((item) => <option key={item.name}>{item.name}</option>)}</select></label>
+                <label><span>Cuenta</span><select value={selectedProjectPage.account} onChange={(event) => updateProjectWorkspace({ account: event.target.value })}>{accountOptions.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
                 <label><span>Inicio</span><input type="date" value={selectedProjectPage.timingStart || ""} onChange={(event) => updateProjectWorkspace({ timingStart: event.target.value || null, timingEnd: selectedProjectPage.timingEnd })} /></label>
                 <label><span>Fin</span><input type="date" min={selectedProjectPage.timingStart || undefined} value={selectedProjectPage.timingEnd || ""} onChange={(event) => updateProjectWorkspace({ timingStart: selectedProjectPage.timingStart, timingEnd: event.target.value || null })} /></label>
               </div>
@@ -3241,7 +3243,7 @@ export default function Home() {
               : <Select value={detail.status} disabled={!canEdit} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectStatusOptions.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>}</div>
             <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} disabled={!canEdit} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskPriorityOptions : projectPriorityOptions).map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
           </div>
-          <div className="editor-field"><span>Cuenta</span><Select value={detail.account} disabled={!canEdit} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accounts.map((account) => <SelectItem key={account.name} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="editor-field"><span>Cuenta</span><Select value={detail.account} disabled={!canEdit} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accountOptions.map((account) => <SelectItem key={account.id} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
           {detail.kind === "task"
   ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} disabled={!canEdit} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
   : <div className="editor-field"><span>Tipo</span><Select value={detail.type} disabled={!canEdit} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
