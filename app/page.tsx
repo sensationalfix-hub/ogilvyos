@@ -1952,7 +1952,6 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="week" className="view-content week-view">
-        {canEdit && <button type="button" className="week-timesheet-link" onClick={() => setActiveView("imputation")}><Clock3 />Imputación semanal</button>}
         <section className="mobile-only mobile-agenda">
           <header className="mobile-screen-head">
             <span>AGENDA</span>

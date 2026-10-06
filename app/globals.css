@@ -17909,7 +17909,6 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .timesheet-notice { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .timesheet-notice span { flex: 1 1 300px; }
 .timesheet-empty { background: #fff; border-radius: 24px; padding: 40px; font-size: 16px; color: #717768; }
-.week-timesheet-link { margin: 0 0 16px auto; width: fit-content; }
 @media (max-width: 760px) {
   .main-stage-imputation .imputation-view { display: block !important; padding: 18px 16px 110px !important; overflow-y: visible !important; }
   .timesheet-view { padding: 0; }
@@ -17929,5 +17928,4 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .timesheet-actions { width: 100%; }
   .timesheet-actions button { flex: 1; padding: 10px; }
   .timesheet-sheet-foot { padding: 16px 18px; }
-  .week-timesheet-link { display: flex !important; margin: 0 0 14px auto; }
 }
