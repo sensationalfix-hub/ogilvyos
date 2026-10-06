@@ -1169,9 +1169,9 @@ export default function Home() {
     setTasks((items) => items.map(patch));
     setDetail((current) => {
       if (!current || current.kind !== "task" || current.id !== id) return current;
-      const next = { ...current, ...changes } as Detail;
-      if ("dateStart" in changes && !("date" in changes) && next.kind === "task") next.date = taskDateLabel(next.dateStart);
-      return next;
+      const nextTask = { ...current, ...changes } as Extract<Detail, { kind: "task" }>;
+      if ("dateStart" in changes && !("date" in changes)) nextTask.date = taskDateLabel(nextTask.dateStart);
+      return nextTask;
     });
   }
 
@@ -1342,8 +1342,7 @@ export default function Home() {
       const field = kind === "project-start" ? "timingStart" : "timingEnd";
       if (previous[field] === destinationDate) return;
       const next = { ...previous, [field]: destinationDate } as Project;
-      patchProjectLocal(id, kind === "project-start" ? { timingStart: destinationDate, timing: next.timing } : { timingEnd: destinationDate, timing: next.timing });
-      if (selectedProjectPage?.id === id) setSelectedProjectPage(next);
+      patchProjectLocal(id, kind === "project-start" ? { timingStart: destinationDate } : { timingEnd: destinationDate });
       try {
         await syncNotion("project", id, { [field]: destinationDate });
         toast.success(kind === "project-start" ? "Arranque reprogramado" : "Cierre reprogramado", {
@@ -1351,7 +1350,6 @@ export default function Home() {
         });
       } catch {
         patchProjectLocal(id, previous);
-        if (selectedProjectPage?.id === id) setSelectedProjectPage(previous);
         toast.error("No se pudo cambiar la fecha del proyecto en Notion");
       }
     }
