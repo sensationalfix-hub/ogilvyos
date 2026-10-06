@@ -17850,7 +17850,9 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 }
 
 /* Weekly dedication — isolated from planner and task styles. */
+.main-stage-imputation { grid-template-rows: minmax(0, 1fr) !important; }
 .main-stage-imputation .topbar { display: none !important; }
+.main-stage-imputation .imputation-view { grid-row: 1; min-height: 0; overflow-y: auto !important; }
 .timesheet-view { color: #171917; padding: 10px 0 32px; }
 .timesheet-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; margin-bottom: 24px; }
 .timesheet-kicker { display: block; font-size: 12px; font-weight: 750; letter-spacing: .09em; color: #737773; }
@@ -17909,7 +17911,7 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .timesheet-empty { background: #fff; border-radius: 24px; padding: 40px; font-size: 16px; color: #717768; }
 .week-timesheet-link { margin: 0 0 16px auto; width: fit-content; }
 @media (max-width: 760px) {
-  .main-stage-imputation .imputation-view { display: block !important; padding: 18px 16px 110px !important; }
+  .main-stage-imputation .imputation-view { display: block !important; padding: 18px 16px 110px !important; overflow-y: visible !important; }
   .timesheet-view { padding: 0; }
   .timesheet-header { gap: 16px; }
   .timesheet-navigation { width: 100%; gap: 5px; }
