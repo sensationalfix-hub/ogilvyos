@@ -1151,6 +1151,38 @@ export default function Home() {
     }
   }
 
+  function taskDateLabel(value: string | null | undefined) {
+    const day = dateOnly(value);
+    return day
+      ? new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "")
+      : "SIN FECHA";
+  }
+
+  function patchTaskLocal(id: string, changes: Partial<Task>) {
+    const patch = (task: Task): Task => {
+      if (task.id !== id) return task;
+      const next = { ...task, ...changes } as Task;
+      if ("dateStart" in changes && !("date" in changes)) next.date = taskDateLabel(next.dateStart);
+      return next;
+    };
+    setAllTasks((items) => items.map(patch));
+    setTasks((items) => items.map(patch));
+    setDetail((current) => {
+      if (!current || current.kind !== "task" || current.id !== id) return current;
+      const next = { ...current, ...changes } as Detail;
+      if ("dateStart" in changes && !("date" in changes) && next.kind === "task") next.date = taskDateLabel(next.dateStart);
+      return next;
+    });
+  }
+
+  function patchProjectLocal(id: string, changes: Partial<Project>) {
+    const patch = (project: Project): Project => project.id === id ? ({ ...project, ...changes } as Project) : project;
+    setProjects((items) => items.map(patch));
+    setSelectedProjectPage((current) => current?.id === id ? ({ ...current, ...changes } as Project) : current);
+    setDetail((current) => current?.kind === "project" && current.id === id ? ({ ...current, ...changes } as Detail) : current);
+  }
+
+
   async function moveTaskLane(id: string, lane: TaskLane) {
     if (!canEdit) return;
 
@@ -1158,16 +1190,13 @@ export default function Home() {
     if (!previous) return;
     const status = notionStatusForLane(lane);
     const workosLane = workosLaneForLane(lane);
-    const next = { ...previous, status, workosLane };
-    setTasks((items) => items.map((task) => task.id === id ? next : task));
-    setAllTasks((items) => items.map((task) => task.id === id ? next : task));
+    patchTaskLocal(id, { status, workosLane });
     setDragging(null);
     try {
       await syncNotion("task", id, { status, workosLane });
       toast.success(`Tarea movida a ${lane}`, { description: "Estado unificado y sincronizado con Notion." });
     } catch {
-      setTasks((items) => items.map((task) => task.id === id ? previous : task));
-      setAllTasks((items) => items.map((task) => task.id === id ? previous : task));
+      patchTaskLocal(id, previous);
       toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
   }
@@ -1176,16 +1205,14 @@ export default function Home() {
     if (!canEdit) return;
 
     const previous = allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id);
-    setAllTasks((items) => items.map((task) => task.id === id ? { ...task, status } : task));
-    setTasks((items) => items.map((task) => task.id === id ? { ...task, status } : task));
+    patchTaskLocal(id, { status });
     setDragging(null);
     try {
       await syncNotion("task", id, { status });
       toast.success(`Tarea movida a ${status}`, { description: "Sincronizado con Notion." });
     } catch {
       if (previous) {
-        setAllTasks((items) => items.map((task) => task.id === id ? previous : task));
-        setTasks((items) => items.map((task) => task.id === id ? previous : task));
+        patchTaskLocal(id, previous);
       }
       toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
@@ -1194,13 +1221,13 @@ export default function Home() {
     if (!canEdit) return;
 
     const previous = projects.find((project) => project.id === id);
-    setProjects((items) => items.map((project) => project.id === id ? { ...project, status } : project));
+    patchProjectLocal(id, { status });
     setDragging(null);
     try {
       await syncNotion("project", id, { status });
       toast.success(`Proyecto movido a ${status}`, { description: "Sincronizado con Notion." });
     } catch {
-      if (previous) setProjects((items) => items.map((project) => project.id === id ? previous : project));
+      if (previous) patchProjectLocal(id, previous);
       toast.error("Notion rechazó el cambio", { description: "Se ha restaurado el estado anterior." });
     }
   }
@@ -1210,15 +1237,12 @@ export default function Home() {
     const previous = allTasks.find((task) => task.id === taskId);
     if (!previous) return;
     const label = new Date(destinationDate + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
-    const next = { ...previous, dateStart: destinationDate, dateEnd: null, date: label };
-    setAllTasks((items) => items.map((task) => task.id === taskId ? next : task));
-    setTasks((items) => items.map((task) => task.id === taskId ? next : task));
+    patchTaskLocal(taskId, { dateStart: destinationDate, dateEnd: null, date: label });
     try {
       await syncNotion("task", taskId, { dateStart: destinationDate, dateEnd: null });
       toast.success("Tarea marcada como todo el día", { description: "Movida a la franja superior y guardada en Notion." });
     } catch {
-      setAllTasks((items) => items.map((task) => task.id === taskId ? previous : task));
-      setTasks((items) => items.map((task) => task.id === taskId ? previous : task));
+      patchTaskLocal(taskId, previous);
       toast.error("No se pudo marcar como todo el día");
     }
   }
@@ -1236,15 +1260,12 @@ export default function Home() {
     const dateStart = localPlannerIso(destinationDate, snappedStart);
     const dateEnd = localPlannerIso(destinationDate, snappedEnd);
     const label = new Date(destinationDate + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", "");
-    const next = { ...previous, dateStart, dateEnd, date: label };
-    setAllTasks((items) => items.map((task) => task.id === taskId ? next : task));
-    setTasks((items) => items.map((task) => task.id === taskId ? next : task));
+    patchTaskLocal(taskId, { dateStart, dateEnd, date: label });
     try {
       await syncNotion("task", taskId, { dateStart, dateEnd });
       toast.success("Horario actualizado", { description: `${plannerTimeLabel(snappedStart)}–${plannerTimeLabel(snappedEnd)} · guardado en Notion.` });
     } catch {
-      setAllTasks((items) => items.map((task) => task.id === taskId ? previous : task));
-      setTasks((items) => items.map((task) => task.id === taskId ? previous : task));
+      patchTaskLocal(taskId, previous);
       toast.error("No se pudo guardar el horario en Notion");
     }
   }
@@ -1266,8 +1287,7 @@ export default function Home() {
       else latestEnd = Math.min(PLANNER_END, Math.max(initialStart + 30, initialEnd + delta));
       const dateStart = localPlannerIso(dateOnly(task.dateStart) || isoDate(operationalWeekStart), latestStart);
       const dateEnd = localPlannerIso(dateOnly(task.dateStart) || isoDate(operationalWeekStart), latestEnd);
-      setAllTasks((items) => items.map((item) => item.id === task.id ? { ...item, dateStart, dateEnd } : item));
-      setTasks((items) => items.map((item) => item.id === task.id ? { ...item, dateStart, dateEnd } : item));
+      patchTaskLocal(task.id, { dateStart, dateEnd });
     };
 
     const up = async () => {
@@ -1280,8 +1300,7 @@ export default function Home() {
         await syncNotion("task", task.id, { dateStart, dateEnd });
         toast.success("Duración actualizada", { description: `${plannerTimeLabel(latestStart)}–${plannerTimeLabel(latestEnd)} · guardado en Notion.` });
       } catch {
-        setAllTasks((items) => items.map((item) => item.id === task.id ? task : item));
-        setTasks((items) => items.map((item) => item.id === task.id ? task : item));
+        patchTaskLocal(task.id, task);
         toast.error("No se pudo guardar la duración");
       }
     };
@@ -1299,20 +1318,19 @@ export default function Home() {
 
     if (kind === "task") {
       const previous = allTasks.find((task) => task.id === id);
-      if (!previous || previous.dateStart === destinationDate) return;
-      const label = new Date(destinationDate + "T00:00:00")
-        .toLocaleDateString("es-ES", { day: "2-digit", month: "short" })
-        .toUpperCase()
-        .replace(".", "");
-      const next = { ...previous, dateStart: destinationDate, date: label };
-      setAllTasks((items) => items.map((task) => task.id === id ? next : task));
-      setTasks((items) => items.map((task) => task.id === id ? next : task));
+      if (!previous || dateOnly(previous.dateStart) === destinationDate) return;
+      const label = taskDateLabel(destinationDate);
+      const timed = Boolean(previous.dateStart?.includes("T"));
+      const startMinutes = plannerMinutes(previous.dateStart);
+      const endMinutes = plannerMinutes(previous.dateEnd, startMinutes + 60);
+      const dateStart = timed ? localPlannerIso(destinationDate, startMinutes) : destinationDate;
+      const dateEnd = timed && previous.dateEnd ? localPlannerIso(destinationDate, endMinutes) : null;
+      patchTaskLocal(id, { dateStart, dateEnd, date: label });
       try {
-        await syncNotion("task", id, { dateStart: destinationDate });
+        await syncNotion("task", id, { dateStart, dateEnd });
         toast.success("Tarea reprogramada", { description: `Movida al ${label} en Notion.` });
       } catch {
-        setAllTasks((items) => items.map((task) => task.id === id ? previous : task));
-        setTasks((items) => items.map((task) => task.id === id ? previous : task));
+        patchTaskLocal(id, previous);
         toast.error("No se pudo cambiar la fecha en Notion");
       }
       return;
@@ -1324,7 +1342,7 @@ export default function Home() {
       const field = kind === "project-start" ? "timingStart" : "timingEnd";
       if (previous[field] === destinationDate) return;
       const next = { ...previous, [field]: destinationDate } as Project;
-      setProjects((items) => items.map((project) => project.id === id ? next : project));
+      patchProjectLocal(id, kind === "project-start" ? { timingStart: destinationDate, timing: next.timing } : { timingEnd: destinationDate, timing: next.timing });
       if (selectedProjectPage?.id === id) setSelectedProjectPage(next);
       try {
         await syncNotion("project", id, { [field]: destinationDate });
@@ -1332,7 +1350,7 @@ export default function Home() {
           description: "Fecha actualizada en Notion.",
         });
       } catch {
-        setProjects((items) => items.map((project) => project.id === id ? previous : project));
+        patchProjectLocal(id, previous);
         if (selectedProjectPage?.id === id) setSelectedProjectPage(previous);
         toast.error("No se pudo cambiar la fecha del proyecto en Notion");
       }
@@ -1360,20 +1378,18 @@ export default function Home() {
     if (!currentItem) return;
     const nextPeople = currentItem.people.includes(person) ? currentItem.people : [...currentItem.people.filter((name) => name !== "Por asignar"), person];
     if (kind === "task") {
-      setAllTasks((items) => items.map((task) => task.id === id ? { ...task, people: nextPeople } : task));
-      setTasks((items) => items.map((task) => task.id === id ? { ...task, people: nextPeople } : task));
+      patchTaskLocal(id, { people: nextPeople });
     }
-    else setProjects((items) => items.map((project) => project.id === id ? { ...project, people: nextPeople } : project));
+    else patchProjectLocal(id, { people: nextPeople });
     setDragging(null);
     try {
       await syncNotion(kind, id, { people: nextPeople });
       toast.success(`${person} asignado`, { description: "Relación actualizada en Notion." });
     } catch {
       if (kind === "task") {
-        setAllTasks((items) => items.map((task) => task.id === id ? { ...task, people: currentItem.people } : task));
-        setTasks((items) => items.map((task) => task.id === id ? { ...task, people: currentItem.people } : task));
+        patchTaskLocal(id, { people: currentItem.people });
       }
-      else setProjects((items) => items.map((project) => project.id === id ? { ...project, people: currentItem.people } : project));
+      else patchProjectLocal(id, { people: currentItem.people });
       toast.error("No se pudo asignar en Notion");
     }
   }
@@ -1385,20 +1401,18 @@ export default function Home() {
     const previous = kind === "task" ? (allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id)) : projects.find((project) => project.id === id);
     if (!previous) return;
     if (kind === "task") {
-      setAllTasks((items) => items.map((task) => task.id === id ? { ...task, account } : task));
-      setTasks((items) => items.map((task) => task.id === id ? { ...task, account } : task));
+      patchTaskLocal(id, { account });
     }
-    else setProjects((items) => items.map((project) => project.id === id ? { ...project, account } : project));
+    else patchProjectLocal(id, { account });
     setDragging(null);
     try {
       await syncNotion(kind, id, { account });
       toast.success(`Movido a ${account}`, { description: "Relación actualizada en Notion." });
     } catch {
       if (kind === "task") {
-        setAllTasks((items) => items.map((task) => task.id === id ? { ...task, account: previous.account } : task));
-        setTasks((items) => items.map((task) => task.id === id ? { ...task, account: previous.account } : task));
+        patchTaskLocal(id, { account: previous.account });
       }
-      else setProjects((items) => items.map((project) => project.id === id ? { ...project, account: previous.account } : project));
+      else patchProjectLocal(id, { account: previous.account });
       toast.error("No se pudo cambiar la cuenta en Notion");
     }
   }
@@ -1488,14 +1502,12 @@ export default function Home() {
     if (!selectedProjectPage) return;
     const previous = selectedProjectPage;
     const next = { ...selectedProjectPage, ...changes } as Project;
-    setSelectedProjectPage(next);
-    setProjects((items) => items.map((project) => project.id === next.id ? next : project));
+    patchProjectLocal(next.id, changes as Partial<Project>);
     try {
       await syncNotion("project", next.id, changes);
       toast.success("Proyecto actualizado", { description: "Guardado directamente en Notion." });
     } catch (error) {
-      setSelectedProjectPage(previous);
-      setProjects((items) => items.map((project) => project.id === previous.id ? previous : project));
+      patchProjectLocal(previous.id, previous);
       toast.error("No se pudo actualizar el proyecto");
     }
   }
@@ -1504,13 +1516,11 @@ export default function Home() {
     if (!canEdit) return;
 
     const next = { ...task, ...changes } as Task;
-    setAllTasks((items) => items.map((item) => item.id === task.id ? next : item));
-    setTasks((items) => items.map((item) => item.id === task.id ? next : item));
+    patchTaskLocal(task.id, changes as Partial<Task>);
     try {
       await syncNotion("task", task.id, changes);
     } catch {
-      setAllTasks((items) => items.map((item) => item.id === task.id ? task : item));
-      setTasks((items) => items.map((item) => item.id === task.id ? task : item));
+      patchTaskLocal(task.id, task);
       toast.error("No se pudo actualizar la tarea");
     }
   }
@@ -1567,8 +1577,8 @@ export default function Home() {
       const normalizedStatus = notionStatusForLane(lane);
       const normalizedWorkosLane = workosLaneForLane(lane);
       const nextTask: Task = { ...detail, id: detail.id, name: detail.name, status: normalizedStatus, workosLane: normalizedWorkosLane, priority: detail.priority, project: detail.project, account: detail.account, date: detail.date, dateStart: detail.dateStart, dateEnd: detail.dateEnd, people: detail.people, url: detail.url };
-      setAllTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
-      setTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
+      const previousTask = allTasks.find((task) => task.id === nextTask.id) ?? tasks.find((task) => task.id === nextTask.id);
+      patchTaskLocal(nextTask.id, nextTask);
       try {
         await syncNotion("task", detail.id, {
           name: detail.name,
@@ -1581,14 +1591,16 @@ export default function Home() {
           dateStart: detail.dateStart,
           dateEnd: detail.dateEnd,
         });
-        setAllTasks((items) => items.map((task) => task.id === nextTask.id ? nextTask : task));
+        patchTaskLocal(nextTask.id, nextTask);
         toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
       } catch {
+        if (previousTask) patchTaskLocal(previousTask.id, previousTask);
         toast.error("No se pudieron guardar los cambios en Notion");
       }
     } else {
       const nextProject: Project = { id: detail.id, name: detail.name, status: detail.status, account: detail.account, timing: detail.timing, timingStart: detail.timingStart, timingEnd: detail.timingEnd, type: detail.type, people: detail.people, priority: detail.priority, url: detail.url };
-      setProjects((items) => items.map((project) => project.id === nextProject.id ? nextProject : project));
+      const previousProject = projects.find((project) => project.id === nextProject.id);
+      patchProjectLocal(nextProject.id, nextProject);
       try {
         await syncNotion("project", detail.id, {
           name: detail.name,
@@ -1602,6 +1614,7 @@ export default function Home() {
         });
         toast.success("Cambios guardados", { description: "Datos y relaciones sincronizados con Notion." });
       } catch {
+        if (previousProject) patchProjectLocal(previousProject.id, previousProject);
         toast.error("No se pudieron guardar los cambios en Notion");
       }
     }
