@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 
 import { PageContent } from "@/components/workos/page-content";
+import { Timesheet } from "@/components/workos/timesheet";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader,
@@ -24,7 +25,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-type View = "dashboard" | "week" | "timeline" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "inbox" | "holidays";
+type View = "dashboard" | "week" | "imputation" | "timeline" | "calendar" | "accounts" | "projects" | "tasks" | "team" | "inbox" | "holidays";
 type Priority = string;
 type TaskStatus = string;
 type ProjectStatus = string;
@@ -98,6 +99,7 @@ type LiveState = {
     team: number; holidays: number; evaluations: number; ratedTasks?: number; ratedProjects?: number;
   };
   accounts: Account[]; projects: Project[]; tasks: Task[]; allTasks: Task[]; team: TeamPerson[]; holidays: Holiday[];
+  imputationProjects?: Project[]; imputationHolidays?: Holiday[];
 };
 
 const initialProjects: Project[] = [];
@@ -109,6 +111,7 @@ const fallbackHolidays: Holiday[] = [];
 const navigation = [
   { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { value: "week", label: "Mi semana", icon: CalendarDays },
+  { value: "imputation", label: "Imputación", icon: Clock3 },
   { value: "calendar", label: "Calendario", icon: CalendarRange },
   { value: "accounts", label: "Cuentas", icon: BriefcaseBusiness },
   { value: "projects", label: "Proyectos", icon: FolderKanban },
@@ -122,6 +125,7 @@ const navigation = [
 const viewCopy: Record<View, { eyebrow: string; title: string; description: string }> = {
   dashboard: { eyebrow: "HOY · NOTION LIVE", title: "Todo bajo control. Más o menos.", description: "El pulso real de cuentas, equipo y fechas sin bucear por seis bases de datos." },
   week: { eyebrow: "FOCO · ESTA SEMANA", title: "Mi semana", description: "Entregas, hitos, ausencias y carga crítica. Lo que merece atención antes de que sea tarde." },
+  imputation: { eyebrow: "DEDICACIÓN SEMANAL", title: "Imputación", description: "Horas por cuenta y oficina." },
   timeline: { eyebrow: "MAPA TEMPORAL", title: "Timeline", description: "Todo lo activo colocado en el tiempo sin obligarte a viajar horizontalmente hasta noviembre." },
   calendar: { eyebrow: "AGENDA MAESTRA", title: "Calendario", description: "Entregas, presentaciones y ausencias ordenadas en el tiempo. Por fin, septiembre con subtítulos." },
   accounts: { eyebrow: "VISIÓN MACRO", title: "Cuentas", description: "Prioridad, volumen y temperatura creativa en una sola vista." },
@@ -324,9 +328,10 @@ export default function Home() {
   const canEdit = sessionRole === "editor";
   const displaySessionName = sessionRole === "employee" && sessionEmployeeName ? sessionEmployeeName : sessionName;
   const displaySessionInitials = sessionRole === "employee" && sessionEmployeeName ? initials(sessionEmployeeName) : sessionInitials;
+  const roleNavigation = navigation.filter((item) => item.value !== "imputation" || canEdit);
   const visibleNavigation = sessionRole === "employee"
-    ? navigation.filter((item) => item.value !== "team" && item.value !== "holidays")
-    : navigation;
+    ? roleNavigation.filter((item) => item.value !== "team" && item.value !== "holidays")
+    : roleNavigation;
   const weekPlannerScrollRef = useRef<HTMLDivElement | null>(null);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [allTasks, setAllTasks] = useState<Task[]>(initialTasks);
@@ -334,6 +339,8 @@ export default function Home() {
   const [accounts, setAccounts] = useState<Account[]>(fallbackAccounts);
   const [team, setTeam] = useState<TeamPerson[]>(fallbackTeam);
   const [holidays, setHolidays] = useState<Holiday[]>(fallbackHolidays);
+  const [imputationProjects, setImputationProjects] = useState<Project[]>(initialProjects);
+  const [imputationHolidays, setImputationHolidays] = useState<Holiday[]>(fallbackHolidays);
   const [holidayFilter, setHolidayFilter] = useState<"Todas" | "Vacaciones" | "Extras" | "Semana Santa" | "Navidad">("Todas");
   const [boardPresence, setBoardPresence] = useState<BoardPresence[]>([]);
   const [boardAnnouncements, setBoardAnnouncements] = useState<BoardAnnouncement[]>([]);
@@ -462,6 +469,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (sessionRole !== "editor" && activeView === "imputation") setActiveView("dashboard");
     if (sessionRole === "employee" && (activeView === "team" || activeView === "holidays")) {
       setActiveView("dashboard");
     }
@@ -670,6 +678,8 @@ export default function Home() {
         setAllTasks(hydratedTasks);
         setTeam(state.team);
         setHolidays(state.holidays);
+        setImputationProjects(state.imputationProjects || state.projects);
+        setImputationHolidays(state.imputationHolidays || state.holidays);
         setLiveCounts(state.counts);
         setDataState("live");
       })
@@ -1833,6 +1843,8 @@ export default function Home() {
         <div className="page-heading"><span>{current.eyebrow}</span><h1>{current.title}</h1><p>{current.description}</p></div>
       </header>
 
+      {canEdit && <TabsContent value="imputation" className="view-content imputation-view"><Timesheet projects={[...projects, ...imputationProjects.filter(project => !projects.some(current => current.id === project.id)).map(project => ({ ...project, status: "Terminado" }))]} tasks={allTasks.map(task => ({ ...task, workosLane: taskLane(task) }))} holidays={imputationHolidays} personName={displaySessionName} dataState={dataState} /></TabsContent>}
+
       <TabsContent value="dashboard" className="view-content dashboard-view">
         <section className="mobile-only mobile-dashboard">
           <article className="mobile-today-card">
@@ -2048,6 +2060,7 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="week" className="view-content week-view">
+        {canEdit && <button type="button" className="week-timesheet-link" onClick={() => setActiveView("imputation")}><Clock3 />Imputación semanal</button>}
         <section className="mobile-only mobile-agenda">
           <header className="mobile-screen-head">
             <span>AGENDA</span>

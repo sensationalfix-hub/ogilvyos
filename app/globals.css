@@ -17848,3 +17848,84 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .task-lane-backlog .column-head {
   background: rgba(17,21,18,.035) !important;
 }
+
+/* Weekly dedication — isolated from planner and task styles. */
+.main-stage-imputation .topbar { display: none !important; }
+.timesheet-view { color: #171917; padding: 10px 0 32px; }
+.timesheet-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; margin-bottom: 24px; }
+.timesheet-kicker { display: block; font-size: 12px; font-weight: 750; letter-spacing: .09em; color: #737773; }
+.timesheet-header h2 { font-size: clamp(30px, 3vw, 44px); font-weight: 650; letter-spacing: -.045em; margin: 5px 0; }
+.timesheet-header p { font-size: 14px; color: #707570; margin: 0; }
+.timesheet-view button, .week-timesheet-link { border: 1px solid #e1e3de; background: #fff; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; display: inline-flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer; transition: background .16s, color .16s; }
+.timesheet-view button:hover, .week-timesheet-link:hover { background: #181b18; color: #fff; border-color: #181b18; }
+.timesheet-view button:disabled { opacity: .45; cursor: default; }
+.timesheet-view button:focus-visible, .timesheet-view select:focus-visible, .timesheet-view input:focus-visible, .timesheet-view summary:focus-visible { outline: 2px solid #737c19; outline-offset: 3px; }
+.timesheet-view button svg, .week-timesheet-link svg { width: 16px; height: 16px; }
+.timesheet-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.timesheet-navigation strong { font-size: 14px; padding: 0 10px; min-width: 205px; text-align: center; }
+.timesheet-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.timesheet-stat { border-radius: 24px; padding: 24px; background: #fff; border: 1px solid #e6e8e2; }
+.timesheet-stat.featured { background: #e8ee9b; border-color: #e8ee9b; }
+.timesheet-stat > div { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; letter-spacing: .07em; }
+.timesheet-stat svg { width: 20px; height: 20px; }
+.timesheet-stat > strong { display: block; font-size: 54px; letter-spacing: -.06em; font-weight: 600; line-height: 1.15; margin: 18px 0 10px; }
+.timesheet-stat > strong small { font-size: 22px; margin-left: 5px; letter-spacing: 0; font-weight: 450; }
+.timesheet-stat p { margin: 0; color: #656a60; font-size: 14px; }
+.timesheet-sheet { background: #fff; border: 1px solid #e5e7e0; border-radius: 24px; overflow: hidden; }
+.timesheet-sheet-head { padding: 24px; display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 16px; }
+.timesheet-sheet-head h3 { font-size: 24px; letter-spacing: -.025em; margin: 5px 0 0; }
+.timesheet-actions { display: flex; gap: 8px; }
+.timesheet-actions .timesheet-copy { background: #171917; color: #fff; border-color: #171917; }
+.timesheet-actions .timesheet-copy:hover { background: #e8ee9b; color: #171917; border-color: #e8ee9b; }
+.timesheet-table-scroll { overflow-x: auto; }
+.timesheet-table { border-collapse: collapse; width: 100%; min-width: 770px; table-layout: fixed; }
+.timesheet-table th, .timesheet-table td { padding: 17px 10px; border-top: 1px solid #e9ebe5; text-align: center; font-size: 16px; font-weight: 500; }
+.timesheet-table th:first-child { width: 27%; text-align: left; padding-left: 24px; }
+.timesheet-table thead th { background: #f7f8f4; font-size: 14px; }
+.timesheet-table thead th > span { display: block; text-transform: uppercase; font-size: 12px; color: #787e72; margin-bottom: 5px; }
+.timesheet-table thead th > strong { display: block; font-size: 17px; font-weight: 650; }
+.timesheet-day-toggle { display: flex; flex-direction: column; gap: 4px; align-items: center; margin-top: 9px; cursor: pointer; }
+.timesheet-day-toggle input { width: 14px; height: 14px; accent-color: #171917; cursor: pointer; }
+.timesheet-day-toggle small { font-size: 12px; color: #73786e; line-height: 1.2; }
+.timesheet-table tbody th > strong { display: block; font-size: 16px; font-weight: 650; overflow-wrap: anywhere; }
+.timesheet-table tbody th > small { display: block; margin-top: 5px; font-size: 12px; color: #82877d; font-weight: 400; }
+.timesheet-table details { margin-top: 8px; font-size: 12px; }
+.timesheet-table summary { width: fit-content; cursor: pointer; color: #777d70; }
+.timesheet-table details div { display: grid; gap: 5px; margin-top: 8px; color: #6b7165; font-weight: 400; overflow-wrap: anywhere; }
+.timesheet-table select { background: #f3f5ee; border: 1px solid transparent; color: #171917; border-radius: 10px; padding: 9px 6px; min-width: 64px; font-size: 18px; font-weight: 600; text-align: center; cursor: pointer; }
+.timesheet-table select:hover { background: #e8ee9b; }
+.timesheet-table select:disabled { opacity: 1; appearance: none; cursor: default; }
+.timesheet-table td.off { background: #fafbf8; color: #a7ab9f; }
+.timesheet-row-total { font-size: 20px !important; font-weight: 650 !important; }
+.timesheet-table td small { margin-left: 3px; font-size: 12px; font-weight: 400; }
+.timesheet-office-row { background: #fafbf7; }
+.timesheet-table tfoot th, .timesheet-table tfoot td { background: #171917; color: #fff; font-size: 20px; font-weight: 650; padding-top: 19px; padding-bottom: 19px; }
+.timesheet-table .pending th { color: #88610d; }
+.timesheet-sheet-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 16px 24px; font-size: 12px; color: #7a8073; }
+.timesheet-explanation { max-width: 850px; font-size: 14px; line-height: 1.55; color: #747a6c; margin: 20px 4px 0; }
+.timesheet-warning, .timesheet-notice { margin: 0; padding: 16px 24px; background: #f5f2dd; font-size: 14px; line-height: 1.5; }
+.timesheet-notice { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.timesheet-notice span { flex: 1 1 300px; }
+.timesheet-empty { background: #fff; border-radius: 24px; padding: 40px; font-size: 16px; color: #717768; }
+.week-timesheet-link { margin: 0 0 16px auto; width: fit-content; }
+@media (max-width: 760px) {
+  .main-stage-imputation .imputation-view { display: block !important; padding: 18px 16px 110px !important; }
+  .timesheet-view { padding: 0; }
+  .timesheet-header { gap: 16px; }
+  .timesheet-navigation { width: 100%; gap: 5px; }
+  .timesheet-navigation strong { min-width: 0; flex: 1; padding: 0 2px; font-size: 13px; }
+  .timesheet-current { width: 100%; margin-top: 4px; }
+  .timesheet-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .timesheet-stat { padding: 14px 10px; border-radius: 18px; }
+  .timesheet-stat > div { font-size: 10px; letter-spacing: .03em; }
+  .timesheet-stat svg { display: none; }
+  .timesheet-stat > strong { font-size: 34px; margin: 12px 0 8px; }
+  .timesheet-stat > strong small { font-size: 15px; }
+  .timesheet-stat p { font-size: 12px; line-height: 1.35; }
+  .timesheet-sheet-head { padding: 18px; }
+  .timesheet-sheet-head h3 { font-size: 22px; }
+  .timesheet-actions { width: 100%; }
+  .timesheet-actions button { flex: 1; padding: 10px; }
+  .timesheet-sheet-foot { padding: 16px 18px; }
+  .week-timesheet-link { display: flex !important; margin: 0 0 14px auto; }
+}

@@ -518,6 +518,7 @@ export async function GET(request: Request) {
       allTasks: tasks,
       team,
       holidays,
+      ...(identity.role === "editor" ? { imputationProjects: projects, imputationHolidays: allHolidayRows.filter(holiday => holiday.start && holiday.end) } : {}),
     }, {
       headers: { "Cache-Control": "private, no-store, max-age=0" },
     });
