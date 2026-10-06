@@ -18320,11 +18320,121 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 }
 .project-intelligence-empty svg { width: 15px; height: 15px; flex: 0 0 auto; }
 
+
+.life-week-plan {
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid rgba(20,24,21,.08);
+  border-radius: 22px;
+  background: #f4f5ef;
+}
+.life-week-plan-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+.life-week-plan-head > div { display: flex; flex-direction: column; gap: 5px; }
+.life-week-plan-head span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.life-week-plan-head span svg { width: 13px; height: 13px; }
+.life-week-plan-head h2 { margin: 0; font-size: 18px; letter-spacing: -.025em; }
+.life-week-plan-head > small { max-width: 320px; color: #7f857f; font-size: 9px; text-align: right; }
+.life-week-plan-list { display: grid; gap: 7px; }
+.life-week-plan-list article {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(20,24,21,.06);
+}
+.life-week-plan-task {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.life-week-plan-score {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #171a18;
+  color: #e2ef5b;
+  font-size: 12px;
+  font-weight: 900;
+}
+.life-week-plan-task div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.life-week-plan-task strong,
+.life-week-plan-task small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.life-week-plan-task strong { font-size: 11px; color: #171a18; }
+.life-week-plan-task small { color: #858b85; font-size: 8px; }
+.life-week-plan-slot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #4f5751;
+  font-size: 9px;
+  font-weight: 800;
+}
+.life-week-plan-slot svg { width: 14px; height: 14px; color: #7d857f; }
+.life-week-plan-apply {
+  min-height: 34px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 10px;
+  background: #171a18;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.life-week-plan-apply:hover { background: #262b27; }
+.life-week-plan-apply svg { width: 12px; height: 12px; }
+.life-week-plan-empty {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.62);
+  color: #6f766f;
+  font-size: 10px;
+}
+.life-week-plan-empty svg { width: 15px; height: 15px; }
+
 @media (max-width: 1180px) {
   .life-intelligence-grid { grid-template-columns: 1.2fr 1fr; }
   .life-risk-card { grid-column: 1 / -1; }
 }
 @media (max-width: 760px) {
   .life-intelligence-grid { display: none; }
+  .life-week-plan { display: none; }
   .smart-capture-preview { padding: 12px; }
 }
