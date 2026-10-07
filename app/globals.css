@@ -18088,3 +18088,45 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
     display: none;
   }
 }
+
+
+/* === Accounts: keep inactive accounts visible =========================== */
+.account-card-redesign.is-inactive {
+  background: #f1f2ef !important;
+  box-shadow: 0 8px 20px rgba(34,43,36,.035) !important;
+}
+
+.account-card-redesign.is-inactive .account-micro-accent {
+  background: #aeb4ad !important;
+}
+
+.account-card-redesign.is-inactive .account-card-center > p,
+.account-card-redesign.is-inactive .account-next-hit,
+.account-card-redesign.is-inactive .account-project-chips,
+.account-card-redesign.is-inactive .account-metrics {
+  opacity: .58;
+}
+
+.account-card-redesign .account-priority.is-inactive {
+  background: #e2e5e0 !important;
+  color: #7d857d !important;
+  letter-spacing: .08em !important;
+}
+
+.account-card-redesign.is-inactive:hover {
+  background: #262b27 !important;
+}
+
+.account-card-redesign.is-inactive:hover .account-priority.is-inactive {
+  background: rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.68) !important;
+}
+
+.mobile-account-card.is-inactive {
+  background: #f0f2ee !important;
+}
+
+.mobile-account-card.is-inactive .mobile-account-next,
+.mobile-account-card.is-inactive .mobile-account-metrics {
+  opacity: .62;
+}
