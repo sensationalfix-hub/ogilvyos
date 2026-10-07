@@ -17978,3 +17978,113 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .planner-all-day-chip.task.is-completed:hover {
   opacity: .68 !important;
 }
+
+
+/* === Work / Life mode lockup ============================================ */
+.brand-mode-control {
+  width: 142px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 7px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-mode-wordmark {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.brand-mode-control .brand-logo {
+  width: 100%;
+  max-width: 92px;
+  height: auto;
+}
+
+.life-wordmark {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+  color: #111511;
+  font-family: Impact, "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-size: 39px;
+  line-height: .9;
+  letter-spacing: -.055em;
+  transform: scaleX(.72);
+  transform-origin: left center;
+  white-space: nowrap;
+}
+
+.life-wordmark sup {
+  margin-left: 4px;
+  padding: 3px 5px;
+  border-radius: 99px;
+  background: #e7ff3f;
+  color: #111511;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: 0;
+  transform: scaleX(1.38);
+  transform-origin: left top;
+}
+
+.brand-mode-switch {
+  width: 48px;
+  height: auto;
+  overflow: visible;
+}
+
+.brand-mode-track {
+  fill: #e7ff3f;
+  stroke: #d8e835;
+  stroke-width: 1;
+}
+
+.brand-mode-label {
+  fill: #4e564e;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 8px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.brand-mode-knob {
+  fill: #151915;
+  transition: cx .22s cubic-bezier(.2,.7,.2,1);
+}
+
+.brand-mode-control:hover .brand-mode-knob {
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.18));
+}
+
+.sidebar-shell .brand-mode-control {
+  color: #f7f9f8;
+}
+
+.sidebar-shell .brand-mode-control .life-wordmark {
+  color: #f7f9f8;
+}
+
+@media (max-width: 1050px) {
+  .brand-mode-control {
+    width: 52px;
+    grid-template-columns: 1fr;
+  }
+
+  .brand-mode-wordmark {
+    display: none;
+  }
+
+  .brand-mode-switch {
+    width: 48px;
+  }
+}
+
+@media (max-width: 760px) {
+  .brand-mode-control {
+    display: none;
+  }
+}
