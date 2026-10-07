@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   Activity,
   Bike,
@@ -265,7 +265,7 @@ export default function LifePage() {
                       <button
                         key={area.id}
                         className={styles.areaCard}
-                        style={{ "--area-accent": area.accent || "#e7ff3f" } as React.CSSProperties}
+                        style={{ "--area-accent": area.accent || "#e7ff3f" } as CSSProperties}
                         onClick={() => setSection("areas")}
                       >
                         <span className={styles.areaIcon}><AreaIcon name={area.icon} /></span>
@@ -329,7 +329,7 @@ export default function LifePage() {
             <div className={styles.sectionTitle}><span>ESTRUCTURA</span><h2>Áreas de tu vida</h2><p>Son contextos estables. Los proyectos empiezan y terminan; las áreas siguen ahí molestando con admirable constancia.</p></div>
             <div className={styles.areaGridLarge}>
               {(data?.areas || []).map((area) => (
-                <article key={area.id} style={{ "--area-accent": area.accent || "#e7ff3f" } as React.CSSProperties}>
+                <article key={area.id} style={{ "--area-accent": area.accent || "#e7ff3f" } as CSSProperties}>
                   <span><AreaIcon name={area.icon} /></span>
                   <strong>{area.name}</strong>
                   <small>{(data?.projects || []).filter((item) => item.area_id === area.id).length} proyectos · {(data?.tasks || []).filter((item) => item.area_id === area.id).length} tareas</small>
