@@ -788,7 +788,8 @@ export default function Home() {
   }, [dashboardTasks]);
   const accountViewStats = useMemo(() => {
     const now = Date.now();
-    const items = accounts.map((account) => {
+    const accountSource = accountOptions.length ? accountOptions : accounts;
+    const items = accountSource.map((account) => {
       const accountProjects = projects.filter((project) => project.account === account.name);
       const accountTasks = allTasks.filter((task) => task.account === account.name);
       const activeProjects = accountProjects.filter((project) => {
@@ -811,12 +812,13 @@ export default function Home() {
         activityScore: activeProjects.length * 3 + activeTasks.length + (account.activity ?? 0),
       };
     });
-    const totalProjects = items.reduce((sum,item) => sum + item.activeProjects,0);
-    const totalTasks = items.reduce((sum,item) => sum + item.activeTasks,0);
-    const highPriority = items.filter((item) => item.priority.trim().toLocaleLowerCase("es") === "alta").length;
-    const moving = [...items].sort((a,b) => b.activityScore - a.activityScore).slice(0,3);
-    return { items, totalProjects, totalTasks, highPriority, moving };
-  }, [accounts, projects, allTasks]);
+    const activeItems = items.filter((item) => item.status === "Activa");
+    const totalProjects = activeItems.reduce((sum,item) => sum + item.activeProjects,0);
+    const totalTasks = activeItems.reduce((sum,item) => sum + item.activeTasks,0);
+    const highPriority = activeItems.filter((item) => item.priority.trim().toLocaleLowerCase("es") === "alta").length;
+    const moving = [...activeItems].sort((a,b) => b.activityScore - a.activityScore).slice(0,3);
+    return { items, activeItems, totalProjects, totalTasks, highPriority, moving };
+  }, [accountOptions, accounts, projects, allTasks]);
 
   const taskViewStats = useMemo(() => {
     const now = Date.now();
@@ -2516,10 +2518,10 @@ export default function Home() {
 
       <TabsContent value="accounts" className="view-content accounts-view">
         <section className="mobile-only mobile-accounts">
-          <header className="mobile-screen-head"><span>CUENTAS</span><h1>Vista macro</h1><p>{accountViewStats.items.length} cuentas activas</p></header>
+          <header className="mobile-screen-head"><span>CUENTAS</span><h1>Vista macro</h1><p>{accountViewStats.items.length} cuentas · {accountViewStats.activeItems.length} activas</p></header>
           <div className="mobile-card-carousel mobile-account-carousel">
-            {accountViewStats.items.map((account)=><button key={account.name} className="mobile-account-card" onClick={()=>setSelectedAccount(account)}>
-              <div className="mobile-card-kicker"><span>{account.contract || "CUENTA"}</span><i style={{background:account.color}} /></div>
+            {accountViewStats.items.map((account)=><button key={account.name} className={`mobile-account-card ${account.status === "Activa" ? "" : "is-inactive"}`} onClick={()=>setSelectedAccount(account)}>
+              <div className="mobile-card-kicker"><span>{account.status === "Activa" ? (account.contract || "CUENTA") : "INACTIVA"}</span><i style={{background:account.color}} /></div>
               <strong>{account.name}</strong>
               <small>{account.activeProjects} proyectos activos · {account.activeTasks} tareas abiertas</small>
               <div className="mobile-account-next"><span>PRÓXIMO</span><b>{account.nextDeadline?.name || "Nada al horizonte"}</b><small>{account.nextDeadline?.date || "Sin fecha próxima"}</small></div>
@@ -2576,7 +2578,7 @@ export default function Home() {
             <div className="accounts-attention-next">
               <span>PRÓXIMA ENTREGA</span>
               {(() => {
-                const next = accountViewStats.items.flatMap((account) => account.nextDeadline ? [{ account: account.name, task: account.nextDeadline }] : [])
+                const next = accountViewStats.activeItems.flatMap((account) => account.nextDeadline ? [{ account: account.name, task: account.nextDeadline }] : [])
                   .sort((a,b) => new Date(a.task.dateStart || 0).getTime() - new Date(b.task.dateStart || 0).getTime())[0];
                 return next ? <><strong>{next.task.name}</strong><small>{next.account} · {next.task.date}</small></> : <><strong>Sin urgencias</strong><small>No hay fechas próximas</small></>;
               })()}
@@ -2589,7 +2591,7 @@ export default function Home() {
             const accountProjects = projects.filter((project) => project.account === account.name).slice(0, 3);
             return <article
               key={account.name}
-              className={`account-card account-card-redesign ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`}
+              className={`account-card account-card-redesign ${account.status === "Activa" ? "" : "is-inactive"} ${dragging?.startsWith("task") || dragging?.startsWith("project") ? "is-drop-ready" : ""}`}
               style={{ "--account-color": account.color } as React.CSSProperties}
               onClick={() => setSelectedAccount(account)}
               onKeyDown={(event) => {
@@ -2606,7 +2608,7 @@ export default function Home() {
               <div className="account-card-meta">
                 <span className="account-micro-accent" />
                 <span className="account-contract">{account.contract || "CUENTA"}</span>
-                <span className="account-priority">{account.priority}</span>
+                <span className={`account-priority ${account.status === "Activa" ? "" : "is-inactive"}`}>{account.status === "Activa" ? account.priority : "Inactiva"}</span>
               </div>
 
               <div className="account-card-center">
