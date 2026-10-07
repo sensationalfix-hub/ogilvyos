@@ -60,5 +60,6 @@ export const config = {
     "/calendar/:path*",
     "/holidays/:path*",
     "/admin/:path*",
+    "/life/:path*",
   ],
 };

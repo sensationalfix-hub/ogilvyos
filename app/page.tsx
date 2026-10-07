@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ModeLogo } from "@/components/os/mode-logo";
 import { PageContent } from "@/components/workos/page-content";
 import { Timesheet } from "@/components/workos/timesheet";
 import { Button } from "@/components/ui/button";
@@ -1713,7 +1714,7 @@ export default function Home() {
     }}
   >
     <aside className="sidebar-shell">
-      <div className="brand-lockup"><img src="/workos.svg" alt="WorkOS" className="brand-logo" /></div>
+      <div className="brand-lockup"><ModeLogo mode="work" href="/life" /></div>
       <div className="nav-section-label"><span>ESPACIOS</span><small>{visibleNavigation.length} vistas</small></div>
       {canEdit && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
