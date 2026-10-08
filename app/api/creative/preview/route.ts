@@ -3,12 +3,12 @@ import { requestIdentity } from "@/app/lib/workos-auth";
 
 export const runtime = "nodejs";
 
-type Preview = { image: string; title: string; site: string; kind: "video" | "image" };
+type Preview = { image: string; title: string; site: string; kind: "video" | "image" | "audio" };
 const TRUSTED = [
   "vimeo.com", "pinterest.com", "pinterest.es", "pinterest.co.uk", "pinterest.fr",
   "pinterest.de", "pinterest.it", "pin.it", "unsplash.com", "pexels.com",
   "pixabay.com", "flickr.com", "behance.net", "artstation.com", "dribbble.com",
-  "500px.com", "deviantart.com",
+  "500px.com", "deviantart.com", "open.spotify.com", "spotify.link",
 ];
 const cache = new Map<string, { value: Preview | null; expires: number }>();
 const MAX_HTML_BYTES = 400_000;
@@ -108,6 +108,42 @@ async function limitedHtml(page: URL): Promise<{ html: string; url: URL } | null
 
 async function resolvePreview(url: URL): Promise<Preview | null> {
   const host = url.hostname.toLowerCase();
+  if (host === "open.spotify.com" || host === "spotify.link") {
+    try {
+      // Official Spotify oEmbed returns track/album artwork without API credentials.
+      // Short spotify.link shares are resolved using the same redirect-safe reader below.
+      const resolved = host === "spotify.link" ? await limitedHtml(url).catch(() => null) : null;
+      const target = resolved?.url || url;
+      if (target.hostname.toLowerCase() === "open.spotify.com") {
+        const oembed = new URL("https://open.spotify.com/oembed");
+        oembed.searchParams.set("url", target.href);
+        const response = await fetch(oembed, {
+          signal: AbortSignal.timeout(6500),
+          redirect: "error",
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+        if (response.ok) {
+          const data: { title?: string; thumbnail_url?: string; provider_name?: string } = await response.json();
+          const image = publicImage(data.thumbnail_url, target);
+          if (image) return {
+            image,
+            title: String(data.title || "Música en Spotify").slice(0, 180),
+            site: "Spotify",
+            kind: "audio",
+          };
+        }
+      }
+      // If oEmbed isn't available, Spotify's public OpenGraph cover is a fallback.
+      const page = resolved || await limitedHtml(target).catch(() => null);
+      if (page) {
+        const meta = readMeta(page.html);
+        const image = publicImage(meta.image, page.url);
+        if (image) return { image, title: meta.title.slice(0, 180), site: "Spotify", kind: "audio" };
+      }
+    } catch { /* Spotify can reject private or restricted tracks */ }
+    return null;
+  }
   if (host === "vimeo.com" || host.endsWith(".vimeo.com")) {
     try {
       const oembed = new URL("https://vimeo.com/api/oembed.json");
