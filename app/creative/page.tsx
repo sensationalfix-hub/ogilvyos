@@ -298,9 +298,9 @@ export default function CreativeLab(){
   .cl-drag-indicator{display:inline-flex;align-items:center;gap:3px;padding:5px 6px 5px 3px;border-radius:8px;border:1px solid rgba(36,49,39,.11);background:rgba(255,255,255,.33);color:#35413a;font:850 9px/1 var(--font-sans,Inter,system-ui,sans-serif);letter-spacing:.07em;opacity:.62;transition:background .24s ease,opacity .24s ease,transform .24s ease;white-space:nowrap;pointer-events:none}
   .cl-card:hover .cl-drag-indicator,.cl-card.is-dragging .cl-drag-indicator{opacity:1;background:rgba(255,255,255,.82);transform:translateY(-1px)}
   .cl-card.is-dragging .cl-drag-indicator{background:#dafa9b;color:#1e2d1d}
-  .cl-card h3,.cl-card:has(.cl-media-cover) .cl-card-body h3{font-family:"Arial Narrow","SF Pro Display",Inter,ui-sans-serif,sans-serif;font-weight:900;font-synthesis:weight;letter-spacing:-.055em;line-height:1.1}
-  .cl-card h3{font-size:19px}
-  .cl-card:has(.cl-media-cover) .cl-card-body h3{font-size:19px;font-weight:900;letter-spacing:-.055em;line-height:1.1}
+  .cl-card h3,.cl-card:has(.cl-media-cover) .cl-card-body h3{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-stretch:normal;font-weight:800;letter-spacing:-.022em;line-height:1.16}
+  .cl-card h3{font-size:18px}
+  .cl-card:has(.cl-media-cover) .cl-card-body h3{font-size:18px;font-weight:800;letter-spacing:-.022em;line-height:1.16}
   .cl-card:has(.cl-media-cover) .cl-drag-indicator{position:absolute;top:36px;left:12px;z-index:3;background:rgba(12,20,15,.36);border-color:rgba(255,255,255,.26);color:#fff;opacity:.82;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
   .cl-card:has(.cl-media-cover):hover .cl-drag-indicator{background:rgba(12,20,15,.62);opacity:1}
   .cl-card:has(.cl-media-cover).is-dragging .cl-drag-indicator{background:#b7ff4a;color:#1c291c;border-color:#b7ff4a}
