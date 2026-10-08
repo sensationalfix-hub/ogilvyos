@@ -6,16 +6,18 @@ type Board = { id: string; title: string; project_id: string | null; nodes: unkn
 const validArray = (v: unknown) => Array.isArray(v) && v.length <= 400 && JSON.stringify(v).length < 300000;
 
 export async function GET(request: Request) {
- const session = await lifeSession(request);
- if (!session) return NextResponse.json({error:"Inicia sesión con tu cuenta de WorkOS para utilizar Creative Lab."},{status:401});
+ let session;
+ try { session = await lifeSession(request); } catch (error) { console.error("Creative Lab session error", error); return NextResponse.json({error:"No se ha podido comprobar la sesión de Supabase. Vuelve a iniciar sesión con tu correo."},{status:503}); }
+ if (!session) return NextResponse.json({error:"Creative Lab requiere iniciar sesión con tu correo y contraseña de Supabase, no con la contraseña general de WorkOS."},{status:401});
  try {
   const boards = await lifeSelect<Board>(session.accessToken,"creative_boards","select=id,title,project_id,nodes,edges,updated_at&order=updated_at.desc");
   return NextResponse.json({boards});
  } catch(e) { return NextResponse.json({error:String(e)},{status:500}); }
 }
 export async function POST(request: Request) {
- const session = await lifeSession(request);
- if (!session) return NextResponse.json({error:"Sin autorización"},{status:401});
+ let session;
+ try { session = await lifeSession(request); } catch { return NextResponse.json({error:"Error de sesión de Supabase"},{status:503}); }
+ if (!session) return NextResponse.json({error:"Inicia sesión con correo para guardar mapas."},{status:401});
  const body = await request.json().catch(()=>({}));
  const title = typeof body.title==="string" ? body.title.trim().slice(0,120) : "Nuevo mapa";
  try {
@@ -24,8 +26,9 @@ export async function POST(request: Request) {
  } catch(e){return NextResponse.json({error:String(e)},{status:500});}
 }
 export async function PATCH(request: Request) {
- const session = await lifeSession(request);
- if (!session) return NextResponse.json({error:"Sin autorización"},{status:401});
+ let session;
+ try { session = await lifeSession(request); } catch { return NextResponse.json({error:"Error de sesión de Supabase"},{status:503}); }
+ if (!session) return NextResponse.json({error:"Inicia sesión con correo para guardar mapas."},{status:401});
  const body = await request.json().catch(()=>({}));
  if (!/^[0-9a-f-]{36}$/i.test(String(body.id||"")) || !validArray(body.nodes) || !validArray(body.edges)) return NextResponse.json({error:"Mapa no válido"},{status:400});
  const payload={nodes:body.nodes,edges:body.edges,title:typeof body.title==="string"?body.title.slice(0,120):"Mapa",project_id:typeof body.project_id==="string"?body.project_id.slice(0,160):null,updated_at:new Date().toISOString()};
