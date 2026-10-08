@@ -1788,6 +1788,7 @@ export default function Home() {
       <TabsList className="nav-list desktop-nav-list" variant="line" aria-label="Navegación principal">
         {visibleNavigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
+      {canEdit && <a href="/creative" className="sidebar-admin-link"><Sparkles /><span>Creative Lab</span></a>}
       {canEdit && <a href="/admin/access" className="sidebar-admin-link"><KeyRound /><span>Gestionar accesos</span></a>}
       <nav className="mobile-app-nav" aria-label="Navegación móvil">
         <button className={activeView === "week" ? "active" : ""} onClick={() => setActiveView("week")}><CalendarDays /><span>Agenda</span></button>
