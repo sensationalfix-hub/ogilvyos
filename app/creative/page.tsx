@@ -347,11 +347,12 @@ export default function CreativeLab(){
   .cl-card-body::-webkit-scrollbar-thumb{background:rgba(45,61,47,.26);border-radius:9px}
   .cl-card-body p{display:block;overflow:visible;-webkit-line-clamp:unset;-webkit-box-orient:initial;white-space:pre-wrap}
   .cl-card:has(.cl-media-cover) .cl-card-body{height:auto;max-height:calc(100% - 51px);overflow-y:auto;overscroll-behavior:contain;padding-bottom:18px;touch-action:pan-y;user-select:text;-webkit-user-select:text}
+  .cl-card:has(.cl-media-cover) .cl-card-body h3{display:block;overflow:visible;-webkit-line-clamp:unset;-webkit-box-orient:initial}
   .cl-card:has(.cl-media-cover) .cl-card-body p{display:block;overflow:visible;-webkit-line-clamp:unset;-webkit-box-orient:initial;white-space:pre-wrap}
   .cl-drag-indicator{padding:5px;width:26px;height:26px;display:grid;place-items:center;gap:0}
   .cl-card:has(.cl-media-cover) .cl-drag-indicator{top:34px;left:12px}
   .cl-card.is-resizing,.cl-card.is-resizing:hover{z-index:12;animation:none;transform:none;box-shadow:0 17px 42px rgba(18,38,24,.22),0 0 0 2px rgba(89,106,84,.42)}
-  .cl-resize-handle{position:absolute;z-index:15;bottom:3px;right:3px;width:30px;height:30px;display:grid;place-items:center;padding:0;border:0;background:rgba(255,255,255,.52);border-radius:8px 5px 13px 5px;color:#38473b;cursor:nwse-resize;touch-action:none;opacity:0;transition:opacity .18s ease,background .18s ease;user-select:none}
+  .cl-resize-handle{position:absolute;z-index:15;bottom:3px;right:3px;width:30px;height:30px;display:grid;place-items:center;padding:0;border:0;background:rgba(255,255,255,.52);border-radius:8px 5px 13px 5px;color:#38473b;cursor:nwse-resize;touch-action:none;opacity:.38;transition:opacity .18s ease,background .18s ease;user-select:none}
   .cl-card:hover .cl-resize-handle,.cl-card.chosen .cl-resize-handle,.cl-card.is-resizing .cl-resize-handle,.cl-resize-handle:focus-visible{opacity:1}
   .cl-resize-handle:hover,.cl-card.is-resizing .cl-resize-handle{background:rgba(255,255,255,.9)}
   .cl-card:has(.cl-media-cover) .cl-resize-handle{color:#fff;background:rgba(14,24,19,.54);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
