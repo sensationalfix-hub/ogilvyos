@@ -7,7 +7,7 @@ import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
   Check, KeyRound, LayoutDashboard, ListTodo, NotebookPen, Plus, Save, Sparkles, Star,
-  Target, Trash2, TrendingUp, Users, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
+  Target, Trash2, TrendingUp, Users, Settings2, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 
