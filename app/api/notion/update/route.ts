@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requestCanWrite } from "@/app/lib/workos-auth";
 import { DATA_SOURCES, resolveRelation, updatePage } from "@/app/lib/notion-live";
 
-type Kind = "task" | "project";
+type Kind = "task" | "project" | "account";
 
 type Body = {
   kind?: Kind;
@@ -55,6 +55,14 @@ async function taskProperties(changes: Record<string, unknown>) {
   return properties;
 }
 
+function accountProperties(changes: Record<string, unknown>) {
+  const properties: Record<string, unknown> = {};
+  if ("status" in changes) properties["Estado"] = select(changes.status);
+  if ("priority" in changes) properties["Prioridad"] = select(changes.priority);
+  if ("contract" in changes) properties["Contrato"] = select(changes.contract);
+  return properties;
+}
+
 async function projectProperties(changes: Record<string, unknown>) {
   const properties: Record<string, unknown> = {};
   if ("name" in changes) properties["Nombre"] = title(changes.name);
@@ -87,13 +95,17 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Missing kind, id or changes" }, { status: 400 });
     }
 
+    if (!["task", "project", "account"].includes(body.kind)) return NextResponse.json({ error: "Unsupported kind" }, { status: 400 });
+
     if (body.id.startsWith("local-")) {
       return NextResponse.json({ error: "Local drafts cannot be updated in Notion yet" }, { status: 409 });
     }
 
     const properties = body.kind === "task"
       ? await taskProperties(body.changes)
-      : await projectProperties(body.changes);
+      : body.kind === "account"
+        ? accountProperties(body.changes)
+        : await projectProperties(body.changes);
 
     if (!Object.keys(properties).length) {
       return NextResponse.json({ error: "No supported changes" }, { status: 400 });

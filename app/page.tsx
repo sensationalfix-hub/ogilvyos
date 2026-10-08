@@ -425,6 +425,8 @@ export default function Home() {
   const [teamRoleFilter, setTeamRoleFilter] = useState<"all" | "art" | "copy">("all");
   const [teamSort, setTeamSort] = useState<"activity" | "load" | "ratio" | "evidence">("activity");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [accountDraft, setAccountDraft] = useState<{ status: string; priority: string; contract: string } | null>(null);
+  const [accountSaving, setAccountSaving] = useState(false);
   const [accountTaskFilter, setAccountTaskFilter] = useState<TaskLane | "all">("all");
   const [accountProjectFilter, setAccountProjectFilter] = useState<string | "all">("all");
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
@@ -448,6 +450,7 @@ export default function Home() {
   const current = viewCopy[activeView];
 
   useEffect(() => {
+    setAccountDraft(selectedAccount ? { status: selectedAccount.status || "Inactiva", priority: selectedAccount.priority, contract: selectedAccount.contract } : null);
     setAccountTaskFilter("all");
     setAccountProjectFilter("all");
   }, [selectedAccount?.name]);
@@ -1158,6 +1161,42 @@ export default function Home() {
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       throw new Error(body?.error || "No se pudo sincronizar con Notion");
+    }
+  }
+
+  async function saveAccount() {
+    if (!canEdit || !selectedAccount?.id || !accountDraft || accountSaving) return;
+    const sourceAccount = selectedAccount;
+    const changes = {
+      status: accountDraft.status,
+      priority: accountDraft.priority,
+      contract: accountDraft.contract,
+    };
+    setAccountSaving(true);
+    try {
+      const response = await fetch("/api/notion/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "account", id: sourceAccount.id, changes }),
+      });
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody?.error || "No se pudo actualizar la cuenta");
+      }
+      const updated = { ...sourceAccount, ...changes };
+      setAccountOptions((items) => items.map((item) => item.id === sourceAccount.id ? { ...item, ...changes } : item));
+      setAccounts((items) => {
+        const changed = items.map((item) => item.id === sourceAccount.id ? { ...item, ...changes } : item);
+        return changes.status === "Activa"
+          ? changed.some((item) => item.id === sourceAccount.id) ? changed : [...changed, updated]
+          : changed.filter((item) => item.id !== sourceAccount.id);
+      });
+      setSelectedAccount(updated);
+      toast.success("Cuenta actualizada", { description: "Los cambios se han guardado en Notion." });
+    } catch (error) {
+      toast.error("No se pudo guardar la cuenta", { description: error instanceof Error ? error.message : "Error de Notion" });
+    } finally {
+      setAccountSaving(false);
     }
   }
 
@@ -3322,6 +3361,27 @@ export default function Home() {
               </div>
             </div>
           </header>
+
+          <section className="account-settings-card">
+            <div className="account-cockpit-module-head">
+              <div><span>CONFIGURACIÓN</span><h3>Datos de la cuenta</h3></div>
+              <BriefcaseBusiness />
+            </div>
+            <div className="account-settings-controls">
+              <label><span>Estado</span><select value={accountDraft?.status ?? selectedAccount.status ?? "Inactiva"} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, status: event.target.value } : draft)}>
+                {Array.from(new Set([...(liveSchema?.accounts.status.map((option) => option.name) ?? []), "Activa", "Inactiva", selectedAccount.status ?? "Inactiva"])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
+              </select></label>
+              <label><span>Prioridad</span><select value={accountDraft?.priority ?? selectedAccount.priority} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, priority: event.target.value } : draft)}>
+                {Array.from(new Set([...(liveSchema?.accounts.priority.map((option) => option.name) ?? []), selectedAccount.priority])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
+              </select></label>
+              <label><span>Contrato</span><select value={accountDraft?.contract ?? selectedAccount.contract} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, contract: event.target.value } : draft)}>
+                {Array.from(new Set([...(liveSchema?.accounts.contract.map((option) => option.name) ?? []), selectedAccount.contract])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
+              </select></label>
+              {canEdit && <button type="button" className="account-settings-save" disabled={accountSaving || !accountDraft || (accountDraft.status === selectedAccount.status && accountDraft.priority === selectedAccount.priority && accountDraft.contract === selectedAccount.contract)} onClick={saveAccount}>
+                <Save /> {accountSaving ? "Guardando..." : "Guardar cambios"}
+              </button>}
+            </div>
+          </section>
 
           <section className="account-cockpit-bento">
             <article className="account-workload-card">

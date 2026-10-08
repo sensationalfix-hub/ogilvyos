@@ -18796,3 +18796,16 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .account-pipeline-bars{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 
+
+/* === Account cockpit inline settings ====================================== */
+.account-settings-card{margin-top:12px!important;padding:18px!important;border-radius:22px!important;background:#fff!important;box-shadow:0 10px 28px rgba(34,43,36,.05)!important}
+.account-settings-controls{margin-top:16px!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr)) auto!important;gap:12px!important;align-items:end!important}
+.account-settings-controls label{min-width:0!important;display:flex!important;flex-direction:column!important;gap:7px!important}
+.account-settings-controls label>span{color:#929a93!important;font-size:8px!important;font-weight:800!important}
+.account-settings-controls select{min-width:0!important;width:100%!important;height:43px!important;padding:0 12px!important;border:1px solid #dfe4dd!important;border-radius:12px!important;background:#f5f7f3!important;color:#111512!important;font-size:11px!important;font-weight:750!important;outline-offset:3px!important}
+.account-settings-controls select:disabled{opacity:.55!important}
+.account-settings-save{min-height:43px!important;padding:0 16px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:0!important;border-radius:12px!important;background:#111512!important;color:#fff!important;font-size:10px!important;font-weight:850!important;white-space:nowrap!important;cursor:pointer!important}
+.account-settings-save svg{width:14px!important}
+.account-settings-save:disabled{opacity:.35!important;cursor:default!important}
+.account-settings-save:not(:disabled):hover{background:#343d34!important}
+@media(max-width:760px){.account-settings-controls{grid-template-columns:1fr!important}.account-settings-save{width:100%!important}}
