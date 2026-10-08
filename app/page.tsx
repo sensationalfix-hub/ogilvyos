@@ -425,6 +425,8 @@ export default function Home() {
   const [teamRoleFilter, setTeamRoleFilter] = useState<"all" | "art" | "copy">("all");
   const [teamSort, setTeamSort] = useState<"activity" | "load" | "ratio" | "evidence">("activity");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [accountTaskFilter, setAccountTaskFilter] = useState<TaskLane | "all">("all");
+  const [accountProjectFilter, setAccountProjectFilter] = useState<string | "all">("all");
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
   const [timelineWeeks, setTimelineWeeks] = useState(8);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -444,6 +446,11 @@ export default function Home() {
   const [focusSeconds, setFocusSeconds] = useState(25 * 60);
   const [focusRunning, setFocusRunning] = useState(false);
   const current = viewCopy[activeView];
+
+  useEffect(() => {
+    setAccountTaskFilter("all");
+    setAccountProjectFilter("all");
+  }, [selectedAccount?.name]);
 
   useEffect(() => {
     const ghost = document.createElement("div");
@@ -3204,41 +3211,261 @@ export default function Home() {
     </div>;
     })()}
 
-    <Dialog open={Boolean(selectedAccount)} onOpenChange={(open) => { if (!open) setSelectedAccount(null); }}>
-      <DialogContent className="full-detail-dialog detail-sheet account-overview-sheet">{selectedAccount && (() => {
+    <Dialog open={Boolean(selectedAccount)} onOpenChange={(open) => {
+      if (!open) {
+        setSelectedAccount(null);
+        setAccountTaskFilter("all");
+        setAccountProjectFilter("all");
+      }
+    }}>
+      <DialogContent className="full-detail-dialog account-cockpit">{selectedAccount && (() => {
         const accountProjects = projects.filter((project) => project.account === selectedAccount.name);
-        const accountTasks = tasks.filter((task) => task.account === selectedAccount.name);
-        const people = Array.from(new Set([...accountProjects.flatMap((project) => project.people), ...accountTasks.flatMap((task) => task.people)].filter((name) => name !== "Por asignar")));
-        const datedTasks = accountTasks.filter((task) => task.dateStart).sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart))).slice(0, 5);
+        const accountTasks = allTasks.filter((task) => task.account === selectedAccount.name);
+        const openTasks = accountTasks.filter((task) => !["Terminado", "Cancelado"].includes(task.status));
+        const completedTasks = accountTasks.filter((task) => task.status === "Terminado");
+        const cancelledTasks = accountTasks.filter((task) => task.status === "Cancelado");
+        const currentPeople = Array.from(new Set([
+          ...accountProjects.flatMap((project) => project.people),
+          ...openTasks.flatMap((task) => task.people),
+        ].filter((name) => name && name !== "Por asignar")));
+        const peopleRows = currentPeople.map((name) => {
+          const person = team.find((item) => item.name === name);
+          return {
+            name,
+            person,
+            tasks: openTasks.filter((task) => task.people.includes(name)).length,
+            projects: accountProjects.filter((project) => project.people.includes(name)).length,
+          };
+        }).sort((a, b) => (b.tasks + b.projects) - (a.tasks + a.projects));
+
+        const taskStatusEntries = TASK_LANES.map((lane) => ({
+          lane,
+          count: accountTasks.filter((task) => taskLane(task) === lane).length,
+        })).filter((item) => item.count > 0);
+        const taskStatusMax = Math.max(1, ...taskStatusEntries.map((item) => item.count));
+
+        const projectStatusEntries = projectBoardStatuses.map((status) => ({
+          status,
+          count: accountProjects.filter((project) => project.status === status).length,
+        })).filter((item) => item.count > 0);
+        const projectStatusMax = Math.max(1, ...projectStatusEntries.map((item) => item.count));
+
+        const today = localDateKey(new Date());
+        const upcomingTasks = openTasks
+          .filter((task) => task.dateStart && dateOnly(task.dateStart) >= today)
+          .sort((a, b) => String(a.dateStart || "").localeCompare(String(b.dateStart || "")));
+        const nextTask = upcomingTasks[0] || openTasks
+          .filter((task) => task.dateStart)
+          .sort((a, b) => String(a.dateStart || "").localeCompare(String(b.dateStart || "")))[0] || null;
+
+        const completionBase = Math.max(1, accountTasks.length - cancelledTasks.length);
+        const completionRate = accountTasks.length ? Math.round((completedTasks.length / completionBase) * 100) : 0;
+
+        const displayTasks = (accountTaskFilter === "all"
+          ? openTasks
+          : accountTasks.filter((task) => taskLane(task) === accountTaskFilter))
+          .slice()
+          .sort((a, b) => {
+            if (!a.dateStart && !b.dateStart) return a.name.localeCompare(b.name, "es");
+            if (!a.dateStart) return 1;
+            if (!b.dateStart) return -1;
+            return String(a.dateStart).localeCompare(String(b.dateStart));
+          })
+          .slice(0, 6);
+
+        const displayProjects = (accountProjectFilter === "all"
+          ? accountProjects
+          : accountProjects.filter((project) => project.status === accountProjectFilter))
+          .slice(0, 6);
+
         const contrast = accountContrast(selectedAccount.color);
-        return <>
-          <DialogHeader className="account-overview-header" style={{ "--account-color": selectedAccount.color, "--account-contrast": contrast } as React.CSSProperties}>
-            <div className="account-overview-brand"><AccountMark name={selectedAccount.name} /><div><span>CUENTA</span><DialogTitle>{selectedAccount.name}</DialogTitle><DialogDescription>{selectedAccount.contract} · Prioridad {selectedAccount.priority}</DialogDescription></div></div>
-          </DialogHeader>
-          <div className="account-overview-body">
-            <section className="account-overview-metrics">
-              <article><span>PROYECTOS ACTIVOS</span><strong>{accountProjects.length}</strong></article>
-              <article><span>TAREAS ACTIVAS</span><strong>{accountTasks.length}</strong></article>
-              <article><span>EQUIPO IMPLICADO</span><strong>{people.length}</strong></article>
-              <article><span>PULSO</span><strong>{selectedAccount.pulse}%</strong></article>
-            </section>
 
-            <section className="account-overview-section">
-              <div className="account-overview-title"><span>PROYECTOS</span><button onClick={() => { setSearch(selectedAccount.name); setSelectedAccount(null); setActiveView("projects"); }}>Ver pipeline <ArrowUpRight /></button></div>
-              <div className="account-overview-list">{accountProjects.slice(0, 6).map((project) => <button key={project.id} onClick={() => { setSelectedAccount(null); setSelectedProjectPage(project); }}><div><strong>{project.name}</strong><small>{project.status} · {project.type}</small></div><span>{project.timing}</span></button>)}{accountProjects.length === 0 && <p>Sin proyectos activos.</p>}</div>
-            </section>
+        return <div
+          className="account-cockpit-scroll"
+          style={{ "--account-color": selectedAccount.color, "--account-contrast": contrast } as React.CSSProperties}
+        >
+          <header className="account-cockpit-header">
+            <div className="account-cockpit-avatar"><span>{selectedAccount.name.slice(0, 2).toUpperCase()}</span></div>
 
-            <section className="account-overview-section">
-              <div className="account-overview-title"><span>PRÓXIMAS TAREAS</span><button onClick={() => { setSearch(selectedAccount.name); setSelectedAccount(null); setActiveView("tasks"); }}>Ver tareas <ArrowUpRight /></button></div>
-              <div className="account-overview-list">{datedTasks.map((task) => <button key={task.id} onClick={() => setDetail({ kind: "task", ...task })}><div><strong>{task.name}</strong><small>{task.status} · {task.project}</small></div><span>{task.date}</span></button>)}{datedTasks.length === 0 && <p>Sin tareas fechadas próximas.</p>}</div>
-            </section>
+            <div className="account-cockpit-identity">
+              <span className="account-cockpit-kicker">FICHA DE CUENTA</span>
+              <DialogTitle>{selectedAccount.name}</DialogTitle>
+              <DialogDescription>{selectedAccount.contract || "Sin contrato"} · Prioridad {selectedAccount.priority || "Sin definir"}</DialogDescription>
+              <div className="account-cockpit-project-chips">
+                {accountProjects.slice(0, 4).map((project) => <span key={project.id}>{project.name}</span>)}
+                {accountProjects.length > 4 && <span>+{accountProjects.length - 4}</span>}
+                {!accountProjects.length && <span>Sin proyectos activos</span>}
+              </div>
+              <div className="account-cockpit-meta">
+                <span>{selectedAccount.status || "Activa"}</span>
+                <span>{accountTasks.length} tareas registradas</span>
+                <span>{completedTasks.length} tareas cerradas</span>
+              </div>
+            </div>
 
-            <section className="account-overview-section">
-              <div className="account-overview-title"><span>EQUIPO</span></div>
-              <div className="account-overview-people">{people.map((name) => { const person = team.find((item) => item.name === name); return <span key={name}>{person ? <i className={`avatar avatar-${person.tone}`}>{person.initials}</i> : null}<b>{name}</b></span>; })}{people.length === 0 && <p>Sin equipo asignado.</p>}</div>
-            </section>
-          </div>
-        </>;
+            <div className="account-cockpit-facts">
+              <div><BriefcaseBusiness /><span><small>Contrato</small><b>{selectedAccount.contract || "—"}</b></span></div>
+              <div><Target /><span><small>Prioridad</small><b>{selectedAccount.priority || "—"}</b></span></div>
+              <div><Users /><span><small>Equipo actual</small><b>{currentPeople.length} personas</b></span></div>
+            </div>
+
+            <div className="account-cockpit-status">
+              <div className="account-status-primary">
+                <strong>{selectedAccount.pulse}<small>%</small></strong>
+                <span>Pulso de cuenta</span>
+                <b>{selectedAccount.pulse >= 70 ? "Alta actividad" : selectedAccount.pulse >= 35 ? "Actividad media" : "Actividad baja"}</b>
+              </div>
+              <div>
+                <strong>{openTasks.length}</strong>
+                <span>tareas abiertas</span>
+                <b>{accountProjects.length} proyectos</b>
+              </div>
+            </div>
+          </header>
+
+          <section className="account-cockpit-bento">
+            <article className="account-workload-card">
+              <div className="account-cockpit-module-head">
+                <div><span>ESTADO DE TAREAS</span><h3>Volumen por fase</h3></div>
+                <ListTodo />
+              </div>
+              <div className="account-task-state-list">
+                {taskStatusEntries.map((item) => <button
+                  type="button"
+                  key={item.lane}
+                  className={"account-task-state " + (accountTaskFilter === item.lane ? "active" : "")}
+                  aria-pressed={accountTaskFilter === item.lane}
+                  onClick={() => setAccountTaskFilter((current) => current === item.lane ? "all" : item.lane)}
+                  style={{ "--bar": Math.max(7, (item.count / taskStatusMax) * 100) } as React.CSSProperties}
+                >
+                  <span><b>{item.count}</b><small>{item.lane}</small></span>
+                  <i><em /></i>
+                </button>)}
+                {!taskStatusEntries.length && <div className="account-cockpit-empty">Sin tareas registradas</div>}
+              </div>
+              <div className="account-chart-hint">Haz clic en un estado para filtrar la lista de tareas.</div>
+            </article>
+
+            <article className="account-completion-card">
+              <div className="account-cockpit-module-head"><span>CIERRE</span><Check /></div>
+              <div className="account-completion-ring" style={{ "--completion": completionRate } as React.CSSProperties}>
+                <div><strong>{completionRate}%</strong><small>tareas cerradas</small></div>
+              </div>
+              <div className="account-completion-copy">
+                <span><b>{completedTasks.length}</b><small>terminadas</small></span>
+                <span><b>{cancelledTasks.length}</b><small>canceladas</small></span>
+              </div>
+            </article>
+
+            <article className="account-next-card">
+              <div className="account-cockpit-module-head"><span>PRÓXIMO HITO</span><CalendarDays /></div>
+              {nextTask ? <button type="button" onClick={() => {
+                setSelectedAccount(null);
+                setDetail({ kind: "task", ...nextTask });
+              }}>
+                <span>{nextTask.date || "SIN FECHA"}</span>
+                <strong>{nextTask.name}</strong>
+                <small>{nextTask.project}</small>
+                <ArrowUpRight />
+              </button> : <div className="account-next-empty"><Check /><strong>Sin entregas próximas</strong><span>La agenda está despejada.</span></div>}
+              <div className="account-next-foot"><b>{upcomingTasks.length}</b><span>tareas próximas con fecha</span></div>
+            </article>
+          </section>
+
+          <section className="account-pipeline-card">
+            <div className="account-cockpit-module-head">
+              <div><span>PIPELINE</span><h3>Proyectos por fase</h3></div>
+              <FolderKanban />
+            </div>
+            <div className="account-pipeline-bars">
+              {projectStatusEntries.map((item) => <button
+                type="button"
+                key={item.status}
+                className={accountProjectFilter === item.status ? "active" : ""}
+                aria-pressed={accountProjectFilter === item.status}
+                onClick={() => setAccountProjectFilter((current) => current === item.status ? "all" : item.status)}
+                style={{ "--project-bar": Math.max(6, (item.count / projectStatusMax) * 100) } as React.CSSProperties}
+              >
+                <span><b>{item.status === "Standby" ? "Stand by" : item.status}</b><small>{item.count}</small></span>
+                <i><em /></i>
+              </button>)}
+              {!projectStatusEntries.length && <div className="account-cockpit-empty">Sin proyectos activos</div>}
+            </div>
+          </section>
+
+          <section className="account-cockpit-lowergrid">
+            <article className="account-projects-card">
+              <div className="account-cockpit-module-head">
+                <div><span>TRABAJO ACTUAL</span><h3>{accountProjectFilter === "all" ? "Proyectos activos" : accountProjectFilter}</h3></div>
+                <button type="button" className="account-module-action" onClick={() => {
+                  setSearch(selectedAccount.name);
+                  setSelectedAccount(null);
+                  setActiveView("projects");
+                }}>Ver pipeline <ArrowUpRight /></button>
+              </div>
+              <div className="account-current-projects">
+                {displayProjects.map((project) => <button key={project.id} type="button" onClick={() => {
+                  setSelectedAccount(null);
+                  setSelectedProjectPage(project);
+                }}>
+                  <span>{project.status}</span>
+                  <strong>{project.name}</strong>
+                  <small>{project.type} · {allTasks.filter((task) => task.project === project.name && !["Terminado", "Cancelado"].includes(task.status)).length} tareas abiertas</small>
+                  <ChevronRight />
+                </button>)}
+                {!displayProjects.length && <div className="account-cockpit-empty">No hay proyectos en este filtro.</div>}
+              </div>
+            </article>
+
+            <article className="account-tasks-card">
+              <div className="account-cockpit-module-head">
+                <div><span>TAREAS</span><h3>{accountTaskFilter === "all" ? "Abiertas y próximas" : accountTaskFilter}</h3></div>
+                <button type="button" className="account-module-action" onClick={() => {
+                  setSearch(selectedAccount.name);
+                  setSelectedAccount(null);
+                  setActiveView("tasks");
+                }}>Ver tareas <ArrowUpRight /></button>
+              </div>
+              <div className="account-current-tasks">
+                {displayTasks.map((task) => <button key={task.id} type="button" onClick={() => {
+                  setSelectedAccount(null);
+                  setDetail({ kind: "task", ...task });
+                }}>
+                  <span>{task.date || "SIN FECHA"}</span>
+                  <strong>{task.name}</strong>
+                  <small>{task.project} · {taskLane(task)}</small>
+                  <ChevronRight />
+                </button>)}
+                {!displayTasks.length && <div className="account-cockpit-empty">No hay tareas en este filtro.</div>}
+              </div>
+            </article>
+
+            <article className="account-team-card">
+              <div className="account-cockpit-module-head">
+                <div><span>EQUIPO</span><h3>Personas implicadas</h3></div>
+                <Users />
+              </div>
+              <div className="account-team-list">
+                {peopleRows.slice(0, 6).map((row) => <button
+                  key={row.name}
+                  type="button"
+                  disabled={!row.person}
+                  onClick={() => {
+                    if (!row.person) return;
+                    setSelectedAccount(null);
+                    setSelectedPerson(row.person);
+                  }}
+                >
+                  <i className={row.person ? "avatar avatar-" + row.person.tone : "avatar"}>{row.person?.initials || initials(row.name)}</i>
+                  <span><strong>{row.name}</strong><small>{row.tasks} tareas · {row.projects} proyectos</small></span>
+                  {row.person ? <em style={{ "--person-load": row.person.load } as React.CSSProperties}><i /></em> : null}
+                  <ChevronRight />
+                </button>)}
+                {!peopleRows.length && <div className="account-cockpit-empty">Sin equipo asignado.</div>}
+              </div>
+            </article>
+          </section>
+        </div>;
       })()}</DialogContent>
     </Dialog>
 

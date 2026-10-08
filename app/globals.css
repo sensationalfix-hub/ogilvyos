@@ -18130,3 +18130,669 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .mobile-account-card.is-inactive .mobile-account-metrics {
   opacity: .62;
 }
+
+
+/* === Account Cockpit v1 =================================================== */
+.account-cockpit{
+  z-index:535!important;
+  width:min(1320px,calc(100vw - 80px))!important;
+  max-width:none!important;
+  height:min(860px,calc(100vh - 70px))!important;
+  max-height:none!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:28px!important;
+  background:rgba(244,246,241,.96)!important;
+  box-shadow:0 34px 90px rgba(17,21,18,.28)!important;
+  backdrop-filter:blur(28px) saturate(1.15)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(1.15)!important;
+}
+.account-cockpit>[data-slot="dialog-close"]{
+  top:18px!important;
+  right:18px!important;
+  width:38px!important;
+  height:38px!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  color:#111512!important;
+  box-shadow:0 8px 20px rgba(34,43,36,.08)!important;
+}
+.account-cockpit-scroll{
+  height:100%!important;
+  overflow-y:auto!important;
+  padding:22px!important;
+  scrollbar-width:thin!important;
+  scrollbar-color:#cfd5cd transparent!important;
+}
+.account-cockpit-header{
+  min-height:190px!important;
+  padding:22px 58px 22px 22px!important;
+  display:grid!important;
+  grid-template-columns:112px minmax(320px,1.25fr) minmax(250px,.72fr) 170px!important;
+  gap:24px!important;
+  align-items:center!important;
+  border-radius:24px!important;
+  background:#fff!important;
+  box-shadow:0 12px 30px rgba(34,43,36,.055)!important;
+}
+.account-cockpit-avatar{
+  width:106px!important;
+  height:106px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:27px!important;
+  background:var(--account-color)!important;
+  color:var(--account-contrast)!important;
+  box-shadow:0 0 0 7px #fff,0 12px 28px rgba(34,43,36,.13)!important;
+}
+.account-cockpit-avatar span{
+  font-size:25px!important;
+  font-weight:900!important;
+  letter-spacing:-.04em!important;
+}
+.account-cockpit-identity{min-width:0!important}
+.account-cockpit-kicker{
+  display:block!important;
+  margin-bottom:8px!important;
+  color:#929a93!important;
+  font-size:8px!important;
+  font-weight:880!important;
+  letter-spacing:.14em!important;
+}
+.account-cockpit-identity h2{
+  margin:0!important;
+  color:#111512!important;
+  font-size:38px!important;
+  line-height:.96!important;
+  letter-spacing:-.055em!important;
+}
+.account-cockpit-identity p{
+  margin:8px 0 0!important;
+  color:#818982!important;
+  font-size:13px!important;
+}
+.account-cockpit-project-chips{
+  margin-top:14px!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+}
+.account-cockpit-project-chips>span{
+  max-width:150px!important;
+  padding:7px 10px!important;
+  border-radius:999px!important;
+  background:#f1f4ef!important;
+  color:#59615a!important;
+  font-size:7.5px!important;
+  font-weight:720!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.account-cockpit-meta{
+  margin-top:12px!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:12px!important;
+  color:#9aa19b!important;
+  font-size:7.5px!important;
+}
+.account-cockpit-facts{display:grid!important;gap:10px!important}
+.account-cockpit-facts>div{
+  min-height:46px!important;
+  padding:8px 10px!important;
+  display:grid!important;
+  grid-template-columns:32px minmax(0,1fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+  border-radius:14px!important;
+  background:#f5f7f3!important;
+}
+.account-cockpit-facts svg{width:16px!important;color:#6e766f!important}
+.account-cockpit-facts span{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:2px!important;
+}
+.account-cockpit-facts small{color:#9aa19b!important;font-size:6.5px!important}
+.account-cockpit-facts b{
+  overflow:hidden!important;
+  color:#111512!important;
+  font-size:8px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.account-cockpit-status{display:grid!important;gap:9px!important}
+.account-cockpit-status>div{
+  min-height:76px!important;
+  padding:12px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  border-radius:17px!important;
+  background:#111512!important;
+  color:#fff!important;
+}
+.account-cockpit-status .account-status-primary{
+  background:color-mix(in srgb,var(--account-color) 22%,#111512)!important;
+}
+.account-cockpit-status strong{font-size:25px!important;line-height:1!important}
+.account-cockpit-status strong small{
+  margin-left:2px!important;
+  font-size:9px!important;
+  color:rgba(255,255,255,.48)!important;
+}
+.account-cockpit-status span{
+  margin-top:5px!important;
+  color:rgba(255,255,255,.52)!important;
+  font-size:7px!important;
+}
+.account-cockpit-status b{
+  margin-top:4px!important;
+  color:var(--ui-lime)!important;
+  font-size:6.5px!important;
+  text-transform:uppercase!important;
+  letter-spacing:.08em!important;
+}
+.account-cockpit-bento{
+  margin-top:12px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.72fr) 230px!important;
+  gap:12px!important;
+}
+.account-workload-card,
+.account-completion-card,
+.account-next-card,
+.account-pipeline-card,
+.account-projects-card,
+.account-tasks-card,
+.account-team-card{
+  border:0!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  box-shadow:0 10px 28px rgba(34,43,36,.05)!important;
+}
+.account-cockpit-module-head{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+.account-cockpit-module-head>span,
+.account-cockpit-module-head>div>span{
+  color:#929a93!important;
+  font-size:7.5px!important;
+  font-weight:880!important;
+  letter-spacing:.12em!important;
+}
+.account-cockpit-module-head h3{
+  margin:4px 0 0!important;
+  color:#111512!important;
+  font-size:16px!important;
+  line-height:1.05!important;
+  letter-spacing:-.035em!important;
+}
+.account-cockpit-module-head>svg{width:16px!important;color:#8f978f!important}
+.account-workload-card{
+  min-height:250px!important;
+  padding:18px!important;
+  background:#111512!important;
+  color:#fff!important;
+}
+.account-workload-card .account-cockpit-module-head>div>span{color:rgba(255,255,255,.45)!important}
+.account-workload-card .account-cockpit-module-head h3{color:#fff!important}
+.account-workload-card .account-cockpit-module-head>svg{color:var(--ui-lime)!important}
+.account-task-state-list{
+  margin-top:18px!important;
+  display:grid!important;
+  gap:7px!important;
+}
+.account-task-state{
+  --bar:0;
+  width:100%!important;
+  min-height:27px!important;
+  padding:0!important;
+  display:grid!important;
+  grid-template-columns:112px minmax(0,1fr)!important;
+  gap:12px!important;
+  align-items:center!important;
+  border:0!important;
+  background:transparent!important;
+  color:#fff!important;
+  text-align:left!important;
+  cursor:pointer!important;
+}
+.account-task-state>span{
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:24px minmax(0,1fr)!important;
+  gap:7px!important;
+  align-items:center!important;
+}
+.account-task-state b{font-size:11px!important}
+.account-task-state small{
+  overflow:hidden!important;
+  color:rgba(255,255,255,.48)!important;
+  font-size:7px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.account-task-state>i{
+  height:7px!important;
+  overflow:hidden!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.08)!important;
+}
+.account-task-state>i>em{
+  display:block!important;
+  width:calc(var(--bar) * 1%)!important;
+  height:100%!important;
+  border-radius:inherit!important;
+  background:#fff!important;
+  opacity:.52!important;
+  transition:width .18s ease,opacity .16s ease,background .16s ease!important;
+}
+.account-task-state:hover>i>em,
+.account-task-state.active>i>em{
+  background:var(--ui-lime)!important;
+  opacity:1!important;
+}
+.account-task-state.active small{color:var(--ui-lime)!important}
+.account-chart-hint{
+  margin-top:14px!important;
+  color:rgba(255,255,255,.32)!important;
+  font-size:6.5px!important;
+}
+.account-completion-card{
+  min-height:250px!important;
+  padding:18px!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.account-completion-ring{
+  --completion:0;
+  width:132px!important;
+  height:132px!important;
+  margin:auto!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  background:conic-gradient(var(--account-color) calc(var(--completion) * 1%),#edf0eb 0)!important;
+}
+.account-completion-ring:before{
+  content:""!important;
+  width:94px!important;
+  height:94px!important;
+  grid-area:1/1!important;
+  border-radius:50%!important;
+  background:#fff!important;
+}
+.account-completion-ring>div{
+  z-index:1!important;
+  grid-area:1/1!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+}
+.account-completion-ring strong{font-size:24px!important;line-height:1!important}
+.account-completion-ring small{margin-top:4px!important;color:#929a93!important;font-size:6.5px!important}
+.account-completion-copy{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:7px!important;
+}
+.account-completion-copy span{
+  padding:8px 9px!important;
+  display:flex!important;
+  align-items:baseline!important;
+  gap:5px!important;
+  border-radius:11px!important;
+  background:#f5f7f3!important;
+}
+.account-completion-copy b{font-size:11px!important}
+.account-completion-copy small{color:#929a93!important;font-size:6.5px!important}
+.account-next-card{
+  min-height:250px!important;
+  padding:18px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  background:var(--account-color)!important;
+  color:var(--account-contrast)!important;
+}
+.account-next-card .account-cockpit-module-head>span,
+.account-next-card .account-cockpit-module-head>svg{
+  color:color-mix(in srgb,var(--account-contrast) 58%,transparent)!important;
+}
+.account-next-card>button{
+  position:relative!important;
+  margin-top:18px!important;
+  padding:0 22px 0 0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  border:0!important;
+  background:transparent!important;
+  color:inherit!important;
+  text-align:left!important;
+  cursor:pointer!important;
+}
+.account-next-card>button>span{
+  font-size:8px!important;
+  font-weight:850!important;
+  opacity:.55!important;
+}
+.account-next-card>button>strong{
+  margin-top:8px!important;
+  font-size:21px!important;
+  line-height:1.02!important;
+  letter-spacing:-.045em!important;
+}
+.account-next-card>button>small{
+  margin-top:7px!important;
+  font-size:7.5px!important;
+  opacity:.62!important;
+}
+.account-next-card>button>svg{
+  position:absolute!important;
+  right:0!important;
+  top:0!important;
+  width:15px!important;
+  transition:transform .16s ease!important;
+}
+.account-next-card>button:hover>svg{transform:translate(2px,-2px)!important}
+.account-next-empty{
+  flex:1!important;
+  display:grid!important;
+  place-content:center!important;
+  justify-items:center!important;
+  gap:6px!important;
+  text-align:center!important;
+}
+.account-next-empty svg{width:24px!important}
+.account-next-empty strong{font-size:10px!important}
+.account-next-empty span{font-size:7px!important;opacity:.58!important}
+.account-next-foot{
+  margin-top:auto!important;
+  padding-top:12px!important;
+  display:flex!important;
+  align-items:baseline!important;
+  gap:6px!important;
+  border-top:1px solid color-mix(in srgb,var(--account-contrast) 12%,transparent)!important;
+}
+.account-next-foot b{font-size:14px!important}
+.account-next-foot span{font-size:6.5px!important;opacity:.58!important}
+.account-pipeline-card{
+  margin-top:12px!important;
+  min-height:180px!important;
+  padding:18px!important;
+}
+.account-pipeline-bars{
+  margin-top:15px!important;
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(155px,1fr))!important;
+  gap:9px!important;
+}
+.account-pipeline-bars>button{
+  --project-bar:0;
+  min-width:0!important;
+  min-height:78px!important;
+  padding:11px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  border:0!important;
+  border-radius:15px!important;
+  background:#f5f7f3!important;
+  color:#111512!important;
+  text-align:left!important;
+  cursor:pointer!important;
+  transition:background .16s ease,color .16s ease,transform .16s ease!important;
+}
+.account-pipeline-bars>button:hover,
+.account-pipeline-bars>button.active{
+  background:#111512!important;
+  color:#fff!important;
+  transform:translateY(-2px)!important;
+}
+.account-pipeline-bars>button>span{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+}
+.account-pipeline-bars b{
+  overflow:hidden!important;
+  font-size:8px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.account-pipeline-bars small{
+  color:#909891!important;
+  font-size:8px!important;
+}
+.account-pipeline-bars>button>i{
+  height:6px!important;
+  overflow:hidden!important;
+  border-radius:999px!important;
+  background:#e2e7df!important;
+}
+.account-pipeline-bars>button>i>em{
+  display:block!important;
+  width:calc(var(--project-bar) * 1%)!important;
+  height:100%!important;
+  border-radius:inherit!important;
+  background:var(--account-color)!important;
+}
+.account-pipeline-bars>button.active>i,
+.account-pipeline-bars>button:hover>i{background:rgba(255,255,255,.12)!important}
+.account-pipeline-bars>button.active>i>em,
+.account-pipeline-bars>button:hover>i>em{background:var(--ui-lime)!important}
+.account-cockpit-lowergrid{
+  margin-top:12px!important;
+  padding-bottom:6px!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr 1fr!important;
+  gap:12px!important;
+}
+.account-projects-card,
+.account-tasks-card,
+.account-team-card{
+  min-height:310px!important;
+  padding:18px!important;
+}
+.account-module-action{
+  min-height:28px!important;
+  padding:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  border:0!important;
+  background:transparent!important;
+  color:#707970!important;
+  font-size:7px!important;
+  font-weight:820!important;
+  cursor:pointer!important;
+}
+.account-module-action svg{width:11px!important}
+.account-current-projects,
+.account-current-tasks,
+.account-team-list{
+  margin-top:12px!important;
+  display:grid!important;
+  gap:7px!important;
+}
+.account-current-projects>button,
+.account-current-tasks>button{
+  position:relative!important;
+  min-height:49px!important;
+  padding:9px 30px 9px 10px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:3px!important;
+  border:0!important;
+  border-radius:13px!important;
+  background:#f5f7f3!important;
+  color:#111512!important;
+  text-align:left!important;
+  cursor:pointer!important;
+  transition:background .16s ease,color .16s ease!important;
+}
+.account-current-projects>button:hover,
+.account-current-tasks>button:hover{
+  background:#111512!important;
+  color:#fff!important;
+}
+.account-current-projects span,
+.account-current-tasks span{
+  color:#919991!important;
+  font-size:6.5px!important;
+  font-weight:820!important;
+  text-transform:uppercase!important;
+}
+.account-current-projects strong,
+.account-current-tasks strong{
+  width:100%!important;
+  overflow:hidden!important;
+  font-size:9px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.account-current-projects small,
+.account-current-tasks small{
+  width:100%!important;
+  overflow:hidden!important;
+  color:#929a93!important;
+  font-size:7px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.account-current-projects svg,
+.account-current-tasks svg{
+  position:absolute!important;
+  right:10px!important;
+  top:50%!important;
+  width:12px!important;
+  transform:translateY(-50%)!important;
+  color:#929a93!important;
+}
+.account-team-list>button{
+  position:relative!important;
+  min-height:53px!important;
+  padding:7px 28px 7px 7px!important;
+  display:grid!important;
+  grid-template-columns:36px minmax(0,1fr)!important;
+  gap:9px!important;
+  align-items:center!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:#f5f7f3!important;
+  color:#111512!important;
+  text-align:left!important;
+  cursor:pointer!important;
+  transition:background .16s ease,transform .16s ease!important;
+}
+.account-team-list>button:hover:not(:disabled){
+  background:#eef1eb!important;
+  transform:translateY(-1px)!important;
+}
+.account-team-list>button:disabled{cursor:default!important;opacity:.7!important}
+.account-team-list .avatar{
+  width:34px!important;
+  height:34px!important;
+  border-radius:11px!important;
+  font-size:8px!important;
+  font-style:normal!important;
+}
+.account-team-list>button>span{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:3px!important;
+}
+.account-team-list strong{
+  overflow:hidden!important;
+  font-size:8.5px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.account-team-list small{color:#929a93!important;font-size:6.5px!important}
+.account-team-list>button>em{
+  --person-load:0;
+  position:absolute!important;
+  left:52px!important;
+  right:30px!important;
+  bottom:6px!important;
+  height:2px!important;
+  overflow:hidden!important;
+  border-radius:99px!important;
+  background:#dfe4dd!important;
+}
+.account-team-list>button>em>i{
+  display:block!important;
+  width:calc(var(--person-load) * 1%)!important;
+  height:100%!important;
+  border-radius:inherit!important;
+  background:var(--account-color)!important;
+}
+.account-team-list>button>svg{
+  position:absolute!important;
+  right:10px!important;
+  top:50%!important;
+  width:12px!important;
+  transform:translateY(-50%)!important;
+  color:#9aa19b!important;
+}
+.account-cockpit-empty{
+  min-height:58px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:14px!important;
+  background:#f5f7f3!important;
+  color:#9aa19b!important;
+  font-size:8px!important;
+  text-align:center!important;
+}
+.account-workload-card .account-cockpit-empty{
+  background:rgba(255,255,255,.06)!important;
+  color:rgba(255,255,255,.45)!important;
+}
+@media(max-width:1180px) and (min-width:761px){
+  .account-cockpit{
+    width:calc(100vw - 30px)!important;
+    height:calc(100vh - 30px)!important;
+  }
+  .account-cockpit-header{
+    grid-template-columns:94px minmax(260px,1fr) minmax(220px,.72fr) 150px!important;
+    gap:17px!important;
+  }
+  .account-cockpit-avatar{width:90px!important;height:90px!important}
+  .account-cockpit-identity h2{font-size:32px!important}
+}
+@media(max-width:760px){
+  .account-cockpit{
+    width:calc(100vw - 12px)!important;
+    height:calc(100svh - 12px)!important;
+    border-radius:24px!important;
+  }
+  .account-cockpit-scroll{padding:12px!important}
+  .account-cockpit-header{
+    padding:18px!important;
+    grid-template-columns:80px minmax(0,1fr)!important;
+    gap:14px!important;
+  }
+  .account-cockpit-avatar{width:76px!important;height:76px!important;border-radius:21px!important}
+  .account-cockpit-avatar span{font-size:18px!important}
+  .account-cockpit-identity h2{font-size:27px!important}
+  .account-cockpit-facts,
+  .account-cockpit-status{grid-column:1/-1!important}
+  .account-cockpit-facts{grid-template-columns:1fr!important}
+  .account-cockpit-status{grid-template-columns:1fr 1fr!important}
+  .account-cockpit-bento,
+  .account-cockpit-lowergrid{grid-template-columns:1fr!important}
+  .account-pipeline-bars{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
