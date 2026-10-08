@@ -67,13 +67,18 @@ function ReferencePreview({url,title}:{url?:string;title:string}){
  const src=directSrc||rich?.image;
  if(!url||!src||broken)return null;
  const kind=direct?.kind||rich?.kind||"image";
- const site=directSrc?(kind==="video"?"YouTube":"Imagen"):rich?.site;
- const descriptor=rich?.title||title;
- return <a className="cl-preview" href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={descriptor+" · "+(site||"Referencia")}>
-  <img src={src} alt={"Vista previa de "+descriptor} loading="lazy" referrerPolicy="no-referrer" onError={()=>setBroken(true)}/>
-  {site&&<span className="cl-preview-site">{site}</span>}
-  {kind==="video"&&<span className="cl-preview-play">▶</span>}
- </a>;
+ const site=directSrc?(kind==="video"?"YouTube":"Imagen"):rich?.site||"Referencia";
+ const description=rich?.title||title;
+ return <div className="cl-media-cover" aria-label={"Vista previa de "+title}>
+  <img className="cl-media-image" src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={()=>setBroken(true)}/>
+  <div className="cl-media-veil" aria-hidden="true"/>
+  <a className="cl-media-source" href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={"Abrir "+description}>
+   <span>{site}</span><ArrowRight aria-hidden="true" size={12}/>
+  </a>
+  {kind==="video"&&<a className="cl-media-play" href={url} target="_blank" rel="noopener noreferrer" aria-label={"Ver vídeo: "+title} onClick={e=>e.stopPropagation()}>
+   <span aria-hidden="true">▶</span>
+  </a>}
+ </div>;
 }
 const id=()=>crypto.randomUUID();
 const startNodes:Node[]=[
@@ -240,14 +245,27 @@ export default function CreativeLab(){
   @keyframes clDash{to{stroke-dashoffset:-28}}@keyframes clEnter{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
   @media(prefers-reduced-motion:reduce){.cl-card,.cl-port{transition:none;animation:none}.cl-selected-wire{animation:none}}
   .cl-workspace.cl-panning{cursor:grabbing}.cl-workspace:active{user-select:none}
-  .cl-preview-site{position:absolute;top:7px;right:8px;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 7px;border-radius:6px;font-size:9px;letter-spacing:.04em;font-weight:800;color:#fff;background:#141b17bc;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-  .cl-card:has(.cl-preview) .cl-card-body p{display:none}
-  .cl-card:has(.cl-preview) .cl-card-body h3{font-size:14px;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .cl-preview{display:block;position:absolute;left:12px;right:12px;bottom:10px;height:73px;overflow:hidden;border-radius:10px;background:#ffffff75;border:1px solid #ffffff85;isolation:isolate;box-shadow:0 3px 12px #00000012;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;cursor:alias}
-  .cl-preview:hover{transform:scale(1.025);box-shadow:0 6px 17px #00000025}
-  .cl-preview img{width:100%;height:100%;object-fit:cover;display:block}
-  .cl-preview-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:31px;height:31px;border-radius:50%;display:grid;place-items:center;background:#161b1bcc;color:#fff;font-size:13px;border:1px solid #ffffff6a;backdrop-filter:blur(9px)}
-  .cl-card.has-preview .cl-card-body p{display:none}.cl-card.has-preview .cl-card-body h3{font-size:14px;margin-bottom:6px}
+  /* Media references: full-bleed cover with frosted controls and editorial text. */
+  .cl-card:has(.cl-media-cover){background:#1a1f1e;border-color:rgba(255,255,255,.65);box-shadow:0 12px 36px rgba(24,30,28,.2),inset 0 1px rgba(255,255,255,.26);isolation:isolate}
+  .cl-card:has(.cl-media-cover):hover{box-shadow:0 19px 45px rgba(12,24,18,.3)}
+  .cl-media-cover{position:absolute;inset:0;z-index:0;border-radius:inherit;overflow:hidden;background:#1a1f1e;pointer-events:none}
+  .cl-media-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.93);transition:transform .7s cubic-bezier(.16,1,.3,1),filter .5s ease}
+  .cl-card:hover .cl-media-image{transform:scale(1.065);filter:saturate(1.08)}
+  .cl-media-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,14,14,.49) 0%,rgba(8,13,11,.11) 36%,rgba(8,12,11,.43) 65%,rgba(5,10,9,.88) 100%);transition:opacity .35s ease}
+  .cl-card:hover .cl-media-veil{opacity:.92}
+  .cl-card:has(.cl-media-cover) .cl-card-head{position:absolute;left:0;right:0;top:0;z-index:2;color:#fff;background:transparent!important;text-shadow:0 1px 7px rgba(0,0,0,.4);padding:14px 15px 12px;letter-spacing:.13em}
+  .cl-card:has(.cl-media-cover) .cl-card-grip{visibility:hidden}
+  .cl-card:has(.cl-media-cover) .cl-card-body{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:14px 15px 15px;color:#fff;pointer-events:auto;text-shadow:0 1px 9px rgba(0,0,0,.48)}
+  .cl-card:has(.cl-media-cover) .cl-card-body h3{color:#fff;font-size:18px;line-height:1.13;font-weight:790;letter-spacing:-.045em;margin:0 0 5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .cl-card:has(.cl-media-cover) .cl-card-body p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:rgba(255,255,255,.83);font-size:10px;line-height:1.35;margin:0}
+  .cl-media-source{position:absolute;top:9px;right:10px;z-index:4;pointer-events:auto;max-width:112px;display:flex;gap:5px;align-items:center;justify-content:center;padding:5px 7px;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.23);border-radius:8px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-size:9px;font-weight:750;line-height:1;text-decoration:none;transition:background .25s,transform .25s}
+  .cl-media-source span{max-width:84px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .cl-media-source:hover{background:rgba(255,255,255,.29);transform:translateY(-1px)}
+  .cl-media-play{position:absolute;left:50%;top:43%;z-index:3;display:grid;place-items:center;pointer-events:auto;width:42px;height:42px;border-radius:50%;transform:translate(-50%,-50%);color:#fff;text-decoration:none;background:rgba(10,16,13,.38);border:1px solid rgba(255,255,255,.6);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);box-shadow:0 4px 20px rgba(0,0,0,.22);transition:transform .32s cubic-bezier(.16,1,.3,1),background .3s,box-shadow .3s}
+  .cl-media-play span{font-size:13px;margin-left:2px}
+  .cl-media-play:hover{transform:translate(-50%,-50%) scale(1.13);background:rgba(14,19,16,.62);box-shadow:0 7px 25px rgba(0,0,0,.36)}
+  .cl-card:has(.cl-media-cover) .cl-port{z-index:6}
+  @media(prefers-reduced-motion:reduce){.cl-media-image,.cl-media-veil,.cl-media-play,.cl-media-source{transition:none}}
   .cl-zoom{font-variant-numeric:tabular-nums;min-width:42px;text-align:center}
   `}</style>
   <header className="cl-top">
@@ -284,7 +302,7 @@ export default function CreativeLab(){
       {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
      {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onClick={()=>onNodeClick(n.id)}>
-      <div className="cl-card-head" style={{background:typeOf(n.kind).color}} onPointerDown={e=>{if(e.button!==0||connecting)return;drag.current={id:n.id,clientX:e.clientX,clientY:e.clientY,startX:n.x,startY:n.y};e.currentTarget.setPointerCapture(e.pointerId);setSelected(n.id);setEdgeSelected(null)}}>{typeOf(n.kind).name}<span>⠿</span></div>
+      <div className="cl-card-head" style={{background:typeOf(n.kind).color}} onPointerDown={e=>{if(e.button!==0||connecting)return;drag.current={id:n.id,clientX:e.clientX,clientY:e.clientY,startX:n.x,startY:n.y};e.currentTarget.setPointerCapture(e.pointerId);setSelected(n.id);setEdgeSelected(null)}}>{typeOf(n.kind).name}<span className="cl-card-grip">⠿</span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
       <ReferencePreview url={n.url} title={n.title}/>
       {PORTS.map(port=><button key={port} className={"cl-port cl-port-"+port} title="Arrastra para conectar" aria-label={"Conectar "+port} onPointerDown={e=>beginWire(e,n.id,port)} onPointerMove={e=>{if(wireDrag.current){e.stopPropagation();setWireEnd(world(e))}}} onPointerUp={e=>{e.stopPropagation();endWire(e)}} onClick={e=>e.stopPropagation()}/>)}
