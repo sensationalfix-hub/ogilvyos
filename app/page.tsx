@@ -3403,7 +3403,7 @@ export default function Home() {
               {canEdit && <button type="button" className="account-settings-save" disabled={accountSaving || !accountDraft || (accountDraft.name === selectedAccount.name && accountDraft.status === selectedAccount.status && accountDraft.priority === selectedAccount.priority && accountDraft.contract === selectedAccount.contract && JSON.stringify([...accountDraft.assignedPeople].sort()) === JSON.stringify([...(selectedAccount.assignedPeople || [])].sort()))} onClick={saveAccount}>
                 <Save /> {accountSaving ? "Guardando..." : "Guardar cambios"}
               </button>}
-            </div>
+            </div>}
           </section>
 
           <section className="account-cockpit-bento">
