@@ -42,7 +42,7 @@ function mediaPreview(raw?:string):{src:string;kind:"video"|"image"}|null{
  }catch{}
  return null;
 }
-type RichPreview={image:string;title:string;site:string;kind:"video"|"image"};
+type RichPreview={image:string;title:string;site:string;kind:"video"|"image"|"audio"};
 const richPreviewCache=new Map<string,RichPreview|null>();
 function ReferencePreview({url,title}:{url?:string;title:string}){
  const direct=mediaPreview(url);
@@ -75,7 +75,7 @@ function ReferencePreview({url,title}:{url?:string;title:string}){
   <a className="cl-media-source" href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={"Abrir "+description}>
    <span>{site}</span><ArrowRight aria-hidden="true" size={12}/>
   </a>
-  {kind==="video"&&<a className="cl-media-play" href={url} target="_blank" rel="noopener noreferrer" aria-label={"Ver vídeo: "+title} onClick={e=>e.stopPropagation()}>
+  {(kind==="video"||kind==="audio")&&<a className={"cl-media-play"+(kind==="audio"?" cl-media-audio":"")} href={url} target="_blank" rel="noopener noreferrer" aria-label={(kind==="audio"?"Escuchar en Spotify: ":"Ver vídeo: ")+title} onClick={e=>e.stopPropagation()}>
    <span aria-hidden="true">▶</span>
   </a>}
  </div>;
@@ -263,6 +263,8 @@ export default function CreativeLab(){
   .cl-media-source:hover{background:rgba(255,255,255,.29);transform:translateY(-1px)}
   .cl-media-play{position:absolute;left:50%;top:43%;z-index:3;display:grid;place-items:center;pointer-events:auto;width:42px;height:42px;border-radius:50%;transform:translate(-50%,-50%);color:#fff;text-decoration:none;background:rgba(10,16,13,.38);border:1px solid rgba(255,255,255,.6);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);box-shadow:0 4px 20px rgba(0,0,0,.22);transition:transform .32s cubic-bezier(.16,1,.3,1),background .3s,box-shadow .3s}
   .cl-media-play span{font-size:13px;margin-left:2px}
+  .cl-media-audio{background:rgba(17,54,32,.58);border-color:rgba(212,255,221,.8)}
+  .cl-card:has(.cl-media-audio) .cl-media-source{background:rgba(29,185,84,.36);border-color:rgba(188,255,211,.35)}
   .cl-media-play:hover{transform:translate(-50%,-50%) scale(1.13);background:rgba(14,19,16,.62);box-shadow:0 7px 25px rgba(0,0,0,.36)}
   .cl-card:has(.cl-media-cover) .cl-port{z-index:6}
   @media(prefers-reduced-motion:reduce){.cl-media-image,.cl-media-veil,.cl-media-play,.cl-media-source{transition:none}}
