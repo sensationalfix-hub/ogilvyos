@@ -114,7 +114,7 @@ export default function CreativeLab(){
  const [showBoards,setShowBoards]=useState(true);
  const drag=useRef<{id:string;pointerId:number;clientX:number;clientY:number;startX:number;startY:number;moved:boolean}|null>(null);
  const [draggingId,setDraggingId]=useState<string|null>(null);
- const ignoreNextCardClick=useRef(false);
+ const ignoreCardClickUntil=useRef(0);
  const board=boards.find(b=>b.id===activeId);
  navigableRef.current=!!board&&!showBoards;
  const boardRef=useRef(board);boardRef.current=board;
@@ -162,7 +162,7 @@ export default function CreativeLab(){
   update(b=>({...b,nodes:[...b.nodes,node]}));setSelected(node.id);setEdgeSelected(null);setShowBoards(false);
  };
  const onNodeClick=(nodeId:string)=>{
-  if(ignoreNextCardClick.current){ignoreNextCardClick.current=false;return;}
+  if(Date.now()<ignoreCardClickUntil.current)return;
   if(connecting){if(connecting!==nodeId&&!board?.edges.some(e=>e.source===connecting&&e.target===nodeId))update(b=>({...b,edges:[...b.edges,{id:id(),source:connecting,target:nodeId,label:"relaciona",sourcePort,targetPort:"left"}]}));setConnecting(null);setWireEnd(null);wireDrag.current=false;return;}
   setSelected(nodeId);setEdgeSelected(null);
  };
@@ -183,7 +183,7 @@ export default function CreativeLab(){
  const finishCardDrag=(event?:React.PointerEvent)=>{
   const item=drag.current;
   if(!item||event&&item.pointerId!==event.pointerId)return;
-  if(item.moved)ignoreNextCardClick.current=true;
+  if(item.moved)ignoreCardClickUntil.current=Date.now()+180;
   drag.current=null;
   setDraggingId(null);
  };
@@ -193,7 +193,7 @@ export default function CreativeLab(){
   const d=drag.current;if(!d||d.pointerId!==event.pointerId)return;
   const dx=(event.clientX-d.clientX)/zoom,dy=(event.clientY-d.clientY)/zoom;
   if(!d.moved&&Math.hypot(event.clientX-d.clientX,event.clientY-d.clientY)<4)return;
-  if(!d.moved){d.moved=true;setDraggingId(d.id);setSelected(d.id);setEdgeSelected(null);}
+  if(!d.moved){d.moved=true;setDraggingId(d.id);}
   update(b=>({...b,nodes:b.nodes.map(n=>n.id===d.id?{...n,x:Math.max(0,Math.round(d.startX+dx)),y:Math.max(0,Math.round(d.startY+dy))}:n)}));
  };
  useEffect(()=>{
@@ -295,7 +295,7 @@ export default function CreativeLab(){
   .cl-card-head{cursor:grab;gap:8px;min-width:0}
   .cl-card.is-dragging .cl-card-head{cursor:grabbing}
   .cl-card-type{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cl-drag-indicator{display:inline-flex;align-items:center;gap:3px;padding:5px 6px 5px 3px;border-radius:8px;border:1px solid rgba(36,49,39,.11);background:rgba(255,255,255,.33);color:#35413a;font:800 8px/1 var(--font-sans,Inter,system-ui,sans-serif);letter-spacing:.07em;opacity:.62;transition:background .24s ease,opacity .24s ease,transform .24s ease;white-space:nowrap;pointer-events:none}
+  .cl-drag-indicator{display:inline-flex;align-items:center;gap:3px;padding:5px 6px 5px 3px;border-radius:8px;border:1px solid rgba(36,49,39,.11);background:rgba(255,255,255,.33);color:#35413a;font:850 9px/1 var(--font-sans,Inter,system-ui,sans-serif);letter-spacing:.07em;opacity:.62;transition:background .24s ease,opacity .24s ease,transform .24s ease;white-space:nowrap;pointer-events:none}
   .cl-card:hover .cl-drag-indicator,.cl-card.is-dragging .cl-drag-indicator{opacity:1;background:rgba(255,255,255,.82);transform:translateY(-1px)}
   .cl-card.is-dragging .cl-drag-indicator{background:#dafa9b;color:#1e2d1d}
   .cl-card h3,.cl-card:has(.cl-media-cover) .cl-card-body h3{font-family:"Arial Narrow","SF Pro Display",Inter,ui-sans-serif,sans-serif;font-weight:900;font-synthesis:weight;letter-spacing:-.055em;line-height:1.1}
