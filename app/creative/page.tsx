@@ -183,7 +183,7 @@ export default function CreativeLab(){
  setConnecting(null);setWireEnd(null);wireDrag.current=false;};
  const beginCardDrag=(event:React.PointerEvent<HTMLDivElement>,node:Node)=>{
   if(event.button!==0||connecting||wireDrag.current)return;
-  if((event.target as Element).closest("a,button,input,textarea,select,.cl-card-body,[data-no-card-drag]"))return;
+  if((event.target as Element).closest("a,button,input,textarea,select,[data-no-card-drag]"))return;
   drag.current={id:node.id,pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY,startX:node.x,startY:node.y,moved:false};
   event.currentTarget.setPointerCapture(event.pointerId);
   event.stopPropagation();
@@ -344,13 +344,15 @@ export default function CreativeLab(){
   .cl-card .cl-media-play,.cl-card .cl-media-source{cursor:pointer}
   @media(prefers-reduced-motion:reduce){.cl-card.is-dragging,.cl-card .cl-drag-indicator{transition:none}}
   /* Independent card scroll and persisted dimensions. */
-  .cl-card{min-height:0}
+  .cl-card{min-height:0;-webkit-user-select:none;user-select:none}
+  .cl-card h3,.cl-card p,.cl-card-body *{user-select:none;-webkit-user-select:none}
+  .cl-card.is-dragging .cl-card-body,.cl-card.is-dragging .cl-card-body *{cursor:grabbing}
   .cl-card-head{flex-shrink:0}
-  .cl-card-body{position:relative;height:calc(100% - 50px);min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(51,63,55,.25) transparent;cursor:auto;touch-action:pan-y;user-select:text;-webkit-user-select:text}
+  .cl-card-body{position:relative;height:calc(100% - 50px);min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(51,63,55,.25) transparent;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
   .cl-card-body::-webkit-scrollbar{width:5px}
   .cl-card-body::-webkit-scrollbar-thumb{background:rgba(45,61,47,.26);border-radius:9px}
   .cl-card-body p{display:block;overflow:visible;-webkit-line-clamp:unset;-webkit-box-orient:initial;white-space:pre-wrap}
-  .cl-card:has(.cl-media-cover) .cl-card-body{height:auto;max-height:calc(100% - 51px);overflow-y:auto;overscroll-behavior:contain;padding-bottom:18px;touch-action:pan-y;user-select:text;-webkit-user-select:text}
+  .cl-card:has(.cl-media-cover) .cl-card-body{height:auto;max-height:calc(100% - 51px);overflow-y:auto;overscroll-behavior:contain;padding-bottom:18px;touch-action:none;user-select:none;-webkit-user-select:none}
   .cl-card:has(.cl-media-cover) .cl-card-body h3{display:block;overflow:visible;-webkit-line-clamp:unset;-webkit-box-orient:initial}
   .cl-card:has(.cl-media-cover) .cl-card-body p{display:block;overflow:visible;-webkit-line-clamp:unset;-webkit-box-orient:initial;white-space:pre-wrap}
   .cl-drag-indicator{padding:5px;width:26px;height:26px;display:grid;place-items:center;gap:0}
@@ -378,7 +380,7 @@ export default function CreativeLab(){
     <div className="cl-small">Biblioteca de ideas</div>
     {types.map(t=><button key={t.key} className="cl-palette" onClick={()=>addNode(t.key)}><span className="cl-dot" style={{background:t.color}}/>{t.name}<span style={{marginLeft:"auto",fontSize:16}}>+</span></button>)}
     <div className="cl-small" style={{marginTop:34}}>Herramientas</div>
-    <div className="cl-hint"><strong>Mover:</strong> arrastra desde la cabecera o el borde. <strong>Leer:</strong> desplaza el texto dentro de la tarjeta. <strong>Ampliar:</strong> estira la esquina inferior derecha. <strong>Mapa:</strong> arrastra el fondo.</div>
+    <div className="cl-hint"><strong>Tarjetas:</strong> clic para editar; arrastra desde cualquier punto para moverlas. <strong>Texto largo:</strong> usa la rueda para desplazarte dentro. <strong>Tamaño:</strong> estira la esquina inferior derecha. <strong>Mapa:</strong> arrastra el fondo.</div>
     {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
    </aside>
    <div ref={workspaceRef} className={"cl-workspace"+(panning?" cl-panning":"")} onPointerDown={beginPan} onPointerMove={onPointerMove} onPointerUp={e=>{finishResize(e);finishCardDrag(e);stopPan()}} onPointerCancel={e=>{finishResize(e);finishCardDrag(e);stopPan()}} onClick={e=>{if(e.target===e.currentTarget){setSelected(null);setEdgeSelected(null);setConnecting(null)}}}>
@@ -397,7 +399,7 @@ export default function CreativeLab(){
        <text x={geometry.mid.x} y={geometry.mid.y+3.5} textAnchor="middle" fontSize="10" fontWeight="650" fill="#515b52">{label}</text></g>})}
       {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
-     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onClick={()=>onNodeClick(n.id)}>
+     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onDragStart={e=>e.preventDefault()} onClick={()=>onNodeClick(n.id)}>
       <div className="cl-card-head" title="Arrastra para mover la tarjeta"><span className="cl-card-type">{typeOf(n.kind).name}</span><span className="cl-drag-indicator" title="Arrastra para mover"><GripVertical size={16} strokeWidth={2.5}/></span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
       <ReferencePreview url={n.url} title={n.title}/>
