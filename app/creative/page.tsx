@@ -42,6 +42,39 @@ function mediaPreview(raw?:string):{src:string;kind:"video"|"image"}|null{
  }catch{}
  return null;
 }
+type RichPreview={image:string;title:string;site:string;kind:"video"|"image"};
+const richPreviewCache=new Map<string,RichPreview|null>();
+function ReferencePreview({url,title}:{url?:string;title:string}){
+ const direct=mediaPreview(url);
+ const directSrc=direct?.src;
+ const [rich,setRich]=useState<RichPreview|null>(null);
+ const [broken,setBroken]=useState(false);
+ useEffect(()=>{
+  setBroken(false);
+  setRich(null);
+  if(!url||directSrc)return;
+  const existing=richPreviewCache.get(url);
+  if(existing!==undefined){setRich(existing);return;}
+  const controller=new AbortController();
+  const timer=window.setTimeout(()=>{
+   fetch("/api/creative/preview?url="+encodeURIComponent(url),{signal:controller.signal,cache:"default"})
+    .then(async response=>{if(!response.ok)throw new Error("Preview no disponible");return response.json() as Promise<{preview:RichPreview|null}>})
+    .then(data=>{if(!controller.signal.aborted){richPreviewCache.set(url,data.preview||null);setRich(data.preview||null);}})
+    .catch(()=>{if(!controller.signal.aborted){richPreviewCache.set(url,null);}});
+  },450);
+  return()=>{window.clearTimeout(timer);controller.abort()};
+ },[url,directSrc]);
+ const src=directSrc||rich?.image;
+ if(!url||!src||broken)return null;
+ const kind=direct?.kind||rich?.kind||"image";
+ const site=directSrc?(kind==="video"?"YouTube":"Imagen"):rich?.site;
+ const descriptor=rich?.title||title;
+ return <a className="cl-preview" href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={descriptor+" · "+(site||"Referencia")}>
+  <img src={src} alt={"Vista previa de "+descriptor} loading="lazy" referrerPolicy="no-referrer" onError={()=>setBroken(true)}/>
+  {site&&<span className="cl-preview-site">{site}</span>}
+  {kind==="video"&&<span className="cl-preview-play">▶</span>}
+ </a>;
+}
 const id=()=>crypto.randomUUID();
 const startNodes:Node[]=[
  {id:"a",kind:"insight",title:"Una verdad de partida",body:"¿Qué tensión humana o cultural sostiene esta campaña?",x:80,y:110},
@@ -207,6 +240,9 @@ export default function CreativeLab(){
   @keyframes clDash{to{stroke-dashoffset:-28}}@keyframes clEnter{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
   @media(prefers-reduced-motion:reduce){.cl-card,.cl-port{transition:none;animation:none}.cl-selected-wire{animation:none}}
   .cl-workspace.cl-panning{cursor:grabbing}.cl-workspace:active{user-select:none}
+  .cl-preview-site{position:absolute;top:7px;right:8px;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 7px;border-radius:6px;font-size:9px;letter-spacing:.04em;font-weight:800;color:#fff;background:#141b17bc;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .cl-card:has(.cl-preview) .cl-card-body p{display:none}
+  .cl-card:has(.cl-preview) .cl-card-body h3{font-size:14px;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .cl-preview{display:block;position:absolute;left:12px;right:12px;bottom:10px;height:73px;overflow:hidden;border-radius:10px;background:#ffffff75;border:1px solid #ffffff85;isolation:isolate;box-shadow:0 3px 12px #00000012;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;cursor:alias}
   .cl-preview:hover{transform:scale(1.025);box-shadow:0 6px 17px #00000025}
   .cl-preview img{width:100%;height:100%;object-fit:cover;display:block}
@@ -250,7 +286,7 @@ export default function CreativeLab(){
      {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onClick={()=>onNodeClick(n.id)}>
       <div className="cl-card-head" style={{background:typeOf(n.kind).color}} onPointerDown={e=>{if(e.button!==0||connecting)return;drag.current={id:n.id,clientX:e.clientX,clientY:e.clientY,startX:n.x,startY:n.y};e.currentTarget.setPointerCapture(e.pointerId);setSelected(n.id);setEdgeSelected(null)}}>{typeOf(n.kind).name}<span>⠿</span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
-      {mediaPreview(n.url)&&<a className="cl-preview" href={n.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title="Abrir referencia"><img src={mediaPreview(n.url)!.src} alt={"Vista previa de "+n.title} loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display="none"}}/>{mediaPreview(n.url)!.kind==="video"&&<span className="cl-preview-play">▶</span>}</a>}
+      <ReferencePreview url={n.url} title={n.title}/>
       {PORTS.map(port=><button key={port} className={"cl-port cl-port-"+port} title="Arrastra para conectar" aria-label={"Conectar "+port} onPointerDown={e=>beginWire(e,n.id,port)} onPointerMove={e=>{if(wireDrag.current){e.stopPropagation();setWireEnd(world(e))}}} onPointerUp={e=>{e.stopPropagation();endWire(e)}} onClick={e=>e.stopPropagation()}/>)}
      </div>)}
     </div>}
