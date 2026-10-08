@@ -55,11 +55,13 @@ async function taskProperties(changes: Record<string, unknown>) {
   return properties;
 }
 
-function accountProperties(changes: Record<string, unknown>) {
+async function accountProperties(changes: Record<string, unknown>) {
   const properties: Record<string, unknown> = {};
   if ("status" in changes) properties["Estado"] = select(changes.status);
   if ("priority" in changes) properties["Prioridad"] = select(changes.priority);
   if ("contract" in changes) properties["Contrato"] = select(changes.contract);
+  if ("name" in changes) properties["Nombre"] = title(changes.name);
+  if ("assignedPeople" in changes && Array.isArray(changes.assignedPeople)) properties["Equipo asignado"] = { relation: await resolveRelation(DATA_SOURCES.team, "Nombre", changes.assignedPeople.map(String)) };
   return properties;
 }
 
@@ -104,7 +106,7 @@ export async function PATCH(request: Request) {
     const properties = body.kind === "task"
       ? await taskProperties(body.changes)
       : body.kind === "account"
-        ? accountProperties(body.changes)
+        ? await accountProperties(body.changes)
         : await projectProperties(body.changes);
 
     if (!Object.keys(properties).length) {

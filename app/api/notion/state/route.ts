@@ -377,6 +377,7 @@ export async function GET(request: Request) {
         status: select(page, "Estado") || "Inactiva",
         priority: select(page, "Prioridad") || "Sin prioridad",
         contract: select(page, "Contrato") || "Otro",
+        assignedPeople: relation(page, "Equipo asignado").map((id) => teamNames.get(id)).filter((name): name is string => Boolean(name)),
         color: accountColor(name),
         projects: accountProjectIds.length,
         tasks: accountTaskIds.length,

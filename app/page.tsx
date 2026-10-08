@@ -67,7 +67,7 @@ type CalendarEvent = {
   time?: string | null; status?: string | null;
 };
 type Account = {
-  id?: string; name: string; status?: string; priority: Priority; contract: string;
+  id?: string; name: string; status?: string; priority: Priority; contract: string; assignedPeople?: string[];
   color: string; projects: number; tasks?: number; activity?: number; pulse: number; url: string;
 };
 type TeamPerson = {
@@ -425,7 +425,7 @@ export default function Home() {
   const [teamRoleFilter, setTeamRoleFilter] = useState<"all" | "art" | "copy">("all");
   const [teamSort, setTeamSort] = useState<"activity" | "load" | "ratio" | "evidence">("activity");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [accountDraft, setAccountDraft] = useState<{ status: string; priority: string; contract: string } | null>(null);
+  const [accountDraft, setAccountDraft] = useState<{ name: string; status: string; priority: string; contract: string; assignedPeople: string[] } | null>(null);
   const [accountSaving, setAccountSaving] = useState(false);
   const [accountTaskFilter, setAccountTaskFilter] = useState<TaskLane | "all">("all");
   const [accountProjectFilter, setAccountProjectFilter] = useState<string | "all">("all");
@@ -450,7 +450,7 @@ export default function Home() {
   const current = viewCopy[activeView];
 
   useEffect(() => {
-    setAccountDraft(selectedAccount ? { status: selectedAccount.status || "Inactiva", priority: selectedAccount.priority, contract: selectedAccount.contract } : null);
+    setAccountDraft(selectedAccount ? { name: selectedAccount.name, status: selectedAccount.status || "Inactiva", priority: selectedAccount.priority, contract: selectedAccount.contract, assignedPeople: selectedAccount.assignedPeople || [] } : null);
     setAccountTaskFilter("all");
     setAccountProjectFilter("all");
   }, [selectedAccount?.name]);
@@ -1168,6 +1168,8 @@ export default function Home() {
     if (!canEdit || !selectedAccount?.id || !accountDraft || accountSaving) return;
     const sourceAccount = selectedAccount;
     const changes = {
+      name: accountDraft.name,
+      assignedPeople: accountDraft.assignedPeople,
       status: accountDraft.status,
       priority: accountDraft.priority,
       contract: accountDraft.contract,
@@ -1184,6 +1186,11 @@ export default function Home() {
         throw new Error(errorBody?.error || "No se pudo actualizar la cuenta");
       }
       const updated = { ...sourceAccount, ...changes };
+      if (changes.name !== sourceAccount.name) {
+        setProjects((items) => items.map((item) => item.account === sourceAccount.name ? { ...item, account: changes.name } : item));
+        setTasks((items) => items.map((item) => item.account === sourceAccount.name ? { ...item, account: changes.name } : item));
+        setAllTasks((items) => items.map((item) => item.account === sourceAccount.name ? { ...item, account: changes.name } : item));
+      }
       setAccountOptions((items) => items.map((item) => item.id === sourceAccount.id ? { ...item, ...changes } : item));
       setAccounts((items) => {
         const changed = items.map((item) => item.id === sourceAccount.id ? { ...item, ...changes } : item);
@@ -3266,6 +3273,7 @@ export default function Home() {
         const currentPeople = Array.from(new Set([
           ...accountProjects.flatMap((project) => project.people),
           ...openTasks.flatMap((task) => task.people),
+          ...(selectedAccount.assignedPeople || []),
         ].filter((name) => name && name !== "Por asignar")));
         const peopleRows = currentPeople.map((name) => {
           const person = team.find((item) => item.name === name);
@@ -3368,6 +3376,7 @@ export default function Home() {
               <BriefcaseBusiness />
             </div>
             <div className="account-settings-controls">
+              <label><span>Nombre de la cuenta</span><input type="text" value={accountDraft?.name ?? selectedAccount.name} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, name: event.target.value } : draft)} /></label>
               <label><span>Estado</span><select value={accountDraft?.status ?? selectedAccount.status ?? "Inactiva"} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, status: event.target.value } : draft)}>
                 {Array.from(new Set([...(liveSchema?.accounts.status.map((option) => option.name) ?? []), "Activa", "Inactiva", selectedAccount.status ?? "Inactiva"])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
               </select></label>
@@ -3377,7 +3386,18 @@ export default function Home() {
               <label><span>Contrato</span><select value={accountDraft?.contract ?? selectedAccount.contract} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, contract: event.target.value } : draft)}>
                 {Array.from(new Set([...(liveSchema?.accounts.contract.map((option) => option.name) ?? []), selectedAccount.contract])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
               </select></label>
-              {canEdit && <button type="button" className="account-settings-save" disabled={accountSaving || !accountDraft || (accountDraft.status === selectedAccount.status && accountDraft.priority === selectedAccount.priority && accountDraft.contract === selectedAccount.contract)} onClick={saveAccount}>
+              <div className="account-settings-people">
+                <span>Personas asignadas a la cuenta</span>
+                <div className="account-settings-people-grid">
+                  {team.map((person) => <label key={person.id} className="account-person-option">
+                    <input type="checkbox" checked={(accountDraft?.assignedPeople ?? selectedAccount.assignedPeople ?? []).includes(person.name)} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, assignedPeople: event.target.checked ? [...draft.assignedPeople, person.name] : draft.assignedPeople.filter((name) => name !== person.name) } : draft)} />
+                    <i className={`avatar avatar-${person.tone}`}>{person.initials}</i>
+                    <b>{person.name}</b>
+                  </label>)}
+                </div>
+                <small>Asignación directa a la cuenta. No modifica las personas de sus proyectos o tareas.</small>
+              </div>
+              {canEdit && <button type="button" className="account-settings-save" disabled={accountSaving || !accountDraft || (accountDraft.name === selectedAccount.name && accountDraft.status === selectedAccount.status && accountDraft.priority === selectedAccount.priority && accountDraft.contract === selectedAccount.contract && JSON.stringify([...accountDraft.assignedPeople].sort()) === JSON.stringify([...(selectedAccount.assignedPeople || [])].sort()))} onClick={saveAccount}>
                 <Save /> {accountSaving ? "Guardando..." : "Guardar cambios"}
               </button>}
             </div>
