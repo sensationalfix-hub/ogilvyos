@@ -226,7 +226,7 @@ export default function CreativeLab(){
      <div className="cl-list">{boards.map(b=><button key={b.id} className={"cl-board "+(activeId===b.id?"active":"")} onClick={()=>selectBoard(b)}>{b.title}<small>{b.nodes.length} ideas · {b.edges.length} conexiones</small></button>)}</div>
      <button className="cl-button dark" onClick={createBoard} style={{marginTop:18}}><CirclePlus/> Crear mapa</button>
     </div>:<div ref={canvasRef} className="cl-canvas" style={{transform:`translate3d(${pan.x}px,${pan.y}px,0) scale(${zoom})`}}>
-     <svg className="cl-wire" viewBox="0 0 1700 1150">
+     <svg className="cl-wire" viewBox="0 0 3200 2400">
       {board.edges.map(edge=>{const a=board.nodes.find(n=>n.id===edge.source),b=board.nodes.find(n=>n.id===edge.target);if(!a||!b)return null;const from=edge.sourcePort||"right",to=edge.targetPort||"left",p1=anchor(a,from),p2=anchor(b,to);return <g key={edge.id} style={{pointerEvents:"auto",cursor:"pointer"}} onClick={()=>{setEdgeSelected(edge.id);setSelected(null)}}>
        <path d={curve(p1,p2,from,to)} stroke="transparent" strokeWidth="20" fill="none"/>
        <path d={curve(p1,p2,from,to)} stroke={edgeSelected===edge.id?"#242e25":"#79867a"} strokeWidth={edgeSelected===edge.id?3:2} className={edgeSelected===edge.id?"cl-selected-wire":""} strokeLinecap="round" fill="none"/>
