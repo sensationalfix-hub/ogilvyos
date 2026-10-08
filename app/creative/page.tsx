@@ -69,9 +69,14 @@ export default function CreativeLab(){
  const [pan,setPan]=useState({x:120,y:80});
  const [panning,setPanning]=useState(false);
  const panDrag=useRef<{x:number;y:number;startX:number;startY:number}|null>(null);
+ const workspaceRef=useRef<HTMLDivElement>(null);
+ const zoomRef=useRef(zoom);zoomRef.current=zoom;
+ const panRef=useRef(pan);panRef.current=pan;
+ const navigableRef=useRef(false);
  const [showBoards,setShowBoards]=useState(true);
  const drag=useRef<{id:string;clientX:number;clientY:number;startX:number;startY:number}|null>(null);
  const board=boards.find(b=>b.id===activeId);
+ navigableRef.current=!!board&&!showBoards;
  const boardRef=useRef(board);boardRef.current=board;
  const latestRef=useRef(boards);latestRef.current=boards;
  const seq=useRef(0);const loaded=useRef(false);
@@ -134,16 +139,23 @@ export default function CreativeLab(){
   const dx=(event.clientX-d.clientX)/zoom,dy=(event.clientY-d.clientY)/zoom;
   update(b=>({...b,nodes:b.nodes.map(n=>n.id===d.id?{...n,x:Math.max(0,Math.round(d.startX+dx)),y:Math.max(0,Math.round(d.startY+dy))}:n)}));
  };
- const wheelZoom=(e:React.WheelEvent<HTMLDivElement>)=>{
-  if(showBoards||!board)return;
-  e.preventDefault();
-  const r=e.currentTarget.getBoundingClientRect();
-  const localX=e.clientX-r.left,localY=e.clientY-r.top;
-  const next=Math.max(.3,Math.min(2.5,zoom*Math.exp(-e.deltaY*(e.deltaMode===1?.027:.0025))));
-  const factor=next/zoom;
-  setPan(p=>({x:localX-(localX-p.x)*factor,y:localY-(localY-p.y)*factor}));
-  setZoom(next);
- };
+ useEffect(()=>{
+  const el=workspaceRef.current;if(!el)return;
+  const handle=(e:WheelEvent)=>{
+   if(!navigableRef.current)return;
+   e.preventDefault();
+   const rect=el.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
+   const old=zoomRef.current;
+   const next=Math.max(.3,Math.min(2.5,old*Math.exp(-e.deltaY*(e.deltaMode===1?.027:.0025))));
+   const k=next/old;
+   const current=panRef.current;
+   const updated={x:px-(px-current.x)*k,y:py-(py-current.y)*k};
+   zoomRef.current=next;panRef.current=updated;
+   setZoom(next);setPan(updated);
+  };
+  el.addEventListener("wheel",handle,{passive:false});
+  return()=>el.removeEventListener("wheel",handle);
+ },[]);
  const beginPan=(e:React.PointerEvent<HTMLDivElement>)=>{
   if(e.button!==0||showBoards||!board||wireDrag.current)return;
   const element=e.target as Element;
@@ -219,7 +231,7 @@ export default function CreativeLab(){
     <div className="cl-hint">Arrastra las tarjetas por su cabecera. Acerca el cursor y arrastra un nodo circular hasta otra tarjeta para conectarlas.</div>
     {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
    </aside>
-   <div className={"cl-workspace"+(panning?" cl-panning":"")} onWheel={wheelZoom} onPointerDown={beginPan} onPointerMove={onPointerMove} onPointerUp={()=>{drag.current=null;stopPan()}} onPointerCancel={()=>{drag.current=null;stopPan()}} onClick={e=>{if(e.target===e.currentTarget){setSelected(null);setEdgeSelected(null);setConnecting(null)}}}>
+   <div ref={workspaceRef} className={"cl-workspace"+(panning?" cl-panning":"")} onPointerDown={beginPan} onPointerMove={onPointerMove} onPointerUp={()=>{drag.current=null;stopPan()}} onPointerCancel={()=>{drag.current=null;stopPan()}} onClick={e=>{if(e.target===e.currentTarget){setSelected(null);setEdgeSelected(null);setConnecting(null)}}}>
     {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
     {loading?<div className="cl-empty"><Loader2/> Cargando mapas...</div>:showBoards||!board?<div className="cl-empty" style={{position:"sticky",top:90,left:100,transform:"none",textAlign:"left",maxWidth:470}}>
      <h2 style={{letterSpacing:"-.05em"}}>Tus mapas creativos</h2><p style={{fontSize:13,color:"#777",lineHeight:1.5}}>Un lienzo para relacionar pensamientos, desarrollar racionales y dar forma a tus campañas.</p>
