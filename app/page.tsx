@@ -3252,7 +3252,7 @@ export default function Home() {
 
         const today = localDateKey(new Date());
         const upcomingTasks = openTasks
-          .filter((task) => task.dateStart && dateOnly(task.dateStart) >= today)
+          .filter((task) => task.dateStart && (dateOnly(task.dateStart) || "") >= today)
           .sort((a, b) => String(a.dateStart || "").localeCompare(String(b.dateStart || "")));
         const nextTask = upcomingTasks[0] || openTasks
           .filter((task) => task.dateStart)
