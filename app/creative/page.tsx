@@ -253,7 +253,7 @@ export default function CreativeLab(){
   .cl-card:hover .cl-media-image{transform:scale(1.065);filter:saturate(1.08)}
   .cl-media-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,14,14,.49) 0%,rgba(8,13,11,.11) 36%,rgba(8,12,11,.43) 65%,rgba(5,10,9,.88) 100%);transition:opacity .35s ease}
   .cl-card:hover .cl-media-veil{opacity:.92}
-  .cl-card:has(.cl-media-cover) .cl-card-head{position:absolute;left:0;right:0;top:0;z-index:2;color:#fff;background:transparent!important;text-shadow:0 1px 7px rgba(0,0,0,.4);padding:14px 15px 12px;letter-spacing:.13em}
+  .cl-card:has(.cl-media-cover) .cl-card-head{position:absolute;left:0;right:119px;top:0;z-index:2;color:#fff;background:transparent!important;text-shadow:0 1px 7px rgba(0,0,0,.4);padding:14px 15px 12px;letter-spacing:.13em}
   .cl-card:has(.cl-media-cover) .cl-card-grip{visibility:hidden}
   .cl-card:has(.cl-media-cover) .cl-card-body{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:14px 15px 15px;color:#fff;pointer-events:auto;text-shadow:0 1px 9px rgba(0,0,0,.48)}
   .cl-card:has(.cl-media-cover) .cl-card-body h3{color:#fff;font-size:18px;line-height:1.13;font-weight:790;letter-spacing:-.045em;margin:0 0 5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
