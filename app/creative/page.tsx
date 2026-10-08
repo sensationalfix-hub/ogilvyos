@@ -12,12 +12,16 @@ const PWIDTH=246,PHEIGHT=160;
 const MIN_WIDTH=220,MAX_WIDTH=700,MIN_HEIGHT=150,MAX_HEIGHT=650;
 const dimensions=(n:Node)=>({width:n.width??PWIDTH,height:n.height??PHEIGHT});
 const anchor=(n:Node,p:Port)=>{const {width,height}=dimensions(n);return {x:n.x+(p==="left"?0:p==="right"?width:width/2),y:n.y+(p==="top"?0:p==="bottom"?height:height/2)};};
-const curve=(a:{x:number;y:number},b:{x:number;y:number},from:Port="right",to:Port="left")=>{
+const curveGeometry=(a:{x:number;y:number},b:{x:number;y:number},from:Port="right",to:Port="left")=>{
  const d=Math.max(50,Math.hypot(a.x-b.x,a.y-b.y)*.35);
  const off=(p:Port):[number,number]=>p==="left"?[-d,0]:p==="right"?[d,0]:p==="top"?[0,-d]:[0,d];
  const [ax,ay]=off(from),[bx,by]=off(to);
- return `M${a.x} ${a.y} C${a.x+ax} ${a.y+ay},${b.x+bx} ${b.y+by},${b.x} ${b.y}`;
+ const cp1={x:a.x+ax,y:a.y+ay},cp2={x:b.x+bx,y:b.y+by};
+ // The label sits on the actual cubic Bézier, not the average of its endpoints.
+ const mid={x:(a.x+3*cp1.x+3*cp2.x+b.x)/8,y:(a.y+3*cp1.y+3*cp2.y+b.y)/8};
+ return {path:`M${a.x} ${a.y} C${cp1.x} ${cp1.y},${cp2.x} ${cp2.y},${b.x} ${b.y}`,mid};
 };
+const curve=(a:{x:number;y:number},b:{x:number;y:number},from:Port="right",to:Port="left")=>curveGeometry(a,b,from,to).path;
 type Board={id:string;title:string;project_id:string|null;nodes:Node[];edges:Edge[];updated_at:string};
 const types: {key:Kind;name:string;color:string}[]=[
  {key:"insight",name:"Insight",color:"#ddedff"},
@@ -385,12 +389,12 @@ export default function CreativeLab(){
      <button className="cl-button dark" onClick={createBoard} style={{marginTop:18}}><CirclePlus/> Crear mapa</button>
     </div>:<div ref={canvasRef} className="cl-canvas" style={{transform:`translate3d(${pan.x}px,${pan.y}px,0) scale(${zoom})`}}>
      <svg className="cl-wire" viewBox="0 0 3200 2400">
-      {board.edges.map(edge=>{const a=board.nodes.find(n=>n.id===edge.source),b=board.nodes.find(n=>n.id===edge.target);if(!a||!b)return null;const from=edge.sourcePort||"right",to=edge.targetPort||"left",p1=anchor(a,from),p2=anchor(b,to);return <g key={edge.id} style={{pointerEvents:"auto",cursor:"pointer"}} onClick={()=>{setEdgeSelected(edge.id);setSelected(null)}}>
-       <path d={curve(p1,p2,from,to)} stroke="transparent" strokeWidth="20" fill="none"/>
-       <path d={curve(p1,p2,from,to)} stroke={edgeSelected===edge.id?"#242e25":"#79867a"} strokeWidth={edgeSelected===edge.id?3:2} className={edgeSelected===edge.id?"cl-selected-wire":""} strokeLinecap="round" fill="none"/>
+      {board.edges.map(edge=>{const a=board.nodes.find(n=>n.id===edge.source),b=board.nodes.find(n=>n.id===edge.target);if(!a||!b)return null;const from=edge.sourcePort||"right",to=edge.targetPort||"left",p1=anchor(a,from),p2=anchor(b,to),geometry=curveGeometry(p1,p2,from,to),label=edge.label.slice(0,26),labelWidth=Math.max(66,Math.min(184,label.length*5.9+22));return <g key={edge.id} style={{pointerEvents:"auto",cursor:"pointer"}} onClick={()=>{setEdgeSelected(edge.id);setSelected(null)}}>
+       <path d={geometry.path} stroke="transparent" strokeWidth="20" fill="none"/>
+       <path d={geometry.path} stroke={edgeSelected===edge.id?"#242e25":"#79867a"} strokeWidth={edgeSelected===edge.id?3:2} className={edgeSelected===edge.id?"cl-selected-wire":""} strokeLinecap="round" fill="none"/>
        <circle cx={p1.x} cy={p1.y} r="4" fill="#2b352e"/><circle cx={p2.x} cy={p2.y} r="4" fill="#2b352e"/>
-       <rect x={(p1.x+p2.x)/2-42} y={(p1.y+p2.y)/2-14} width="84" height="25" rx="12.5" fill="#ffffffdc" stroke="#d5ddd4"/>
-       <text x={(p1.x+p2.x)/2} y={(p1.y+p2.y)/2+2} textAnchor="middle" fontSize="10" fontWeight="600" fill="#515b52">{edge.label.slice(0,17)}</text></g>})}
+       <rect x={geometry.mid.x-labelWidth/2} y={geometry.mid.y-13} width={labelWidth} height="26" rx="13" fill="#ffffffed" stroke="#d5ddd4"/>
+       <text x={geometry.mid.x} y={geometry.mid.y+3.5} textAnchor="middle" fontSize="10" fontWeight="650" fill="#515b52">{label}</text></g>})}
       {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
      {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onClick={()=>onNodeClick(n.id)}>
