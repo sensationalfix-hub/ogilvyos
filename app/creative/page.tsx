@@ -4,7 +4,18 @@ import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, 
 
 type Kind="insight"|"concepto"|"racional"|"referencia"|"ejecucion";
 type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string};
-type Edge={id:string;source:string;target:string;label:string};
+type Port="top"|"right"|"bottom"|"left";
+type Edge={id:string;source:string;target:string;label:string;sourcePort?:Port;targetPort?:Port};
+type ProjectOption={id:string;name:string;account?:string};
+const PORTS:Port[]=["top","right","bottom","left"];
+const PWIDTH=246,PHEIGHT=160;
+const anchor=(n:Node,p:Port)=>({x:n.x+(p==="left"?0:p==="right"?PWIDTH:PWIDTH/2),y:n.y+(p==="top"?0:p==="bottom"?PHEIGHT:PHEIGHT/2)});
+const curve=(a:{x:number;y:number},b:{x:number;y:number},from:Port="right",to:Port="left")=>{
+ const d=Math.max(50,Math.hypot(a.x-b.x,a.y-b.y)*.35);
+ const off=(p:Port):[number,number]=>p==="left"?[-d,0]:p==="right"?[d,0]:p==="top"?[0,-d]:[0,d];
+ const [ax,ay]=off(from),[bx,by]=off(to);
+ return `M${a.x} ${a.y} C${a.x+ax} ${a.y+ay},${b.x+bx} ${b.y+by},${b.x} ${b.y}`;
+};
 type Board={id:string;title:string;project_id:string|null;nodes:Node[];edges:Edge[];updated_at:string};
 const types: {key:Kind;name:string;color:string}[]=[
  {key:"insight",name:"Insight",color:"#ddedff"},
@@ -30,6 +41,12 @@ export default function CreativeLab(){
  const [saved,setSaved]=useState(true);
  const [selected,setSelected]=useState<string|null>(null);
  const [connecting,setConnecting]=useState<string|null>(null);
+ const [sourcePort,setSourcePort]=useState<Port>("right");
+ const [wireEnd,setWireEnd]=useState<{x:number;y:number}|null>(null);
+ const [projects,setProjects]=useState<ProjectOption[]>([]);
+ const [projectError,setProjectError]=useState("");
+ const canvasRef=useRef<HTMLDivElement>(null);
+ const wireDrag=useRef(false);
  const [edgeSelected,setEdgeSelected]=useState<string|null>(null);
  const [zoom,setZoom]=useState(1);
  const [showBoards,setShowBoards]=useState(true);
@@ -50,6 +67,7 @@ export default function CreativeLab(){
   finally{setLoading(false);loaded.current=true;}
  },[]);
  useEffect(()=>{refresh()},[refresh]);
+ useEffect(()=>{let mounted=true;fetch("/api/notion/state",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error("No se pudieron cargar los proyectos");return r.json()}).then(data=>{if(mounted)setProjects(Array.isArray(data.projects)?data.projects:[])}).catch(()=>{if(mounted)setProjectError("No se pudieron cargar los proyectos")});return()=>{mounted=false}},[]);
  useEffect(()=>{
   if(!loaded.current||!board||saved)return;
   const version=seq.current;
@@ -79,12 +97,18 @@ export default function CreativeLab(){
   update(b=>({...b,nodes:[...b.nodes,node]}));setSelected(node.id);setEdgeSelected(null);setShowBoards(false);
  };
  const onNodeClick=(nodeId:string)=>{
-  if(connecting){if(connecting!==nodeId&&!board?.edges.some(e=>e.source===connecting&&e.target===nodeId))update(b=>({...b,edges:[...b.edges,{id:id(),source:connecting,target:nodeId,label:"relaciona"}]}));setConnecting(null);return;}
+  if(connecting){if(connecting!==nodeId&&!board?.edges.some(e=>e.source===connecting&&e.target===nodeId))update(b=>({...b,edges:[...b.edges,{id:id(),source:connecting,target:nodeId,label:"relaciona",sourcePort,targetPort:"left"}]}));setConnecting(null);setWireEnd(null);wireDrag.current=false;return;}
   setSelected(nodeId);setEdgeSelected(null);
  };
  const deleteNode=()=>{if(!selected)return;update(b=>({...b,nodes:b.nodes.filter(n=>n.id!==selected),edges:b.edges.filter(e=>e.source!==selected&&e.target!==selected)}));setSelected(null)};
  const nodeChange=(field:"title"|"body"|"url",value:string)=>{if(selected)update(b=>({...b,nodes:b.nodes.map(n=>n.id===selected?{...n,[field]:value}:n)}))};
+ const world=(event:React.PointerEvent)=>{const r=canvasRef.current?.getBoundingClientRect();return {x:r?(event.clientX-r.left)/zoom:0,y:r?(event.clientY-r.top)/zoom:0}};
+ const beginWire=(e:React.PointerEvent<HTMLButtonElement>,source:string,port:Port)=>{e.preventDefault();e.stopPropagation();setConnecting(source);setSourcePort(port);setWireEnd(world(e));wireDrag.current=true;e.currentTarget.setPointerCapture(e.pointerId);setSelected(null);setEdgeSelected(null)};
+ const endWire=(e:React.PointerEvent)=>{if(!wireDrag.current||!connecting)return;const p=world(e);const target=boardRef.current?.nodes.find(n=>n.id!==connecting&&p.x>=n.x-18&&p.x<=n.x+PWIDTH+18&&p.y>=n.y-18&&p.y<=n.y+PHEIGHT+18);
+ if(target){const ds:Record<Port,number>={top:Math.abs(p.y-target.y),right:Math.abs(p.x-target.x-PWIDTH),bottom:Math.abs(p.y-target.y-PHEIGHT),left:Math.abs(p.x-target.x)};const targetPort=PORTS.reduce((a,b)=>ds[a]<ds[b]?a:b);update(b=>({...b,edges:[...b.edges,{id:id(),source:connecting,target:target.id,label:"relaciona",sourcePort,targetPort}]}));}
+ setConnecting(null);setWireEnd(null);wireDrag.current=false;};
  const onPointerMove=(event:React.PointerEvent<HTMLDivElement>)=>{
+  if(wireDrag.current){setWireEnd(world(event));return;}
   const d=drag.current;if(!d)return;
   const dx=(event.clientX-d.clientX)/zoom,dy=(event.clientY-d.clientY)/zoom;
   update(b=>({...b,nodes:b.nodes.map(n=>n.id===d.id?{...n,x:Math.max(0,Math.round(d.startX+dx)),y:Math.max(0,Math.round(d.startY+dy))}:n)}));
@@ -92,7 +116,7 @@ export default function CreativeLab(){
  const selectBoard=(b:Board)=>{setActiveId(b.id);setSelected(null);setEdgeSelected(null);setConnecting(null);setShowBoards(false);setSaved(true)};
  return <div className="cl-root">
   <style>{`
-  *{box-sizing:border-box}.cl-root{height:100dvh;background:#f3f3f0;color:#20211f;display:flex;flex-direction:column;font-family:Arial,Helvetica,sans-serif}
+  *{box-sizing:border-box}.cl-root{height:100dvh;background:#f3f3f0;color:#20211f;display:flex;flex-direction:column;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
   .cl-top{height:72px;background:#fafaf8;border-bottom:1px solid #dddeda;display:flex;align-items:center;gap:14px;padding:0 26px;flex-shrink:0}
   .cl-brand{font-size:11px;letter-spacing:.17em;font-weight:800;color:#72746d}.cl-title{font-size:20px;font-weight:750;letter-spacing:-.06em;border:0;background:transparent;outline:0;min-width:120px;width:260px}
   .cl-button{border:1px solid #d4d6d0;background:#fff;padding:10px 13px;border-radius:10px;display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:12px;cursor:pointer;color:#20211f}
@@ -120,6 +144,15 @@ export default function CreativeLab(){
   .cl-hint{padding:13px 14px;background:#f0f1ec;border-radius:12px;color:#656962;font-size:12px;line-height:1.5}
   @media(max-width:1050px){.cl-sidebar{width:170px}.cl-inspector{width:270px}.cl-title{width:160px}.cl-top{padding:0 12px}}
   @media(max-width:700px){.cl-top{gap:7px}.cl-sidebar{display:none}.cl-inspector{position:absolute;right:0;top:72px;bottom:0;z-index:5;width:min(85vw,310px);box-shadow:-10px 0 35px #0002}.cl-title{width:115px;font-size:16px}.cl-brand{display:none}.cl-top .cl-button{padding:9px}.cl-state{display:none}}
+  .cl-root{background:#f4f4ef}.cl-top{background:rgba(248,249,246,.75);backdrop-filter:blur(25px) saturate(145%);-webkit-backdrop-filter:blur(25px) saturate(145%)}
+  .cl-sidebar,.cl-inspector{background:rgba(250,250,248,.69);backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%)}
+  .cl-card{height:160px;min-height:160px;overflow:visible;background:var(--card-color);border:1px solid #ffffff98;border-radius:19px;box-shadow:0 12px 35px #232d241b,inset 0 1px #ffffffa0;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:box-shadow .3s cubic-bezier(.2,.8,.2,1),transform .35s cubic-bezier(.2,.8,.2,1);animation:clEnter .42s cubic-bezier(.16,1,.3,1) both}
+  .cl-card:hover{transform:translateY(-3px)}.cl-card.chosen{outline:2px solid #303c32}.cl-card-head{background:transparent!important;border-radius:19px 19px 0 0;padding:16px 17px 6px;letter-spacing:.12em}.cl-card-body{padding:11px 17px}.cl-card p{color:#46504a}.cl-card h3{font-size:17px}
+  .cl-port{position:absolute;z-index:5;width:15px;height:15px;border-radius:50%;background:#f9faf7;border:2px solid #303b32;box-shadow:0 2px 8px #1112;cursor:crosshair;opacity:0;touch-action:none;transition:opacity .2s,transform .22s cubic-bezier(.2,.8,.2,1)}
+  .cl-card:hover .cl-port,.cl-card.chosen .cl-port,.cl-port:focus{opacity:1}.cl-port:hover{transform:scale(1.45)}.cl-port-top{top:-8px;left:calc(50% - 8px)}.cl-port-bottom{bottom:-8px;left:calc(50% - 8px)}.cl-port-left{left:-8px;top:calc(50% - 8px)}.cl-port-right{right:-8px;top:calc(50% - 8px)}
+  .cl-wire .cl-selected-wire{stroke-dasharray:7 7;animation:clDash 1.2s linear infinite;filter:drop-shadow(0 0 4px #9caa9a88)}
+  @keyframes clDash{to{stroke-dashoffset:-28}}@keyframes clEnter{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @media(prefers-reduced-motion:reduce){.cl-card,.cl-port{transition:none;animation:none}.cl-selected-wire{animation:none}}
   `}</style>
   <header className="cl-top">
    <a href="/" className="cl-button" title="Volver a Work"><ArrowLeft/></a>
@@ -135,8 +168,8 @@ export default function CreativeLab(){
     <div className="cl-small">Biblioteca de ideas</div>
     {types.map(t=><button key={t.key} className="cl-palette" onClick={()=>addNode(t.key)}><span className="cl-dot" style={{background:t.color}}/>{t.name}<span style={{marginLeft:"auto",fontSize:16}}>+</span></button>)}
     <div className="cl-small" style={{marginTop:34}}>Herramientas</div>
-    <div className="cl-hint">Arrastra una tarjeta desde su cabecera. Selecciónala y pulsa «Conectar» para enlazarla con otra.</div>
-    {board&&<div style={{marginTop:30}}><label className="cl-label">ID del proyecto vinculado (opcional)</label><input className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value}))} placeholder="Proyecto WorkOS / Notion"/></div>}
+    <div className="cl-hint">Arrastra las tarjetas por su cabecera. Acerca el cursor y arrastra un nodo circular hasta otra tarjeta para conectarlas.</div>
+    {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
    </aside>
    <div className="cl-workspace" onPointerMove={onPointerMove} onPointerUp={()=>{drag.current=null}} onPointerCancel={()=>{drag.current=null}} onClick={e=>{if(e.target===e.currentTarget){setSelected(null);setEdgeSelected(null);setConnecting(null)}}}>
     {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
@@ -144,18 +177,20 @@ export default function CreativeLab(){
      <h2 style={{letterSpacing:"-.05em"}}>Tus mapas creativos</h2><p style={{fontSize:13,color:"#777",lineHeight:1.5}}>Un lienzo para relacionar pensamientos, desarrollar racionales y dar forma a tus campañas.</p>
      <div className="cl-list">{boards.map(b=><button key={b.id} className={"cl-board "+(activeId===b.id?"active":"")} onClick={()=>selectBoard(b)}>{b.title}<small>{b.nodes.length} ideas · {b.edges.length} conexiones</small></button>)}</div>
      <button className="cl-button dark" onClick={createBoard} style={{marginTop:18}}><CirclePlus/> Crear mapa</button>
-    </div>:<div className="cl-canvas" style={{transform:`scale(${zoom})`}}>
-     <svg className="cl-wire" viewBox="0 0 1700 1150"><defs><marker id="cl-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="none" stroke="#696d65" strokeWidth="1.5"/></marker></defs>
-      {board.edges.map(edge=>{const a=board.nodes.find(n=>n.id===edge.source),b=board.nodes.find(n=>n.id===edge.target);if(!a||!b)return null;const x1=a.x+123,y1=a.y+78,x2=b.x+123,y2=b.y+78;return <g key={edge.id} style={{pointerEvents:"auto",cursor:"pointer"}} onClick={()=>{setEdgeSelected(edge.id);setSelected(null)}}>
-       <path d={`M${x1} ${y1} C${(x1+x2)/2} ${y1},${(x1+x2)/2} ${y2},${x2} ${y2}`} stroke="transparent" strokeWidth="18" fill="none"/>
-       <path d={`M${x1} ${y1} C${(x1+x2)/2} ${y1},${(x1+x2)/2} ${y2},${x2} ${y2}`} stroke={edgeSelected===edge.id?"#151515":"#8a9089"} strokeWidth={edgeSelected===edge.id?3:2} fill="none" markerEnd="url(#cl-arrow)"/>
-       <rect x={(x1+x2)/2-39} y={(y1+y2)/2-12} width="78" height="22" rx="9" fill="#fff" stroke="#ddddda"/>
-       <text x={(x1+x2)/2} y={(y1+y2)/2+3} textAnchor="middle" fontSize="10" fill="#62665f">{edge.label.slice(0,16)}</text>
-      </g>})}
+    </div>:<div ref={canvasRef} className="cl-canvas" style={{transform:`scale(${zoom})`}}>
+     <svg className="cl-wire" viewBox="0 0 1700 1150">
+      {board.edges.map(edge=>{const a=board.nodes.find(n=>n.id===edge.source),b=board.nodes.find(n=>n.id===edge.target);if(!a||!b)return null;const from=edge.sourcePort||"right",to=edge.targetPort||"left",p1=anchor(a,from),p2=anchor(b,to);return <g key={edge.id} style={{pointerEvents:"auto",cursor:"pointer"}} onClick={()=>{setEdgeSelected(edge.id);setSelected(null)}}>
+       <path d={curve(p1,p2,from,to)} stroke="transparent" strokeWidth="20" fill="none"/>
+       <path d={curve(p1,p2,from,to)} stroke={edgeSelected===edge.id?"#242e25":"#79867a"} strokeWidth={edgeSelected===edge.id?3:2} className={edgeSelected===edge.id?"cl-selected-wire":""} strokeLinecap="round" fill="none"/>
+       <circle cx={p1.x} cy={p1.y} r="4" fill="#2b352e"/><circle cx={p2.x} cy={p2.y} r="4" fill="#2b352e"/>
+       <rect x={(p1.x+p2.x)/2-42} y={(p1.y+p2.y)/2-14} width="84" height="25" rx="12.5" fill="#ffffffdc" stroke="#d5ddd4"/>
+       <text x={(p1.x+p2.x)/2} y={(p1.y+p2.y)/2+2} textAnchor="middle" fontSize="10" fontWeight="600" fill="#515b52">{edge.label.slice(0,17)}</text></g>})}
+      {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
-     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")} style={{left:n.x,top:n.y}} onClick={()=>onNodeClick(n.id)}>
+     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")} style={{left:n.x,top:n.y,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onClick={()=>onNodeClick(n.id)}>
       <div className="cl-card-head" style={{background:typeOf(n.kind).color}} onPointerDown={e=>{if(e.button!==0||connecting)return;drag.current={id:n.id,clientX:e.clientX,clientY:e.clientY,startX:n.x,startY:n.y};e.currentTarget.setPointerCapture(e.pointerId);setSelected(n.id);setEdgeSelected(null)}}>{typeOf(n.kind).name}<span>⠿</span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
+      {PORTS.map(port=><button key={port} className={"cl-port cl-port-"+port} title="Arrastra para conectar" aria-label={"Conectar "+port} onPointerDown={e=>beginWire(e,n.id,port)} onPointerMove={e=>{if(wireDrag.current){e.stopPropagation();setWireEnd(world(e))}}} onPointerUp={e=>{e.stopPropagation();endWire(e)}} onClick={e=>e.stopPropagation()}/>)}
      </div>)}
     </div>}
     <div className="cl-footer"><button className="cl-button" onClick={()=>setZoom(v=>Math.max(.6,Math.round((v-.1)*10)/10))}>−</button>{Math.round(zoom*100)}%<button className="cl-button" onClick={()=>setZoom(v=>Math.min(1.5,Math.round((v+.1)*10)/10))}>+</button></div>
@@ -167,7 +202,7 @@ export default function CreativeLab(){
      <label className="cl-label">Racional / desarrollo</label><textarea className="cl-field" value={selectedNode.body} onChange={e=>nodeChange("body",e.target.value)} placeholder="Escribe tu argumento, hipótesis o desarrollo creativo..."/>
      <label className="cl-label">Enlace de referencia</label><input className="cl-field" value={selectedNode.url||""} onChange={e=>nodeChange("url",e.target.value)} placeholder="https://..."/>
      {selectedNode.url&&/^https?:\/\//i.test(selectedNode.url)&&<a href={selectedNode.url} target="_blank" rel="noopener noreferrer" style={{display:"block",fontSize:12,marginTop:9}}>Abrir referencia ↗</a>}
-     <button className="cl-button dark" style={{width:"100%",justifyContent:"center",marginTop:30}} onClick={()=>{setConnecting(selectedNode.id);setSelected(null)}}><Link2/> Conectar con otra idea <ArrowRight/></button>
+     <button className="cl-button dark" style={{width:"100%",justifyContent:"center",marginTop:30}} onClick={()=>{setConnecting(selectedNode.id);setSourcePort("right");setSelected(null)}}><Link2/> Conectar con otra idea <ArrowRight/></button>
      <button className="cl-button" style={{width:"100%",justifyContent:"center",marginTop:12}} onClick={deleteNode}><Trash2/> Eliminar tarjeta</button>
     </>:selectedEdge?<><div className="cl-small">Conexión</div><h2>Relación entre ideas</h2><label className="cl-label">Qué significa esta conexión</label><input className="cl-field" value={selectedEdge.label} onChange={e=>update(b=>({...b,edges:b.edges.map(x=>x.id===selectedEdge.id?{...x,label:e.target.value}:x)}))}/>
      <button className="cl-button" onClick={()=>{update(b=>({...b,edges:b.edges.filter(x=>x.id!==selectedEdge.id)}));setEdgeSelected(null)}} style={{marginTop:20}}><Trash2/> Eliminar conexión</button></>:null}
