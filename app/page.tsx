@@ -427,6 +427,7 @@ export default function Home() {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [accountDraft, setAccountDraft] = useState<{ name: string; status: string; priority: string; contract: string; assignedPeople: string[] } | null>(null);
   const [accountSaving, setAccountSaving] = useState(false);
+  const [accountEditing, setAccountEditing] = useState(false);
   const [accountTaskFilter, setAccountTaskFilter] = useState<TaskLane | "all">("all");
   const [accountProjectFilter, setAccountProjectFilter] = useState<string | "all">("all");
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
@@ -450,6 +451,7 @@ export default function Home() {
   const current = viewCopy[activeView];
 
   useEffect(() => {
+    setAccountEditing(false);
     setAccountDraft(selectedAccount ? { name: selectedAccount.name, status: selectedAccount.status || "Inactiva", priority: selectedAccount.priority, contract: selectedAccount.contract, assignedPeople: selectedAccount.assignedPeople || [] } : null);
     setAccountTaskFilter("all");
     setAccountProjectFilter("all");
@@ -1199,6 +1201,7 @@ export default function Home() {
           : changed.filter((item) => item.id !== sourceAccount.id);
       });
       setSelectedAccount(updated);
+      setAccountEditing(false);
       toast.success("Cuenta actualizada", { description: "Los cambios se han guardado en Notion." });
     } catch (error) {
       toast.error("No se pudo guardar la cuenta", { description: error instanceof Error ? error.message : "Error de Notion" });
@@ -3331,51 +3334,51 @@ export default function Home() {
           className="account-cockpit-scroll"
           style={{ "--account-color": selectedAccount.color, "--account-contrast": contrast } as React.CSSProperties}
         >
-          <header className="account-cockpit-header">
-            <div className="account-cockpit-avatar"><span>{selectedAccount.name.slice(0, 2).toUpperCase()}</span></div>
-
+          <header className="account-cockpit-header account-cockpit-header-compact">
+            <div className="account-cockpit-avatar"><span>{selectedAccount.name.slice(0,2).toUpperCase()}</span></div>
             <div className="account-cockpit-identity">
               <span className="account-cockpit-kicker">FICHA DE CUENTA</span>
               <DialogTitle>{selectedAccount.name}</DialogTitle>
-              <DialogDescription>{selectedAccount.contract || "Sin contrato"} · Prioridad {selectedAccount.priority || "Sin definir"}</DialogDescription>
+              <DialogDescription>{selectedAccount.contract} · Prioridad {selectedAccount.priority}</DialogDescription>
               <div className="account-cockpit-project-chips">
-                {accountProjects.slice(0, 4).map((project) => <span key={project.id}>{project.name}</span>)}
-                {accountProjects.length > 4 && <span>+{accountProjects.length - 4}</span>}
-                {!accountProjects.length && <span>Sin proyectos activos</span>}
-              </div>
-              <div className="account-cockpit-meta">
-                <span>{selectedAccount.status || "Activa"}</span>
-                <span>{accountTasks.length} tareas registradas</span>
-                <span>{completedTasks.length} tareas cerradas</span>
+                <span>{selectedAccount.status || "Inactiva"}</span>
+                {accountProjects.slice(0,2).map((project)=><span key={project.id}>{project.name}</span>)}
+                {accountProjects.length>2&&<span>+{accountProjects.length-2}</span>}
               </div>
             </div>
-
-            <div className="account-cockpit-facts">
-              <div><BriefcaseBusiness /><span><small>Contrato</small><b>{selectedAccount.contract || "—"}</b></span></div>
-              <div><Target /><span><small>Prioridad</small><b>{selectedAccount.priority || "—"}</b></span></div>
-              <div><Users /><span><small>Equipo actual</small><b>{currentPeople.length} personas</b></span></div>
-            </div>
-
-            <div className="account-cockpit-status">
-              <div className="account-status-primary">
-                <strong>{selectedAccount.pulse}<small>%</small></strong>
-                <span>Pulso de cuenta</span>
-                <b>{selectedAccount.pulse >= 70 ? "Alta actividad" : selectedAccount.pulse >= 35 ? "Actividad media" : "Actividad baja"}</b>
-              </div>
-              <div>
-                <strong>{openTasks.length}</strong>
-                <span>tareas abiertas</span>
-                <b>{accountProjects.length} proyectos</b>
-              </div>
+            <div className="account-quick-kpis">
+              <div><small>PULSO</small><strong>{selectedAccount.pulse}%</strong><span>Actividad de cuenta</span></div>
+              <div><small>PROYECTOS</small><strong>{accountProjects.length}</strong><span>En cartera</span></div>
+              <div><small>TAREAS</small><strong>{openTasks.length}</strong><span>Abiertas</span></div>
+              <div><small>EQUIPO</small><strong>{currentPeople.length}</strong><span>Implicados</span></div>
             </div>
           </header>
 
-          <section className="account-settings-card">
-            <div className="account-cockpit-module-head">
-              <div><span>CONFIGURACIÓN</span><h3>Datos de la cuenta</h3></div>
-              <BriefcaseBusiness />
+          <section className={`account-settings-card ${accountEditing ? "is-editing" : ""}`}>
+            <div className="account-settings-summary">
+              <div className="account-settings-intro">
+                <span>PERFIL DE CUENTA</span>
+                <h3>Configuración</h3>
+              </div>
+              <div className="account-settings-summary-data">
+                <div><small>ESTADO</small><strong>{selectedAccount.status || "—"}</strong></div>
+                <div><small>PRIORIDAD</small><strong>{selectedAccount.priority || "—"}</strong></div>
+                <div><small>CONTRATO</small><strong>{selectedAccount.contract || "—"}</strong></div>
+              </div>
+              <div className="account-settings-summary-team">
+                <small>EQUIPO ASIGNADO</small>
+                <div className="account-summary-avatars">
+                  {(selectedAccount.assignedPeople || []).slice(0,5).map((name) => {
+                    const person = team.find((item) => item.name === name);
+                    return <span key={name} title={name} className={`avatar avatar-${person?.tone || "green"}`}>{person?.initials || initials(name)}</span>;
+                  })}
+                  {(selectedAccount.assignedPeople || []).length > 5 && <b>+{(selectedAccount.assignedPeople || []).length - 5}</b>}
+                  {!(selectedAccount.assignedPeople || []).length && <em>Sin asignar</em>}
+                </div>
+              </div>
+              {canEdit && <button type="button" className="account-settings-toggle" onClick={() => setAccountEditing((value) => !value)}><Settings2 /> {accountEditing ? "Cerrar edición" : "Editar cuenta"}</button>}
             </div>
-            <div className="account-settings-controls">
+            {accountEditing && <div className="account-settings-controls">
               <label><span>Nombre de la cuenta</span><input type="text" value={accountDraft?.name ?? selectedAccount.name} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, name: event.target.value } : draft)} /></label>
               <label><span>Estado</span><select value={accountDraft?.status ?? selectedAccount.status ?? "Inactiva"} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, status: event.target.value } : draft)}>
                 {Array.from(new Set([...(liveSchema?.accounts.status.map((option) => option.name) ?? []), "Activa", "Inactiva", selectedAccount.status ?? "Inactiva"])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}

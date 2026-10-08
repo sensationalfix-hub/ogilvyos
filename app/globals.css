@@ -18819,3 +18819,56 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .account-person-option .avatar{width:25px;height:25px;font-size:7px;border-radius:50%;font-style:normal}
 .account-person-option b{font-size:9px;font-weight:750}
 .account-settings-people>small{font-size:8px;color:#939c93}
+
+/* Account cockpit compact dashboard, October 2026 */
+.account-cockpit{width:min(1380px,calc(100vw - 36px))!important;height:min(920px,calc(100dvh - 30px))!important}
+.account-cockpit-scroll{padding:15px!important}
+.account-cockpit-header-compact{min-height:116px!important;grid-template-columns:70px minmax(220px,1fr) minmax(450px,1.5fr)!important;gap:16px!important;padding:16px 60px 16px 18px!important;border-radius:20px!important}
+.account-cockpit-header-compact .account-cockpit-avatar{width:65px!important;height:65px!important;border-radius:17px!important;box-shadow:none!important}
+.account-cockpit-header-compact .account-cockpit-avatar span{font-size:18px!important}
+.account-cockpit-header-compact .account-cockpit-identity h2{font-size:27px!important}
+.account-cockpit-header-compact .account-cockpit-identity p{font-size:10px!important;margin-top:4px!important}
+.account-cockpit-header-compact .account-cockpit-project-chips{margin-top:8px!important}
+.account-cockpit-header-compact .account-cockpit-project-chips>span{padding:5px 8px!important}
+.account-quick-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.account-quick-kpis>div{min-width:0;padding:12px 11px;border-radius:14px;background:#f2f5f0;display:flex;flex-direction:column;gap:4px}
+.account-quick-kpis small,.account-quick-kpis span{font-size:7px;color:#8d968e;font-weight:700}
+.account-quick-kpis strong{font-size:25px;line-height:1;font-weight:900;letter-spacing:-.05em;color:#111512}
+.account-settings-card{padding:0!important;overflow:hidden;border-radius:19px!important}
+.account-settings-summary{min-height:77px;display:grid;grid-template-columns:150px 1.25fr 140px auto;gap:18px;align-items:center;padding:13px 18px}
+.account-settings-intro>span,.account-settings-summary-data small,.account-settings-summary-team>small{font-size:7px;font-weight:850;letter-spacing:.09em;color:#939b94}
+.account-settings-intro h3{font-size:16px;letter-spacing:-.04em;line-height:1.1;margin:5px 0 0}
+.account-settings-summary-data{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.account-settings-summary-data>div{display:flex;flex-direction:column;gap:5px;border-right:1px solid #e8ece6}
+.account-settings-summary-data strong{font-size:12px}
+.account-settings-summary-team{display:grid;gap:8px}
+.account-summary-avatars{display:flex;align-items:center;padding-left:5px}
+.account-summary-avatars .avatar{width:29px;height:29px;font-size:7px;font-style:normal;border-radius:50%;margin-left:-5px;border:2px solid #fff}
+.account-summary-avatars b,.account-summary-avatars em{font-size:9px;color:#7d867f;font-style:normal}
+.account-settings-toggle{height:38px;padding:0 13px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:11px;border:0;background:#111512;color:#fff;font-size:10px;font-weight:800;cursor:pointer}
+.account-settings-toggle svg{width:14px;height:14px}
+.account-settings-controls{padding:15px 18px 18px!important;margin:0!important;border-top:1px solid #e9ede7}
+.account-cockpit-bento{margin-top:9px!important;grid-template-columns:minmax(0,1.45fr) minmax(0,.8fr) minmax(0,.8fr)!important;gap:9px!important}
+.account-workload-card,.account-completion-card,.account-next-card{min-height:210px!important;padding:14px!important}
+.account-task-state-list{margin-top:10px!important;gap:5px!important}
+.account-completion-ring{width:108px!important;height:108px!important}
+.account-completion-ring:before{width:76px!important;height:76px!important}
+.account-pipeline-card{margin-top:9px!important;min-height:132px!important;padding:14px!important}
+.account-pipeline-bars{margin-top:11px!important}
+.account-pipeline-bars>button{min-height:57px!important;gap:6px!important}
+.account-cockpit-lowergrid{margin-top:9px!important;gap:9px!important}
+.account-projects-card,.account-tasks-card,.account-team-card{padding:14px!important;min-height:230px!important}
+@media(max-width:1050px){
+.account-cockpit-header-compact{grid-template-columns:65px minmax(0,1fr)!important}
+.account-quick-kpis{grid-column:1/-1}
+.account-settings-summary{grid-template-columns:1fr auto;gap:12px}
+.account-settings-summary-data,.account-settings-summary-team{grid-column:1/-1}
+}
+@media(max-width:760px){
+.account-cockpit{width:calc(100vw - 12px)!important;height:calc(100svh - 12px)!important}
+.account-cockpit-header-compact{padding:14px!important}
+.account-quick-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.account-settings-summary{padding:13px}
+.account-settings-summary-data{grid-template-columns:repeat(3,minmax(0,1fr))}
+.account-cockpit-bento{grid-template-columns:1fr!important}
+}
