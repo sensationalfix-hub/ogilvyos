@@ -25,6 +25,23 @@ const types: {key:Kind;name:string;color:string}[]=[
  {key:"ejecucion",name:"Ejecución",color:"#f9e0d7"},
 ];
 const typeOf=(k:Kind)=>types.find(t=>t.key===k)||types[0];
+function mediaPreview(raw?:string):{src:string;kind:"video"|"image"}|null{
+ if(!raw)return null;
+ try{
+  const u=new URL(raw);
+  if(!["https:","http:"].includes(u.protocol))return null;
+  const host=u.hostname.toLowerCase().replace(/^www\./,"");
+  let videoId="";
+  if(host==="youtu.be")videoId=u.pathname.split("/")[1]||"";
+  else if(["youtube.com","m.youtube.com","youtube-nocookie.com"].includes(host)){
+   videoId=u.searchParams.get("v")||"";
+   if(!videoId)videoId=u.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1]||"";
+  }
+  if(/^[a-zA-Z0-9_-]{11}$/.test(videoId))return {src:"https://img.youtube.com/vi/"+videoId+"/hqdefault.jpg",kind:"video"};
+  if(/\.(?:png|jpe?g|webp|gif|avif)(?:$)/i.test(u.pathname))return {src:u.href,kind:"image"};
+ }catch{}
+ return null;
+}
 const id=()=>crypto.randomUUID();
 const startNodes:Node[]=[
  {id:"a",kind:"insight",title:"Una verdad de partida",body:"¿Qué tensión humana o cultural sostiene esta campaña?",x:80,y:110},
@@ -49,6 +66,9 @@ export default function CreativeLab(){
  const wireDrag=useRef(false);
  const [edgeSelected,setEdgeSelected]=useState<string|null>(null);
  const [zoom,setZoom]=useState(1);
+ const [pan,setPan]=useState({x:120,y:80});
+ const [panning,setPanning]=useState(false);
+ const panDrag=useRef<{x:number;y:number;startX:number;startY:number}|null>(null);
  const [showBoards,setShowBoards]=useState(true);
  const drag=useRef<{id:string;clientX:number;clientY:number;startX:number;startY:number}|null>(null);
  const board=boards.find(b=>b.id===activeId);
@@ -108,11 +128,32 @@ export default function CreativeLab(){
  if(target){const ds:Record<Port,number>={top:Math.abs(p.y-target.y),right:Math.abs(p.x-target.x-PWIDTH),bottom:Math.abs(p.y-target.y-PHEIGHT),left:Math.abs(p.x-target.x)};const targetPort=PORTS.reduce((a,b)=>ds[a]<ds[b]?a:b);update(b=>({...b,edges:[...b.edges,{id:id(),source:connecting,target:target.id,label:"relaciona",sourcePort,targetPort}]}));}
  setConnecting(null);setWireEnd(null);wireDrag.current=false;};
  const onPointerMove=(event:React.PointerEvent<HTMLDivElement>)=>{
+  if(panDrag.current){const d=panDrag.current;setPan({x:d.startX+event.clientX-d.x,y:d.startY+event.clientY-d.y});return;}
   if(wireDrag.current){setWireEnd(world(event));return;}
   const d=drag.current;if(!d)return;
   const dx=(event.clientX-d.clientX)/zoom,dy=(event.clientY-d.clientY)/zoom;
   update(b=>({...b,nodes:b.nodes.map(n=>n.id===d.id?{...n,x:Math.max(0,Math.round(d.startX+dx)),y:Math.max(0,Math.round(d.startY+dy))}:n)}));
  };
+ const wheelZoom=(e:React.WheelEvent<HTMLDivElement>)=>{
+  if(showBoards||!board)return;
+  e.preventDefault();
+  const r=e.currentTarget.getBoundingClientRect();
+  const localX=e.clientX-r.left,localY=e.clientY-r.top;
+  const next=Math.max(.3,Math.min(2.5,zoom*Math.exp(-e.deltaY*(e.deltaMode===1?.027:.0025))));
+  const factor=next/zoom;
+  setPan(p=>({x:localX-(localX-p.x)*factor,y:localY-(localY-p.y)*factor}));
+  setZoom(next);
+ };
+ const beginPan=(e:React.PointerEvent<HTMLDivElement>)=>{
+  if(e.button!==0||showBoards||!board||wireDrag.current)return;
+  const element=e.target as Element;
+  if(element.closest(".cl-card,.cl-port,.cl-footer,.cl-empty,.cl-wire g,button,a,input,textarea,select"))return;
+  panDrag.current={x:e.clientX,y:e.clientY,startX:pan.x,startY:pan.y};
+  setPanning(true);
+  e.currentTarget.setPointerCapture(e.pointerId);
+ };
+ const stopPan=()=>{panDrag.current=null;setPanning(false)};
+ const changeZoom=(factor:number)=>{const next=Math.max(.3,Math.min(2.5,zoom*factor));const rect=canvasRef.current?.parentElement?.getBoundingClientRect();if(rect){const cx=rect.width/2,cy=rect.height/2,k=next/zoom;setPan(p=>({x:cx-(cx-p.x)*k,y:cy-(cy-p.y)*k}));}setZoom(next)};
  const selectBoard=(b:Board)=>{setActiveId(b.id);setSelected(null);setEdgeSelected(null);setConnecting(null);setShowBoards(false);setSaved(true)};
  return <div className="cl-root">
   <style>{`
@@ -126,9 +167,9 @@ export default function CreativeLab(){
   .cl-small{font-size:10px;color:#8c8d85;font-weight:800;text-transform:uppercase;letter-spacing:.12em;margin:10px 8px 16px}
   .cl-palette{display:flex;align-items:center;gap:11px;width:100%;background:transparent;border:0;text-align:left;padding:12px 11px;border-radius:11px;font-weight:700;cursor:pointer;color:#30312e}
   .cl-palette:hover{background:#eeeeea}.cl-dot{height:15px;width:15px;border-radius:5px;border:1px solid #00000014}
-  .cl-workspace{position:relative;flex:1;min-width:0;overflow:auto;background-image:radial-gradient(#cfd1c9 1px,transparent 1px);background-size:24px 24px}
-  .cl-canvas{position:relative;min-width:1700px;min-height:1150px;transform-origin:top left}
-  .cl-wire{position:absolute;inset:0;pointer-events:none;width:1700px;height:1150px;overflow:visible}
+  .cl-workspace{position:relative;flex:1;min-width:0;overflow:hidden;cursor:grab;touch-action:none;background-image:radial-gradient(#cfd1c9 1px,transparent 1px);background-size:24px 24px}
+  .cl-canvas{position:relative;width:3200px;height:2400px;transform-origin:top left;will-change:transform}
+  .cl-wire{position:absolute;inset:0;pointer-events:none;width:3200px;height:2400px;overflow:visible}
   .cl-card{position:absolute;width:246px;min-height:155px;border-radius:16px;border:1px solid #d8d8d3;background:#fff;box-shadow:0 7px 21px #0000000c;overflow:hidden;cursor:pointer;user-select:none}
   .cl-card:hover,.cl-card.chosen{box-shadow:0 11px 28px #00000020;border-color:#969994}.cl-card.chosen{outline:2px solid #262722}
   .cl-card-head{padding:12px 15px;font-size:10px;letter-spacing:.1em;font-weight:800;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;cursor:grab;touch-action:none}
@@ -153,6 +194,13 @@ export default function CreativeLab(){
   .cl-wire .cl-selected-wire{stroke-dasharray:7 7;animation:clDash 1.2s linear infinite;filter:drop-shadow(0 0 4px #9caa9a88)}
   @keyframes clDash{to{stroke-dashoffset:-28}}@keyframes clEnter{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
   @media(prefers-reduced-motion:reduce){.cl-card,.cl-port{transition:none;animation:none}.cl-selected-wire{animation:none}}
+  .cl-workspace.cl-panning{cursor:grabbing}.cl-workspace:active{user-select:none}
+  .cl-preview{display:block;position:absolute;left:12px;right:12px;bottom:10px;height:73px;overflow:hidden;border-radius:10px;background:#ffffff75;border:1px solid #ffffff85;isolation:isolate;box-shadow:0 3px 12px #00000012;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;cursor:alias}
+  .cl-preview:hover{transform:scale(1.025);box-shadow:0 6px 17px #00000025}
+  .cl-preview img{width:100%;height:100%;object-fit:cover;display:block}
+  .cl-preview-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:31px;height:31px;border-radius:50%;display:grid;place-items:center;background:#161b1bcc;color:#fff;font-size:13px;border:1px solid #ffffff6a;backdrop-filter:blur(9px)}
+  .cl-card.has-preview .cl-card-body p{display:none}.cl-card.has-preview .cl-card-body h3{font-size:14px;margin-bottom:6px}
+  .cl-zoom{font-variant-numeric:tabular-nums;min-width:42px;text-align:center}
   `}</style>
   <header className="cl-top">
    <a href="/" className="cl-button" title="Volver a Work"><ArrowLeft/></a>
@@ -171,13 +219,13 @@ export default function CreativeLab(){
     <div className="cl-hint">Arrastra las tarjetas por su cabecera. Acerca el cursor y arrastra un nodo circular hasta otra tarjeta para conectarlas.</div>
     {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
    </aside>
-   <div className="cl-workspace" onPointerMove={onPointerMove} onPointerUp={()=>{drag.current=null}} onPointerCancel={()=>{drag.current=null}} onClick={e=>{if(e.target===e.currentTarget){setSelected(null);setEdgeSelected(null);setConnecting(null)}}}>
+   <div className={"cl-workspace"+(panning?" cl-panning":"")} onWheel={wheelZoom} onPointerDown={beginPan} onPointerMove={onPointerMove} onPointerUp={()=>{drag.current=null;stopPan()}} onPointerCancel={()=>{drag.current=null;stopPan()}} onClick={e=>{if(e.target===e.currentTarget){setSelected(null);setEdgeSelected(null);setConnecting(null)}}}>
     {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
     {loading?<div className="cl-empty"><Loader2/> Cargando mapas...</div>:showBoards||!board?<div className="cl-empty" style={{position:"sticky",top:90,left:100,transform:"none",textAlign:"left",maxWidth:470}}>
      <h2 style={{letterSpacing:"-.05em"}}>Tus mapas creativos</h2><p style={{fontSize:13,color:"#777",lineHeight:1.5}}>Un lienzo para relacionar pensamientos, desarrollar racionales y dar forma a tus campañas.</p>
      <div className="cl-list">{boards.map(b=><button key={b.id} className={"cl-board "+(activeId===b.id?"active":"")} onClick={()=>selectBoard(b)}>{b.title}<small>{b.nodes.length} ideas · {b.edges.length} conexiones</small></button>)}</div>
      <button className="cl-button dark" onClick={createBoard} style={{marginTop:18}}><CirclePlus/> Crear mapa</button>
-    </div>:<div ref={canvasRef} className="cl-canvas" style={{transform:`scale(${zoom})`}}>
+    </div>:<div ref={canvasRef} className="cl-canvas" style={{transform:`translate3d(${pan.x}px,${pan.y}px,0) scale(${zoom})`}}>
      <svg className="cl-wire" viewBox="0 0 1700 1150">
       {board.edges.map(edge=>{const a=board.nodes.find(n=>n.id===edge.source),b=board.nodes.find(n=>n.id===edge.target);if(!a||!b)return null;const from=edge.sourcePort||"right",to=edge.targetPort||"left",p1=anchor(a,from),p2=anchor(b,to);return <g key={edge.id} style={{pointerEvents:"auto",cursor:"pointer"}} onClick={()=>{setEdgeSelected(edge.id);setSelected(null)}}>
        <path d={curve(p1,p2,from,to)} stroke="transparent" strokeWidth="20" fill="none"/>
@@ -187,13 +235,14 @@ export default function CreativeLab(){
        <text x={(p1.x+p2.x)/2} y={(p1.y+p2.y)/2+2} textAnchor="middle" fontSize="10" fontWeight="600" fill="#515b52">{edge.label.slice(0,17)}</text></g>})}
       {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
-     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")} style={{left:n.x,top:n.y,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onClick={()=>onNodeClick(n.id)}>
+     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onClick={()=>onNodeClick(n.id)}>
       <div className="cl-card-head" style={{background:typeOf(n.kind).color}} onPointerDown={e=>{if(e.button!==0||connecting)return;drag.current={id:n.id,clientX:e.clientX,clientY:e.clientY,startX:n.x,startY:n.y};e.currentTarget.setPointerCapture(e.pointerId);setSelected(n.id);setEdgeSelected(null)}}>{typeOf(n.kind).name}<span>⠿</span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
+      {mediaPreview(n.url)&&<a className="cl-preview" href={n.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title="Abrir referencia"><img src={mediaPreview(n.url)!.src} alt={"Vista previa de "+n.title} loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display="none"}}/>{mediaPreview(n.url)!.kind==="video"&&<span className="cl-preview-play">▶</span>}</a>}
       {PORTS.map(port=><button key={port} className={"cl-port cl-port-"+port} title="Arrastra para conectar" aria-label={"Conectar "+port} onPointerDown={e=>beginWire(e,n.id,port)} onPointerMove={e=>{if(wireDrag.current){e.stopPropagation();setWireEnd(world(e))}}} onPointerUp={e=>{e.stopPropagation();endWire(e)}} onClick={e=>e.stopPropagation()}/>)}
      </div>)}
     </div>}
-    <div className="cl-footer"><button className="cl-button" onClick={()=>setZoom(v=>Math.max(.6,Math.round((v-.1)*10)/10))}>−</button>{Math.round(zoom*100)}%<button className="cl-button" onClick={()=>setZoom(v=>Math.min(1.5,Math.round((v+.1)*10)/10))}>+</button></div>
+    <div className="cl-footer"><button className="cl-button" onClick={()=>changeZoom(1/1.15)}>−</button><span className="cl-zoom">{Math.round(zoom*100)}%</span><button className="cl-button" onClick={()=>changeZoom(1.15)}>+</button></div>
    </div>
    {board&&!showBoards&&(selectedNode||selectedEdge)&&<aside className="cl-inspector">
     <button className="cl-button" onClick={()=>{setSelected(null);setEdgeSelected(null);setConnecting(null)}} style={{float:"right"}}><X/></button>
