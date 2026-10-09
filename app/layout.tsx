@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "WorkOS",
-  description: "Interfaz visual privada sobre el workspace operativo de Notion.",
+  title: "Home · Work, Life y Creative Lab",
+  description: "Tu espacio personal para trabajo, vida e ideas.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
   appleWebApp: {
     capable: true,
-    title: "WorkOS",
+    title: "Home",
     statusBarStyle: "black-translucent",
   },
 };
