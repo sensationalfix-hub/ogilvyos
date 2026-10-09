@@ -3064,6 +3064,7 @@ export default function WorkPage() {
             <button type="button" className="active" onClick={() => scrollProjectSection("project-summary")}>Resumen</button>
             <button type="button" onClick={() => scrollProjectSection("project-tasks")}>Tareas</button>
             <button type="button" onClick={() => scrollProjectSection("project-timeline")}>Timeline</button>
+            <button type="button" onClick={() => scrollProjectSection("project-briefing")}>Briefing</button>
             <button type="button" onClick={() => scrollProjectSection("project-details")}>Detalles</button>
           </nav>
         </div>
@@ -3168,6 +3169,10 @@ export default function WorkPage() {
                 <p>{completion >= 75 ? "El proyecto está en fase final. Conviene cerrar flecos, no inventar nuevas reuniones porque la humanidad ya tiene suficientes." : completion >= 35 ? "El proyecto está avanzando. El foco debería estar en desbloquear las tareas activas." : "El proyecto está arrancando. Fechas, responsables y primeras entregas mandan."}</p>
               </article>
             </aside>
+          </section>
+          <section id="project-briefing" className="project-briefing-section">
+            <div className="workspace-section-head module-head"><span>DOCUMENTACIÓN</span><h2>Briefing</h2><small>Sincronizado con Notion</small></div>
+            <PageContent key={selectedProjectPage.id} pageId={selectedProjectPage.id} heading="Notas, decisiones y referencias" showProperties={false} />
           </section>
         </div>
       </div>
