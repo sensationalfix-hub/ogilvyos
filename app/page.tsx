@@ -41,7 +41,7 @@ function dateOf(value?: string|null): Date|null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 function AppIcon({app}:{app:AppKey|"library"}) {
-  const path=app==="creative"?"lab":app==="library"?"ref":app;
+  const path=app==="creative"?"lab-reversed":app==="library"?"ref-reversed":app;
   return <img src={"/app-logos/"+path+".svg"} alt="" draggable={false} aria-hidden="true"/>;
 }
 function RecentIcon({app}:{app:AppKey}) {
