@@ -8,7 +8,7 @@ import {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/login" || pathname === "/register" || pathname.startsWith("/api/auth/")) {
+  if (pathname === "/login" || pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 
@@ -61,5 +61,6 @@ export const config = {
     "/holidays/:path*",
     "/admin/:path*",
     "/life/:path*",
+    "/creative/:path*",
   ],
 };
