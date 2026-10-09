@@ -17635,7 +17635,7 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 
 /* Static application identities. All cross-app navigation belongs in the sidebar. */
 .brand-app-logo{display:inline-flex;align-items:center;min-width:0;max-width:100%;flex:0 0 auto}
-.brand-app-logo .brand-logo{display:block;width:142px;max-width:100%;height:auto}
+.brand-app-logo .brand-app-artwork{display:block;height:57px;width:auto;max-width:100%;object-fit:contain}
 .life-wordmark{
   display:inline-flex;align-items:flex-start;position:relative;
   font-family:Impact,"Arial Narrow","Helvetica Neue",Arial,sans-serif;
@@ -17651,7 +17651,7 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 }
 @media(max-width:1050px){
   .sidebar-shell .brand-app-logo{max-width:52px;overflow:hidden}
-  .sidebar-shell .brand-app-logo .brand-logo{width:142px;max-width:none}
+  .sidebar-shell .brand-app-logo .brand-app-artwork{height:43px;max-width:none}
 }
 @media(max-width:760px){
   .sidebar-shell .brand-app-logo{display:none}
