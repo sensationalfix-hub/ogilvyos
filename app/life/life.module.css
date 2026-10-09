@@ -73,8 +73,8 @@
 }
 
 .nav button.navActive {
-  border-color: #e7ff3f;
-  background: #e7ff3f;
+  border-color: #b7ff4a;
+  background: #b7ff4a;
   color: #171b17;
 }
 
@@ -120,8 +120,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #e7ff3f;
-  box-shadow: 0 0 0 4px rgba(231,255,63,.2);
+  background: #b7ff4a;
+  box-shadow: 0 0 0 4px rgba(183,255,74,.2);
 }
 
 .source div {
@@ -148,7 +148,7 @@
   grid-template-rows: 116px minmax(0, 1fr);
   overflow: hidden;
   background:
-    radial-gradient(circle at 84% 4%, rgba(231,255,63,.28), transparent 26%),
+    radial-gradient(circle at 84% 4%, rgba(183,255,74,.28), transparent 26%),
     #f3f5ef;
 }
 
@@ -302,7 +302,7 @@
 }
 
 .stats .statAccent {
-  background: #e7ff3f;
+  background: #b7ff4a;
 }
 
 .stats .statAccent span,
