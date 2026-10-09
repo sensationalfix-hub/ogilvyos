@@ -287,13 +287,72 @@ export default function CreativeLab(){
   if(e.button!==0||showBoards||!board||wireDrag.current)return;
   const element=e.target as Element;
   if(element.closest(".cl-card,.cl-port,.cl-footer,.cl-empty,.cl-wire g,button,a,input,textarea,select"))return;
-  panDrag.current={x:e.clientX,y:e.clientY,startX:pan.x,startY:pan.y};
-  setPanning(true);
-  e.currentTarget.setPointerCapture(e.pointerId);
+  if(currentTool==="select"){
+   const r=e.currentTarget.getBoundingClientRect();
+   const x=e.clientX-r.left,y=e.clientY-r.top;
+   marqueeRef.current={pointerId:e.pointerId,x0:x,y0:y,x1:x,y1:y,add:e.shiftKey};
+   setMarquee({x0:x,y0:y,x1:x,y1:y});
+   e.currentTarget.setPointerCapture(e.pointerId);
+  }else{
+   panDrag.current={x:e.clientX,y:e.clientY,startX:pan.x,startY:pan.y};
+   setPanning(true);
+   e.currentTarget.setPointerCapture(e.pointerId);
+  }
  };
- const stopPan=()=>{panDrag.current=null;setPanning(false)};
+ const finishBackgroundAction=(e:React.PointerEvent)=>{
+  const drag=marqueeRef.current;
+  if(drag&&drag.pointerId===e.pointerId){
+   const moved=Math.hypot(drag.x1-drag.x0,drag.y1-drag.y0)>4;
+   if(moved){
+    const xMin=Math.min(drag.x0,drag.x1),xMax=Math.max(drag.x0,drag.x1);
+    const yMin=Math.min(drag.y0,drag.y1),yMax=Math.max(drag.y0,drag.y1);
+    const ids=(boardRef.current?.nodes||[]).filter(n=>{
+     const {width,height}=dimensions(n),x=n.x*zoom+pan.x,y=n.y*zoom+pan.y;
+     return x+width*zoom>=xMin&&x<=xMax&&y+height*zoom>=yMin&&y<=yMax;
+    }).map(n=>n.id);
+    setSelectedIds(prev=>drag.add?Array.from(new Set([...prev,...ids])):ids);
+   } else if(!drag.add){setSelectedIds([]);}
+   setSelected(null);setEdgeSelected(null);
+   skipCanvasClickUntil.current=Date.now()+220;
+   marqueeRef.current=null;setMarquee(null);
+  }
+  panDrag.current=null;setPanning(false);
+ };
+ useEffect(()=>{
+  const element=workspaceRef.current;if(!element)return;
+  const observer=new ResizeObserver(entries=>{
+   const rect=entries[0]?.contentRect;
+   if(rect)setWorkspaceSize(prev=>prev.width===rect.width&&prev.height===rect.height?prev:{width:rect.width,height:rect.height});
+  });
+  observer.observe(element);
+  return()=>observer.disconnect();
+ },[]);
+ useEffect(()=>{
+  const focusedField=(target:EventTarget|null)=>{
+   const el=target as HTMLElement|null;
+   return Boolean(el?.closest("input,textarea,select,[contenteditable='true']"));
+  };
+  const down=(e:KeyboardEvent)=>{
+   if(focusedField(e.target))return;
+   if(e.key==="Meta")setCmdHeld(true);
+   if(!navigableRef.current)return;
+   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="a"){
+    e.preventDefault();const current=boardRef.current;
+    if(current){setSelectedIds(current.nodes.map(n=>n.id));setSelected(null);setEdgeSelected(null);}
+   }
+   if(e.key==="Escape"){setSelectedIds([]);setSelected(null);setEdgeSelected(null);setMarquee(null);marqueeRef.current=null;}
+   if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.repeat){
+    if(e.key.toLowerCase()==="v")setTool("select");
+    if(e.key.toLowerCase()==="h")setTool("hand");
+   }
+  };
+  const up=(e:KeyboardEvent)=>{if(e.key==="Meta")setCmdHeld(false)};
+  const blur=()=>setCmdHeld(false);
+  window.addEventListener("keydown",down);window.addEventListener("keyup",up);window.addEventListener("blur",blur);
+  return()=>{window.removeEventListener("keydown",down);window.removeEventListener("keyup",up);window.removeEventListener("blur",blur)};
+ },[]);
  const changeZoom=(factor:number)=>{const next=Math.max(.3,Math.min(2.5,zoom*factor));const rect=canvasRef.current?.parentElement?.getBoundingClientRect();if(rect){const cx=rect.width/2,cy=rect.height/2,k=next/zoom;setPan(p=>({x:cx-(cx-p.x)*k,y:cy-(cy-p.y)*k}));}setZoom(next)};
- const selectBoard=(b:Board)=>{setActiveId(b.id);setSelected(null);setEdgeSelected(null);setConnecting(null);setShowBoards(false);setSaved(true)};
+ const selectBoard=(b:Board)=>{setActiveId(b.id);clearSelection();setConnecting(null);setShowBoards(false);setSaved(true)};
  return <div className="cl-root">
   <style>{`
   *{box-sizing:border-box}.cl-root{height:100dvh;background:#f3f3f0;color:#20211f;display:flex;flex-direction:column;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
