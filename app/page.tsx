@@ -204,26 +204,23 @@ export default function HomePage() {
             </div>
             <span className={styles.sectionMeta}>03 ACTIVAS · 01 EN CAMINO</span>
           </div>
-          <div className={styles.appGrid}>
+          <nav className={styles.appDock} aria-label="Abrir aplicaciones">
             {apps.map(app => (
-              <a key={app.id} href={app.href} className={styles.appTile}>
-                <div className={styles.tileVisual + " " + app.tone}><AppIcon app={app.id}/></div>
-                <div className={styles.appBody}>
-                  <div><h3 className={styles.appName}>{app.title}</h3><p className={styles.appSubtitle}>{app.detail}</p></div>
-                  <span className={styles.appArrow}><ArrowUpRight aria-hidden="true"/></span>
-                </div>
+              <a key={app.id} href={app.href} className={styles.dockApp} title={app.detail}>
+                <span className={styles.dockIcon + " " + app.tone}>
+                  <span className={styles.dockIconGlyph}><AppIcon app={app.id}/></span>
+                </span>
+                <span className={styles.dockName}>{app.title}</span>
               </a>
             ))}
-            <div className={styles.appTile + " " + styles.appTileUnavailable} aria-label="Biblioteca de referencias próximamente">
-              <div className={styles.tileVisual + " " + styles.tileLibrary}>
-                <span className={styles.soon}>PRÓXIMAMENTE</span>
-                <AppIcon app="library"/>
-              </div>
-              <div className={styles.appBody}>
-                <div><h3 className={styles.appName}>Biblioteca</h3><p className={styles.appSubtitle}>Referencias para tus ideas</p></div>
-              </div>
+            <div className={styles.dockApp + " " + styles.dockDisabled} title="Biblioteca de referencias, próximamente">
+              <span className={styles.dockIcon + " " + styles.tileLibrary}>
+                <span className={styles.dockIconGlyph}><AppIcon app="library"/></span>
+              </span>
+              <span className={styles.dockName}>Biblioteca</span>
+              <span className={styles.dockSoon}>Próximamente</span>
             </div>
-          </div>
+          </nav>
         </section>
 
         <section className={styles.section} aria-labelledby="continue-title">
