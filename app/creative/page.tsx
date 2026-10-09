@@ -517,7 +517,18 @@ export default function CreativeLab(){
       <button type="button" data-no-card-drag className="cl-resize-handle" title="Arrastra la esquina para cambiar el tamaño" aria-label={"Cambiar tamaño de "+n.title} onPointerDown={e=>beginResize(e,n)} onClick={e=>e.stopPropagation()}><MoveDiagonal2 size={14} strokeWidth={2.5}/></button>
      </div>)}
     </div>}
-    <div className="cl-footer"><button className="cl-button" onClick={()=>changeZoom(1/1.15)}>−</button><span className="cl-zoom">{Math.round(zoom*100)}%</span><button className="cl-button" onClick={()=>changeZoom(1.15)}>+</button></div>
+    {marquee&&<div className="cl-marquee" style={{left:Math.min(marquee.x0,marquee.x1),top:Math.min(marquee.y0,marquee.y1),width:Math.abs(marquee.x1-marquee.x0),height:Math.abs(marquee.y1-marquee.y0)}}/>}
+    <div className="cl-footer">
+     <button className={"cl-tool"+(currentTool==="hand"?" active":"")} type="button" title="Mano · navegar (H)" aria-label="Herramienta mano para navegar" aria-pressed={currentTool==="hand"} onClick={()=>setTool("hand")}><Hand/></button>
+     <button className={"cl-tool"+(currentTool==="select"?" active":"")} type="button" title="Seleccionar (V) · mantener ⌘" aria-label="Herramienta de selección" aria-pressed={currentTool==="select"} onClick={()=>setTool("select")}><MousePointer2/></button>
+     <span className="cl-tool-divider"/>
+     <button className="cl-tool" type="button" title="Seleccionar todo (⌘A)" aria-label="Seleccionar todas las tarjetas" onClick={selectAll}><CheckSquare2/></button>
+     {selectedIds.length>0&&<span className="cl-select-count">{selectedIds.length} seleccionadas</span>}
+     <span className="cl-tool-divider"/>
+     <button className="cl-button" onClick={()=>changeZoom(1/1.15)} aria-label="Alejar">−</button>
+     <span className="cl-zoom">{Math.round(zoom*100)}%</span>
+     <button className="cl-button" onClick={()=>changeZoom(1.15)} aria-label="Acercar">+</button>
+    </div>
    </div>
    {board&&!showBoards&&(selectedNode||selectedEdge)&&<aside className="cl-inspector">
     <button className="cl-button" onClick={()=>{setSelected(null);setEdgeSelected(null);setConnecting(null)}} style={{float:"right"}}><X/></button>
