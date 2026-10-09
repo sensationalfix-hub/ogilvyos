@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   }
 }
 export async function PATCH(request: Request) {
-  if (!await requestCanWrite(request)) return NextResponse.json({ error: 'Read-only account' }, { status: 403 });
+  if (!await requestCanWrite(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   try {
     const { pageId, blockId, checked } = await request.json();
     if (!validId(pageId || '') || !validId(blockId || '') || typeof checked !== 'boolean') return NextResponse.json({ error: 'Invalid checklist update' }, { status: 400 });
