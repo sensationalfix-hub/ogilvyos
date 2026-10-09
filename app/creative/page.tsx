@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan } from "lucide-react";
 
 type Kind="insight"|"concepto"|"racional"|"referencia"|"ejecucion";
 type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number};
@@ -273,7 +273,7 @@ export default function CreativeLab(){
    e.preventDefault();
    const rect=el.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
    const old=zoomRef.current;
-   const next=Math.max(.3,Math.min(2.5,old*Math.exp(-e.deltaY*(e.deltaMode===1?.027:.0025))));
+   const next=Math.max(.08,Math.min(2.5,old*Math.exp(-e.deltaY*(e.deltaMode===1?.027:.0025))));
    const k=next/old;
    const current=panRef.current;
    const updated={x:px-(px-current.x)*k,y:py-(py-current.y)*k};
@@ -351,7 +351,17 @@ export default function CreativeLab(){
   window.addEventListener("keydown",down);window.addEventListener("keyup",up);window.addEventListener("blur",blur);
   return()=>{window.removeEventListener("keydown",down);window.removeEventListener("keyup",up);window.removeEventListener("blur",blur)};
  },[]);
- const changeZoom=(factor:number)=>{const next=Math.max(.3,Math.min(2.5,zoom*factor));const rect=canvasRef.current?.parentElement?.getBoundingClientRect();if(rect){const cx=rect.width/2,cy=rect.height/2,k=next/zoom;setPan(p=>({x:cx-(cx-p.x)*k,y:cy-(cy-p.y)*k}));}setZoom(next)};
+ const changeZoom=(factor:number)=>{const next=Math.max(.08,Math.min(2.5,zoom*factor));const rect=workspaceRef.current?.getBoundingClientRect();if(rect){const cx=rect.width/2,cy=rect.height/2,k=next/zoom;setPan(p=>({x:cx-(cx-p.x)*k,y:cy-(cy-p.y)*k}));}setZoom(next)};
+ const fitBoard=()=>{
+  if(!board?.nodes.length){setZoom(1);setPan({x:workspaceSize.width*.5,y:workspaceSize.height*.45});return;}
+  const left=Math.min(...board.nodes.map(n=>n.x)),top=Math.min(...board.nodes.map(n=>n.y));
+  const right=Math.max(...board.nodes.map(n=>n.x+dimensions(n).width));
+  const bottom=Math.max(...board.nodes.map(n=>n.y+dimensions(n).height));
+  const availableWidth=Math.max(100,workspaceSize.width-120),availableHeight=Math.max(100,workspaceSize.height-120);
+  const next=Math.max(.08,Math.min(1.5,availableWidth/Math.max(1,right-left),availableHeight/Math.max(1,bottom-top)));
+  setZoom(next);
+  setPan({x:(workspaceSize.width-(left+right)*next)/2,y:(workspaceSize.height-(top+bottom)*next)/2});
+ };
  const selectBoard=(b:Board)=>{setActiveId(b.id);clearSelection();setConnecting(null);setShowBoards(false);setSaved(true)};
  return <div className="cl-root">
   <style>{`
@@ -525,6 +535,7 @@ export default function CreativeLab(){
      <button className="cl-tool" type="button" title="Seleccionar todo (⌘A)" aria-label="Seleccionar todas las tarjetas" onClick={selectAll}><CheckSquare2/></button>
      {selectedIds.length>0&&<span className="cl-select-count">{selectedIds.length} seleccionadas</span>}
      <span className="cl-tool-divider"/>
+     <button className="cl-tool" type="button" title="Encajar todas las tarjetas" aria-label="Encajar mapa completo en pantalla" onClick={fitBoard}><Scan/></button>
      <button className="cl-button" onClick={()=>changeZoom(1/1.15)} aria-label="Alejar">−</button>
      <span className="cl-zoom">{Math.round(zoom*100)}%</span>
      <button className="cl-button" onClick={()=>changeZoom(1.15)} aria-label="Acercar">+</button>
