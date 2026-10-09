@@ -32,7 +32,7 @@ const types: {key:Kind;name:string;color:string;ink:string;muted:string}[]=[
  {key:"ejecucion",name:"Ejecución",color:"#18102B",ink:"#FFFFFF",muted:"#D6C3FF"},
 ];
 const typeOf=(k:Kind)=>types.find(t=>t.key===k)||types[0];
-function mediaPreview(raw?:string):{src:string;kind:"video"|"image"}|null{
+function mediaPreview(raw?:string):{src:string;kind:"video"|"image"|"file-video"}|null{
  if(!raw)return null;
  try{
   const u=new URL(raw);
@@ -45,9 +45,22 @@ function mediaPreview(raw?:string):{src:string;kind:"video"|"image"}|null{
    if(!videoId)videoId=u.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1]||"";
   }
   if(/^[a-zA-Z0-9_-]{11}$/.test(videoId))return {src:"https://img.youtube.com/vi/"+videoId+"/hqdefault.jpg",kind:"video"};
+  if(/\.(?:mp4|webm|ogg|ogv|m4v)$/i.test(u.pathname))return {src:u.href,kind:"file-video"};
   if(/\.(?:png|jpe?g|webp|gif|avif)(?:$)/i.test(u.pathname))return {src:u.href,kind:"image"};
  }catch{}
  return null;
+}
+function DirectVideoPreview({url,title}:{url:string;title:string}){
+ const videoRef=useRef<HTMLVideoElement>(null);
+ const [playing,setPlaying]=useState(false);
+ const [failed,setFailed]=useState(false);
+ useEffect(()=>{setPlaying(false);setFailed(false)},[url]);
+ if(failed)return <div className="cl-media-cover"><div className="cl-media-video-fallback">Vista previa no disponible</div><a className="cl-media-source" href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}>Abrir vídeo <ArrowRight size={12}/></a></div>;
+ return <div className={"cl-media-cover cl-direct-video"+(playing?" cl-media-playing":"")} aria-label={"Vista previa de "+title}>
+  <video ref={videoRef} key={url} className="cl-media-video" src={url} preload="metadata" playsInline controls={playing} onLoadedMetadata={e=>{const video=e.currentTarget;if(video.duration>.15)video.currentTime=.1}} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onError={()=>setFailed(true)} onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}/>
+  {!playing&&<><div className="cl-media-veil" aria-hidden="true"/><button type="button" data-no-card-drag className="cl-media-play" aria-label={"Reproducir vídeo: "+title} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();videoRef.current?.play().catch(()=>setFailed(true))}}><span aria-hidden="true">▶</span></button></>}
+  <a className="cl-media-source" href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}><span>Vídeo</span><ArrowRight size={12}/></a>
+ </div>;
 }
 type RichPreview={image:string;title:string;site:string;kind:"video"|"image"|"audio"};
 const richPreviewCache=new Map<string,RichPreview|null>();
@@ -71,6 +84,7 @@ function ReferencePreview({url,title}:{url?:string;title:string}){
   },450);
   return()=>{window.clearTimeout(timer);controller.abort()};
  },[url,directSrc]);
+ if(url&&direct?.kind==="file-video")return <DirectVideoPreview url={url} title={title}/>;
  const src=directSrc||rich?.image;
  if(!url||!src||broken)return null;
  const kind=direct?.kind||rich?.kind||"image";
@@ -412,6 +426,11 @@ export default function CreativeLab(){
   .cl-card:has(.cl-media-cover){background:#1a1f1e;border-color:rgba(255,255,255,.65);box-shadow:0 12px 36px rgba(24,30,28,.2),inset 0 1px rgba(255,255,255,.26);isolation:isolate}
   .cl-card:has(.cl-media-cover):hover{box-shadow:0 19px 45px rgba(12,24,18,.3)}
   .cl-media-cover{position:absolute;inset:0;z-index:0;border-radius:inherit;overflow:hidden;background:#1a1f1e;pointer-events:none}
+  .cl-media-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#101514}
+  .cl-direct-video:not(.cl-media-playing) .cl-media-video{pointer-events:none}
+  .cl-direct-video.cl-media-playing{z-index:5;pointer-events:auto}
+  .cl-media-video-fallback{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:12px}
+  .cl-card:has(.cl-media-playing) .cl-card-body,.cl-card:has(.cl-media-playing) .cl-card-head,.cl-card:has(.cl-media-playing) .cl-drag-indicator{opacity:0;pointer-events:none}
   .cl-media-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.93);transition:transform .7s cubic-bezier(.16,1,.3,1),filter .5s ease}
   .cl-card:hover .cl-media-image{transform:scale(1.065);filter:saturate(1.08)}
   .cl-media-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,14,14,.49) 0%,rgba(8,13,11,.11) 36%,rgba(8,12,11,.43) 65%,rgba(5,10,9,.88) 100%);transition:opacity .35s ease}
