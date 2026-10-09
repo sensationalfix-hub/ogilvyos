@@ -371,7 +371,7 @@ export default function CreativeLab(){
   <style>{`
   *{box-sizing:border-box}.cl-root{height:100dvh;background:#f3f3f0;color:#20211f;display:flex;flex-direction:column;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
   .cl-top{height:72px;background:#fafaf8;border-bottom:1px solid #dddeda;display:flex;align-items:center;gap:14px;padding:0 26px;flex-shrink:0}
-  .cl-brand{font-size:11px;letter-spacing:.17em;font-weight:800;color:#72746d}.cl-title{font-size:20px;font-weight:750;letter-spacing:-.06em;border:0;background:transparent;outline:0;min-width:120px;width:260px}
+  .cl-brand-logo{display:block;width:auto;height:48px;max-width:110px;flex-shrink:0;object-fit:contain}.cl-title{font-size:20px;font-weight:750;letter-spacing:-.06em;border:0;background:transparent;outline:0;min-width:120px;width:260px}
   .cl-button{border:1px solid #d4d6d0;background:#fff;padding:10px 13px;border-radius:10px;display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:12px;cursor:pointer;color:#20211f}
   .cl-button:hover{background:#eceee9}.cl-button.dark{background:#20211f;color:#fff;border-color:#20211f}.cl-button svg{width:15px;height:15px}
   .cl-grow{flex:1}.cl-state{font-size:11px;color:#7f827b;display:flex;gap:5px;align-items:center}
@@ -396,7 +396,7 @@ export default function CreativeLab(){
   .cl-footer{position:absolute;bottom:20px;left:26px;display:flex;gap:9px;align-items:center;background:#fff;border:1px solid #deded8;padding:7px 11px;border-radius:11px;font-size:12px}
   .cl-hint{padding:13px 14px;background:#f0f1ec;border-radius:12px;color:#656962;font-size:12px;line-height:1.5}
   @media(max-width:1050px){.cl-sidebar{width:170px}.cl-inspector{width:270px}.cl-title{width:160px}.cl-top{padding:0 12px}}
-  @media(max-width:700px){.cl-top{gap:7px}.cl-sidebar{display:none}.cl-inspector{position:absolute;right:0;top:72px;bottom:0;z-index:5;width:min(85vw,310px);box-shadow:-10px 0 35px #0002}.cl-title{width:115px;font-size:16px}.cl-brand{display:none}.cl-top .cl-button{padding:9px}.cl-state{display:none}}
+  @media(max-width:700px){.cl-top{gap:7px}.cl-sidebar{display:none}.cl-inspector{position:absolute;right:0;top:72px;bottom:0;z-index:5;width:min(85vw,310px);box-shadow:-10px 0 35px #0002}.cl-title{width:115px;font-size:16px}.cl-brand-logo{height:38px;max-width:65px}.cl-top .cl-button{padding:9px}.cl-state{display:none}}
   .cl-root{background:#f4f4ef}.cl-top{background:rgba(248,249,246,.75);backdrop-filter:blur(25px) saturate(145%);-webkit-backdrop-filter:blur(25px) saturate(145%)}
   .cl-sidebar,.cl-inspector{background:rgba(250,250,248,.69);backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%)}
   .cl-card{height:160px;min-height:160px;overflow:visible;background:var(--card-color);border:1px solid #ffffff98;border-radius:19px;box-shadow:0 12px 35px #232d241b,inset 0 1px #ffffffa0;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:box-shadow .3s cubic-bezier(.2,.8,.2,1),transform .35s cubic-bezier(.2,.8,.2,1);animation:clEnter .42s cubic-bezier(.16,1,.3,1) both}
@@ -492,7 +492,7 @@ export default function CreativeLab(){
   `}</style>
   <header className="cl-top">
    <a href="/" className="cl-button" title="Volver a Home"><ArrowLeft/></a>
-   <span className="cl-brand">WORK / CREATIVE LAB</span>
+   <img className="cl-brand-logo" src="/app-logos/lab.svg" alt="Lab OS" draggable={false}/>
    <button className="cl-button" onClick={()=>setShowBoards(v=>!v)}><GitBranch/> Mapas</button>
    {board?<input className="cl-title" aria-label="Nombre del mapa" value={board.title} onChange={e=>update(b=>({...b,title:e.target.value}))}/>:<strong>Creative Lab</strong>}
    <div className="cl-grow"/>
