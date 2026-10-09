@@ -7,13 +7,13 @@ import {
 
 export const WORKOS_SESSION_COOKIE = "workos_session";
 
-export type WorkOSRole = "editor" | "viewer" | "employee";
+export type WorkOSRole = "editor";
 
 export type WorkOSIdentity = {
   role: WorkOSRole;
   name: string;
   initials: string;
-  employeeName: string | null;
+  employeeName: null;
   source: "legacy" | "supabase";
   refreshedAccessToken?: string;
   refreshedRefreshToken?: string;
@@ -25,12 +25,6 @@ function configuredPassword() {
     || process.env.OGILVYOS_PASSWORD
     || process.env.APP_PASSWORD
     || process.env.SITE_PASSWORD
-    || null;
-}
-
-function configuredViewerPassword() {
-  return process.env.RAMIRO_ACCESS_PASSWORD
-    || process.env.WORKOS_VIEWER_PASSWORD
     || null;
 }
 
@@ -53,49 +47,26 @@ export function isWorkOSAuthConfigured() {
   return Boolean(configuredPassword());
 }
 
-export function isViewerAuthConfigured() {
-  return Boolean(configuredViewerPassword());
-}
-
-export async function workOSSessionValue(role: "editor" | "viewer" = "editor") {
-  const password = role === "viewer" ? configuredViewerPassword() : configuredPassword();
+export async function workOSSessionValue() {
+  const password = configuredPassword();
   if (!password) return null;
-  return digest(`workos-session:v2:${role}:${password}`);
+  return digest(`workos-session:v2:editor:${password}`);
 }
 
-export async function passwordRole(value: string): Promise<"editor" | "viewer" | null> {
-  const editorPassword = configuredPassword();
-  const viewerPassword = configuredViewerPassword();
-
-  if (editorPassword) {
-    const [candidate, expected] = await Promise.all([
-      digest(`workos-password:v1:${value}`),
-      digest(`workos-password:v1:${editorPassword}`),
-    ]);
-    if (await safeEqual(candidate, expected)) return "editor";
-  }
-
-  if (viewerPassword) {
-    const [candidate, expected] = await Promise.all([
-      digest(`workos-password:v1:${value}`),
-      digest(`workos-password:v1:${viewerPassword}`),
-    ]);
-    if (await safeEqual(candidate, expected)) return "viewer";
-  }
-
-  return null;
+export async function passwordRole(value: string): Promise<"editor" | null> {
+  const password = configuredPassword();
+  if (!password) return null;
+  const [candidate, expected] = await Promise.all([
+    digest(`workos-password:v1:${value}`),
+    digest(`workos-password:v1:${password}`),
+  ]);
+  return await safeEqual(candidate, expected) ? "editor" : null;
 }
 
-export async function sessionRoleFromValue(value: string | undefined | null): Promise<"editor" | "viewer" | null> {
+export async function sessionRoleFromValue(value: string | undefined | null): Promise<"editor" | null> {
   if (!value) return null;
-
-  const editor = await workOSSessionValue("editor");
-  if (editor && await safeEqual(editor, value)) return "editor";
-
-  const viewer = await workOSSessionValue("viewer");
-  if (viewer && await safeEqual(viewer, value)) return "viewer";
-
-  return null;
+  const editor = await workOSSessionValue();
+  return editor && await safeEqual(editor, value) ? "editor" : null;
 }
 
 export async function validSessionValue(value: string | undefined | null) {
@@ -111,22 +82,16 @@ export function cookieFromRequest(request: Request, name: string) {
   return null;
 }
 
-function mapSupabaseRole(role: string): WorkOSRole {
-  if (role === "admin") return "editor";
-  if (role === "viewer_global") return "viewer";
-  return "employee";
-}
-
 export async function requestIdentity(request: Request): Promise<WorkOSIdentity | null> {
   const accessToken = cookieFromRequest(request, SUPABASE_ACCESS_COOKIE);
   if (accessToken) {
     const identity = await resolveSupabaseIdentity(accessToken);
-    if (identity) {
+    if (identity && identity.profile.role === "admin") {
       return {
-        role: mapSupabaseRole(identity.profile.role),
+        role: "editor",
         name: identity.profile.full_name || identity.user.email || "WorkOS",
         initials: identity.profile.initials || (identity.profile.full_name || identity.user.email || "WO").slice(0, 2).toUpperCase(),
-        employeeName: identity.profile.employee_name,
+        employeeName: null,
         source: "supabase",
       };
     }
@@ -137,12 +102,12 @@ export async function requestIdentity(request: Request): Promise<WorkOSIdentity 
     const refreshed = await supabaseRefresh(refreshToken);
     if (refreshed?.access_token) {
       const identity = await resolveSupabaseIdentity(refreshed.access_token);
-      if (identity) {
+      if (identity && identity.profile.role === "admin") {
         return {
-          role: mapSupabaseRole(identity.profile.role),
+          role: "editor",
           name: identity.profile.full_name || identity.user.email || "WorkOS",
           initials: identity.profile.initials || (identity.profile.full_name || identity.user.email || "WO").slice(0, 2).toUpperCase(),
-          employeeName: identity.profile.employee_name,
+          employeeName: null,
           source: "supabase",
           refreshedAccessToken: refreshed.access_token,
           refreshedRefreshToken: refreshed.refresh_token,
@@ -156,8 +121,8 @@ export async function requestIdentity(request: Request): Promise<WorkOSIdentity 
 
   return {
     role: legacyRole,
-    name: legacyRole === "viewer" ? "Ramiro" : "Jorge",
-    initials: legacyRole === "viewer" ? "RM" : "JC",
+    name: "Jorge",
+    initials: "JC",
     employeeName: null,
     source: "legacy",
   };
