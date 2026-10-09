@@ -1,6 +1,6 @@
 
 .shell{
-  --ink:#171b17;--muted:#747b70;--line:rgba(32,41,31,.105);--lime:#c7fb62;
+  --ink:#18102b;--muted:#747b70;--line:rgba(24,16,43,.10);--lime:#b7ff4a;
   min-height:100dvh;color:var(--ink);background:
    radial-gradient(ellipse 49% 44% at 88% -15%,rgba(193,234,158,.24),transparent 72%),
    radial-gradient(ellipse 52% 31% at -12% 80%,rgba(201,213,232,.25),transparent 73%),
@@ -13,13 +13,13 @@
 .logo{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit}
 .logoSymbol{display:grid;grid-template-columns:repeat(2,9px);grid-template-rows:repeat(2,9px);gap:3px;transform:rotate(-9deg)}
 .logoSymbol i{display:block;background:#202a1d;border-radius:3px}
-.logoSymbol i:nth-child(2){background:#b3e769}
-.logoSymbol i:nth-child(3){background:#bbd4ae}
+.logoSymbol i:nth-child(2){background:#b7ff4a}
+.logoSymbol i:nth-child(3){background:#834dfb}
 .logoText{font-size:18px;font-weight:850;letter-spacing:-.065em}
 .logoSub{font-size:10px;text-transform:uppercase;letter-spacing:.16em;font-weight:800;color:#979c94;margin-left:7px}
 .chromeRight{display:flex;align-items:center;gap:12px}
 .privateTag{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:750;color:#727b71;letter-spacing:.03em}
-.privateTag span{width:7px;height:7px;border-radius:50%;background:#7ab849;box-shadow:0 0 0 4px #8fc36626}
+.privateTag span{width:7px;height:7px;border-radius:50%;background:#b7ff4a;box-shadow:0 0 0 4px #b7ff4a25}
 .profile{width:39px;height:39px;border-radius:13px;background:#222b22;color:white;border:1px solid #303b30;font-size:11px;font-weight:850;letter-spacing:.015em;display:grid;place-items:center}
 .logout{height:38px;width:38px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.62);color:#7f887e;display:grid;place-items:center;cursor:pointer}
 .logout:hover{background:white;color:#222}
@@ -37,7 +37,7 @@
 .summary{align-self:stretch;position:relative;display:flex;flex-direction:column;justify-content:center;padding:7px 0 5px 26px}
 .summary::before{content:"";position:absolute;left:4px;top:19px;bottom:13px;width:1px;background:linear-gradient(transparent,#d7dfce 13%,#d7dfce 85%,transparent)}
 .summaryTop{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.12em;font-weight:850;color:#85917e}
-.summaryTop i{display:block;width:7px;height:7px;border-radius:50%;background:#91c35f;box-shadow:0 0 0 4px #88bd5b19}
+.summaryTop i{display:block;width:7px;height:7px;border-radius:50%;background:#b7ff4a;box-shadow:0 0 0 4px #b7ff4a29}
 .summaryHeading{font-size:21px;font-weight:810;letter-spacing:-.045em;margin:12px 0 5px;line-height:1.16}
 .summaryDescription{font-size:11px;line-height:1.4;color:#728070;min-height:24px;margin:0 0 12px;max-width:320px}
 .summaryStats{display:flex;flex-wrap:wrap;gap:8px}
@@ -65,14 +65,15 @@ a.dockApp:hover .dockIcon{transform:scale(1.075);box-shadow:0 16px 25px rgba(26,
 a.dockApp:hover .dockIconGlyph img{transform:scale(1.07)}
 
 /* The brand artwork is black + electric yellow: keep backgrounds light enough for the original lettering. */
-.tileWork{background:radial-gradient(circle at 20% 11%,#f7ffd9,#caddb7 85%);color:#171e17}
-.tileWork:before{content:"";position:absolute;inset:0;background:linear-gradient(147deg,rgba(255,255,255,.6),transparent 50%);border-radius:inherit}
-.tileLife{background:radial-gradient(circle at 22% 12%,#f1f8ff,#c5dff0 85%);color:#171b17}
-.tileLife:before{content:"";position:absolute;width:79px;height:79px;right:-30px;top:-28px;border-radius:50%;background:#fff9;filter:blur(9px)}
-.tileCreative{background:radial-gradient(circle at 23% 10%,#faf6ff,#dac7ed 90%);color:#171b17}
-.tileCreative:before{content:"";position:absolute;width:105px;height:105px;left:-57px;bottom:-66px;border:14px solid rgba(255,255,255,.42);border-radius:50%}
-.tileLibrary{background:linear-gradient(140deg,#f2f1e6,#dedfd0);color:#171b17;box-shadow:0 7px 16px rgba(60,76,63,.11),inset 0 1px 2px #fff9}
-.tileLibrary:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent,transparent 10px,rgba(255,255,255,.14) 10px,rgba(255,255,255,.14) 11px)}
+/* Quantus-inspired chromatic identities: bold flat hues, shared dark ink and no pastel gradients. */
+.tileWork{background:#F0E100;color:#18102B}
+.tileWork:before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(145deg,rgba(255,255,255,.17),transparent 53%)}
+.tileLife{background:#F5F3FF;color:#18102B}
+.tileLife:before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(145deg,rgba(255,255,255,.35),transparent 60%)}
+.tileCreative{background:#834DFB;color:#F5F3FF}
+.tileCreative:before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(145deg,rgba(255,255,255,.14),transparent 54%)}
+.tileLibrary{background:#18102B;color:#F5F3FF;box-shadow:0 7px 16px rgba(24,16,43,.16),inset 0 1px 2px rgba(255,255,255,.14)}
+.tileLibrary:before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(145deg,rgba(255,255,255,.08),transparent 60%)}
 .dockName{display:block;font-size:12px;font-weight:800;letter-spacing:-.02em;line-height:1.25;white-space:nowrap}
 .dockDisabled{opacity:.58;cursor:default}
 .dockSoon{font-size:9px;line-height:1;color:#8c988b;margin-top:-4px}
