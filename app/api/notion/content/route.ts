@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requestCanWrite, requestIdentity } from '@/app/lib/workos-auth';
-import { DATA_SOURCES, notionRequest, queryDataSource } from '@/app/lib/notion-live';
+import { DATA_SOURCES, notionRequest } from '@/app/lib/notion-live';
 import { loadPageBlocks } from '@/app/lib/page-content';
 
 const validId = (id: string) => /^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -10,30 +10,6 @@ async function taskOrProject(id: string) {
   const source = page.parent?.data_source_id;
   if (![DATA_SOURCES.tasks, DATA_SOURCES.projects].some((value) => source && compact(value) === compact(source))) throw new Error('PAGE_NOT_ALLOWED');
   return page;
-}
-function relationIds(property: any): string[] {
-  return Array.isArray(property?.relation) ? property.relation.map((item: any) => compact(item?.id || '')).filter(Boolean) : [];
-}
-async function employeeTeamId(name: string) {
-  const response = await queryDataSource(DATA_SOURCES.team, {
-    page_size: 5,
-    filter: { property: "Nombre", title: { equals: name } },
-  });
-  const rows = Array.isArray(response?.results) ? response.results : [];
-  const match = rows.find((row: any) => compact(row?.id || ''));
-  return match ? compact(match.id) : null;
-}
-async function employeeCanOpen(page: any, employeeName: string) {
-  const teamId = await employeeTeamId(employeeName);
-  if (!teamId) return false;
-  const source = compact(page.parent?.data_source_id || '');
-  if (source === compact(DATA_SOURCES.tasks)) {
-    return relationIds(page.properties?.Equipo).includes(teamId);
-  }
-  if (source === compact(DATA_SOURCES.projects)) {
-    return relationIds(page.properties?.Personas).includes(teamId);
-  }
-  return false;
 }
 function propertyValue(property: any): string {
   const value = property[property.type];
@@ -54,16 +30,8 @@ export async function GET(request: Request) {
   if (!validId(id)) return NextResponse.json({ error: 'Invalid page' }, { status: 400 });
   try {
     const page = await taskOrProject(id);
-    if (identity.role === "employee") {
-      const employeeName = String(identity.employeeName || "").trim();
-      if (!employeeName || !await employeeCanOpen(page, employeeName)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
     const blocks = await loadPageBlocks(id, notionRequest);
-    const properties = identity.role === "employee"
-      ? []
-      : Object.entries(page.properties || {}).map(([name, property]) => ({
+    const properties = Object.entries(page.properties || {}).map(([name, property]) => ({
           name,
           value: propertyValue(property) || 'Sin completar',
           files: (property as any).type === 'files'
