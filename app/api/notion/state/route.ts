@@ -441,66 +441,10 @@ export async function GET(request: Request) {
       .filter((holiday) => holiday.end && new Date(holiday.end).getTime() >= holidayWindowStart)
       .sort((a, b) => String(a.start).localeCompare(String(b.start)));
 
-    if (identity.role === "employee") {
-      const employeeName = String(identity.employeeName || "").trim();
-      if (!employeeName) {
-        return NextResponse.json({ error: "Employee profile is not linked" }, { status: 403 });
-      }
-
-      const directTasks = tasks.filter((task) => task.people.includes(employeeName));
-      const directProjectNames = new Set(
-        projects.filter((project) => project.people.includes(employeeName)).map((project) => project.name)
-      );
-      for (const task of directTasks) {
-        if (task.project && task.project !== "Por asignar") directProjectNames.add(task.project);
-      }
-
-      const employeeProjects = visibleProjects.filter((project) => directProjectNames.has(project.name));
-      const employeeProjectNames = new Set(employeeProjects.map((project) => project.name));
-      const employeeTasks = directTasks.filter((task) =>
-        task.project === "Por asignar" || employeeProjectNames.has(task.project)
-      );
-      const employeeActiveTasks = employeeTasks.filter((task) => ACTIVE_TASK_STATUSES.has(task.status));
-      const employeeAccountsSet = new Set([
-        ...employeeProjects.map((project) => project.account),
-        ...employeeTasks.map((task) => task.account),
-      ]);
-      const employeeAccounts = accounts.filter((account) => employeeAccountsSet.has(account.name));
-      const employeeHolidays = holidays.filter((holiday) => holiday.name === employeeName);
-      const employeeTeam: never[] = [];
-
-      return NextResponse.json({
-        source: "notion",
-        loadedAt: new Date().toISOString(),
-        scope: "employee",
-        employeeName,
-        counts: {
-          accounts: employeeAccounts.length,
-          projects: employeeProjects.length,
-          activeProjects: employeeProjects.filter((project) => ACTIVE_PROJECT_STATUSES.has(project.status)).length,
-          tasks: employeeTasks.length,
-          activeTasks: employeeActiveTasks.length,
-          team: 0,
-          holidays: employeeHolidays.length,
-          evaluations: 0,
-          ratedTasks: 0,
-          ratedProjects: 0,
-        },
-        accounts: employeeAccounts,
-        projects: employeeProjects,
-        tasks: employeeTasks,
-        allTasks: employeeTasks,
-        team: [],
-        holidays: employeeHolidays,
-      }, {
-        headers: { "Cache-Control": "private, no-store, max-age=0" },
-      });
-    }
-
     return NextResponse.json({
       source: "notion",
       loadedAt: new Date().toISOString(),
-      scope: identity.role === "viewer" ? "viewer_global" : "admin",
+      scope: "admin",
       counts: {
         accounts: accounts.length,
         projects: projects.length,
@@ -519,7 +463,8 @@ export async function GET(request: Request) {
       allTasks: tasks,
       team,
       holidays,
-      ...(identity.role === "editor" ? { imputationProjects: projects, imputationHolidays: allHolidayRows.filter(holiday => holiday.start && holiday.end) } : {}),
+      imputationProjects: projects,
+      imputationHolidays: allHolidayRows.filter(holiday => holiday.start && holiday.end),
     }, {
       headers: { "Cache-Control": "private, no-store, max-age=0" },
     });
