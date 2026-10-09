@@ -11,7 +11,6 @@ import {
   Gamepad2,
   House,
   LayoutDashboard,
-  LayoutGrid,
   ListTodo,
   Plus,
   Sparkles,
@@ -187,7 +186,7 @@ export default function LifePage() {
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.logoWrap}>
-          <ModeLogo mode="life" href="/work" /><a href="/" className={styles.homeBack} title="Volver a Home"><LayoutGrid/> Home</a>
+          <ModeLogo mode="life" />
         </div>
 
         <div className={styles.navLabel}>
@@ -195,7 +194,8 @@ export default function LifePage() {
           <small>Supabase</small>
         </div>
 
-        <nav className={styles.nav}>
+        <nav className={styles.nav} aria-label="Navegación de Life">
+          <a href="/" className={styles.navHome} title="Volver a Home"><House/><span>Home</span></a>
           {nav.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
