@@ -18495,3 +18495,28 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
   .mobile-app-nav>a.mobile-root-link svg{width:20px!important;height:20px!important;stroke-width:1.9!important}
   .mobile-app-nav>a.mobile-root-link:hover{background:rgba(255,255,255,.72)!important;color:#111512!important}
 }
+
+
+/* Sidebar branding: preserve the original SVG wordmark, without the legacy app-icon tile.
+   The boxed app icons belong exclusively to the Home dock. */
+.brand-lockup > .brand-app-logo,
+.sidebar-shell .brand-lockup > .brand-app-logo {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  transform: none !important;
+  overflow: visible;
+}
+.brand-lockup .brand-app-logo .brand-app-artwork {
+  display: block;
+  width: auto;
+  height: 57px;
+  max-width: 100%;
+  object-fit: contain;
+}
