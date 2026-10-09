@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2 } from "lucide-react";
 
 type Kind="insight"|"concepto"|"racional"|"referencia"|"ejecucion";
 type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number};
@@ -101,6 +101,14 @@ export default function CreativeLab(){
  const [saving,setSaving]=useState(false);
  const [saved,setSaved]=useState(true);
  const [selected,setSelected]=useState<string|null>(null);
+ const [selectedIds,setSelectedIds]=useState<string[]>([]);
+ const [tool,setTool]=useState<"hand"|"select">("hand");
+ const [cmdHeld,setCmdHeld]=useState(false);
+ const currentTool=cmdHeld?"select":tool;
+ const [marquee,setMarquee]=useState<{x0:number;y0:number;x1:number;y1:number}|null>(null);
+ const marqueeRef=useRef<{pointerId:number;x0:number;y0:number;x1:number;y1:number;add:boolean}|null>(null);
+ const skipCanvasClickUntil=useRef(0);
+ const [workspaceSize,setWorkspaceSize]=useState({width:1000,height:800});
  const [connecting,setConnecting]=useState<string|null>(null);
  const [sourcePort,setSourcePort]=useState<Port>("right");
  const [wireEnd,setWireEnd]=useState<{x:number;y:number}|null>(null);
@@ -118,7 +126,7 @@ export default function CreativeLab(){
  const panRef=useRef(pan);panRef.current=pan;
  const navigableRef=useRef(false);
  const [showBoards,setShowBoards]=useState(true);
- const drag=useRef<{id:string;pointerId:number;clientX:number;clientY:number;startX:number;startY:number;moved:boolean}|null>(null);
+ const drag=useRef<{id:string;pointerId:number;clientX:number;clientY:number;startPositions:{id:string;x:number;y:number}[];moved:boolean}|null>(null);
  const [draggingId,setDraggingId]=useState<string|null>(null);
  const resize=useRef<{id:string;pointerId:number;clientX:number;clientY:number;startWidth:number;startHeight:number;moved:boolean}|null>(null);
  const [resizingId,setResizingId]=useState<string|null>(null);
@@ -128,7 +136,12 @@ export default function CreativeLab(){
  const boardRef=useRef(board);boardRef.current=board;
  const latestRef=useRef(boards);latestRef.current=boards;
  const seq=useRef(0);const loaded=useRef(false);
- const selectedNode=board?.nodes.find(n=>n.id===selected);
+ const selectedNode=selectedIds.length<=1?board?.nodes.find(n=>n.id===selected):undefined;
+ const marqueeIds=marquee&&board?board.nodes.filter(n=>{
+  const x=n.x*zoom+pan.x,y=n.y*zoom+pan.y,{width,height}=dimensions(n);
+  return x+width*zoom>=Math.min(marquee.x0,marquee.x1)&&x<=Math.max(marquee.x0,marquee.x1)&&y+height*zoom>=Math.min(marquee.y0,marquee.y1)&&y<=Math.max(marquee.y0,marquee.y1);
+ }).map(n=>n.id):[];
+ const visibleWorld={left:-pan.x/zoom-180,top:-pan.y/zoom-180,width:workspaceSize.width/zoom+360,height:workspaceSize.height/zoom+360};
  const selectedEdge=board?.edges.find(e=>e.id===edgeSelected);
  const update=useCallback((change:(b:Board)=>Board)=>{
   setBoards(prev=>prev.map(b=>b.id===activeId?change(b):b));setSaved(false);seq.current++;
@@ -156,25 +169,36 @@ export default function CreativeLab(){
  },[board,saved]);
  const createBoard=async()=>{
   try{const r=await fetch("/api/creative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:"Nuevo mapa creativo"})});const d=await r.json();if(!r.ok)throw new Error(d.error);
-   setBoards(p=>[d.board,...p]);setActiveId(d.board.id);setShowBoards(false);setSelected(null);setEdgeSelected(null);setSaved(true);
+   setBoards(p=>[d.board,...p]);setActiveId(d.board.id);setShowBoards(false);setSelected(null);setSelectedIds([]);setEdgeSelected(null);setSaved(true);
   }catch(e){setError(String(e));}
  };
  const deleteBoard=async()=>{
   if(!board||!window.confirm("¿Eliminar este mapa y todas sus ideas?"))return;
   const r=await fetch("/api/creative?id="+board.id,{method:"DELETE"});if(!r.ok){setError("No se pudo eliminar");return}
-  const rest=boards.filter(b=>b.id!==board.id);setBoards(rest);setActiveId(rest[0]?.id||null);setSelected(null);
+  const rest=boards.filter(b=>b.id!==board.id);setBoards(rest);setActiveId(rest[0]?.id||null);setSelected(null);setSelectedIds([]);
  };
  const addNode=(kind:Kind)=>{
   if(!board)return;
-  const node:Node={id:id(),kind,title:typeOf(kind).name+" sin título",body:"",x:Math.round((160+Math.random()*290)/20)*20,y:Math.round((120+Math.random()*230)/20)*20};
-  update(b=>({...b,nodes:[...b.nodes,node]}));setSelected(node.id);setEdgeSelected(null);setShowBoards(false);
+  const node:Node={id:id(),kind,title:typeOf(kind).name+" sin título",body:"",x:Math.round(((workspaceSize.width*.5-pan.x)/zoom+(Math.random()-.5)*120)/20)*20,y:Math.round(((workspaceSize.height*.4-pan.y)/zoom+(Math.random()-.5)*100)/20)*20};
+  update(b=>({...b,nodes:[...b.nodes,node]}));setSelected(node.id);setSelectedIds([node.id]);setEdgeSelected(null);setShowBoards(false);
  };
- const onNodeClick=(nodeId:string)=>{
+ const onNodeClick=(nodeId:string,e:React.MouseEvent)=>{
   if(Date.now()<ignoreCardClickUntil.current)return;
-  if(connecting){if(connecting!==nodeId&&!board?.edges.some(e=>e.source===connecting&&e.target===nodeId))update(b=>({...b,edges:[...b.edges,{id:id(),source:connecting,target:nodeId,label:"relaciona",sourcePort,targetPort:"left"}]}));setConnecting(null);setWireEnd(null);wireDrag.current=false;return;}
-  setSelected(nodeId);setEdgeSelected(null);
+  if(connecting){
+   if(connecting!==nodeId&&!board?.edges.some(edge=>edge.source===connecting&&edge.target===nodeId))
+    update(b=>({...b,edges:[...b.edges,{id:id(),source:connecting,target:nodeId,label:"relaciona",sourcePort,targetPort:"left"}]}));
+   setConnecting(null);setWireEnd(null);wireDrag.current=false;return;
+  }
+  if(currentTool==="select"||e.shiftKey){
+   setSelected(null);setEdgeSelected(null);
+   setSelectedIds(ids=>ids.includes(nodeId)?ids.filter(id=>id!==nodeId):[...ids,nodeId]);
+   return;
+  }
+  setSelectedIds([nodeId]);setSelected(nodeId);setEdgeSelected(null);
  };
- const deleteNode=()=>{if(!selected)return;update(b=>({...b,nodes:b.nodes.filter(n=>n.id!==selected),edges:b.edges.filter(e=>e.source!==selected&&e.target!==selected)}));setSelected(null)};
+ const selectAll=()=>{if(!board)return;setSelectedIds(board.nodes.map(n=>n.id));setSelected(null);setEdgeSelected(null)};
+ const clearSelection=()=>{setSelectedIds([]);setSelected(null);setEdgeSelected(null)};
+ const deleteNode=()=>{if(!selected)return;update(b=>({...b,nodes:b.nodes.filter(n=>n.id!==selected),edges:b.edges.filter(e=>e.source!==selected&&e.target!==selected)}));clearSelection()};
  const nodeChange=(field:"title"|"body"|"url",value:string)=>{if(selected)update(b=>({...b,nodes:b.nodes.map(n=>n.id===selected?{...n,[field]:value}:n)}))};
  const world=(event:React.PointerEvent)=>{const r=canvasRef.current?.getBoundingClientRect();return {x:r?(event.clientX-r.left)/zoom:0,y:r?(event.clientY-r.top)/zoom:0}};
  const beginWire=(e:React.PointerEvent<HTMLButtonElement>,source:string,port:Port)=>{e.preventDefault();e.stopPropagation();setConnecting(source);setSourcePort(port);setWireEnd(world(e));wireDrag.current=true;e.currentTarget.setPointerCapture(e.pointerId);setSelected(null);setEdgeSelected(null)};
@@ -184,7 +208,9 @@ export default function CreativeLab(){
  const beginCardDrag=(event:React.PointerEvent<HTMLDivElement>,node:Node)=>{
   if(event.button!==0||connecting||wireDrag.current)return;
   if((event.target as Element).closest("a,button,input,textarea,select,[data-no-card-drag]"))return;
-  drag.current={id:node.id,pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY,startX:node.x,startY:node.y,moved:false};
+  const group=selectedIds.length>1&&selectedIds.includes(node.id)?selectedIds:[node.id];
+  const startPositions=(board?.nodes||[]).filter(n=>group.includes(n.id)).map(n=>({id:n.id,x:n.x,y:n.y}));
+  drag.current={id:node.id,pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY,startPositions,moved:false};
   event.currentTarget.setPointerCapture(event.pointerId);
   event.stopPropagation();
  };
@@ -221,13 +247,22 @@ export default function CreativeLab(){
    }
    return;
   }
+  if(marqueeRef.current&&event.pointerId===marqueeRef.current.pointerId){
+   const r=workspaceRef.current?.getBoundingClientRect();if(!r)return;
+   marqueeRef.current.x1=event.clientX-r.left;marqueeRef.current.y1=event.clientY-r.top;
+   setMarquee({x0:marqueeRef.current.x0,y0:marqueeRef.current.y0,x1:marqueeRef.current.x1,y1:marqueeRef.current.y1});return;
+  }
   if(panDrag.current){const d=panDrag.current;setPan({x:d.startX+event.clientX-d.x,y:d.startY+event.clientY-d.y});return;}
   if(wireDrag.current){setWireEnd(world(event));return;}
   const d=drag.current;if(!d||d.pointerId!==event.pointerId)return;
   const dx=(event.clientX-d.clientX)/zoom,dy=(event.clientY-d.clientY)/zoom;
   if(!d.moved&&Math.hypot(event.clientX-d.clientX,event.clientY-d.clientY)<4)return;
-  if(!d.moved){d.moved=true;setDraggingId(d.id);}
-  update(b=>({...b,nodes:b.nodes.map(n=>n.id===d.id?{...n,x:Math.max(0,Math.round(d.startX+dx)),y:Math.max(0,Math.round(d.startY+dy))}:n)}));
+  if(!d.moved){d.moved=true;setDraggingId(d.id);setSelectedIds(d.startPositions.map(p=>p.id));if(d.startPositions.length>1)setSelected(null);}
+  const initial=new Map(d.startPositions.map(p=>[p.id,p]));
+  update(b=>({...b,nodes:b.nodes.map(n=>{
+   const p=initial.get(n.id);
+   return p?{...n,x:Math.round(p.x+dx),y:Math.round(p.y+dy)}:n;
+  })}));
  };
  useEffect(()=>{
   const el=workspaceRef.current;if(!el)return;
