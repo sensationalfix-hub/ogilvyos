@@ -23,12 +23,13 @@ const curveGeometry=(a:{x:number;y:number},b:{x:number;y:number},from:Port="righ
 };
 const curve=(a:{x:number;y:number},b:{x:number;y:number},from:Port="right",to:Port="left")=>curveGeometry(a,b,from,to).path;
 type Board={id:string;title:string;project_id:string|null;nodes:Node[];edges:Edge[];updated_at:string};
-const types: {key:Kind;name:string;color:string}[]=[
- {key:"insight",name:"Insight",color:"#ddedff"},
- {key:"concepto",name:"Concepto",color:"#f4e9b2"},
- {key:"racional",name:"Racional",color:"#eae4fd"},
- {key:"referencia",name:"Referencia",color:"#d7ede4"},
- {key:"ejecucion",name:"Ejecución",color:"#f9e0d7"},
+// Shared OS editorial palette, with a lighter violet extension for a fifth card type.
+const types: {key:Kind;name:string;color:string;ink:string;muted:string}[]=[
+ {key:"insight",name:"Insight",color:"#F5F3FF",ink:"#18102B",muted:"#494059"},
+ {key:"concepto",name:"Concepto",color:"#F0E100",ink:"#18102B",muted:"#433B08"},
+ {key:"racional",name:"Racional",color:"#D6C3FF",ink:"#18102B",muted:"#494059"},
+ {key:"referencia",name:"Referencia",color:"#834DFB",ink:"#FFFFFF",muted:"#FFFFFF"},
+ {key:"ejecucion",name:"Ejecución",color:"#18102B",ink:"#FFFFFF",muted:"#D6C3FF"},
 ];
 const typeOf=(k:Kind)=>types.find(t=>t.key===k)||types[0];
 function mediaPreview(raw?:string):{src:string;kind:"video"|"image"}|null{
@@ -472,6 +473,18 @@ export default function CreativeLab(){
   .cl-card:has(.cl-media-cover) .cl-resize-handle{color:#fff;background:rgba(14,24,19,.54);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   .cl-card:has(.cl-media-cover) .cl-resize-handle:hover{background:rgba(14,24,19,.85)}
   @media(prefers-reduced-motion:reduce){.cl-resize-handle{transition:none}}
+  /* Strong editorial types: palette role determines text contrast, media cards keep their overlay. */
+  .cl-card{color:var(--card-ink,#18102B)}
+  .cl-card .cl-card-head,.cl-card .cl-card-body h3{color:inherit}
+  .cl-card .cl-card-body p{color:var(--card-muted,#494059)}
+  .cl-card.is-dark:not(:has(.cl-media-cover)){border-color:rgba(255,255,255,.12);box-shadow:0 14px 35px rgba(24,16,43,.25)}
+  .cl-card.is-dark .cl-drag-indicator{color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.24)}
+  .cl-card.is-dark:hover .cl-drag-indicator{background:rgba(255,255,255,.26)}
+  .cl-card.is-dark .cl-resize-handle{background:rgba(255,255,255,.15);color:#fff}
+  .cl-card.is-dark .cl-resize-handle:hover{background:rgba(255,255,255,.3)}
+  .cl-card.is-dark.cl-multi-selected,.cl-card.is-dark.chosen{outline:2px solid #B7FF4A;outline-offset:3px}
+  .cl-card.is-dark .cl-card-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.4)}
+  .cl-card.is-dark:has(.cl-media-cover) .cl-card-body p{color:rgba(255,255,255,.95)}
   .cl-zoom{font-variant-numeric:tabular-nums;min-width:42px;text-align:center}
   .cl-workspace.cl-select-tool{cursor:crosshair}
   .cl-workspace.cl-select-tool .cl-card{cursor:default}
@@ -523,7 +536,7 @@ export default function CreativeLab(){
        <text x={geometry.mid.x} y={geometry.mid.y+3.5} textAnchor="middle" fontSize="10" fontWeight="650" fill="#515b52">{label}</text></g>})}
       {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
-     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(selectedIds.includes(n.id)?" cl-multi-selected":"")+(marqueeIds.includes(n.id)?" cl-marquee-preview":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onDragStart={e=>e.preventDefault()} onClick={e=>onNodeClick(n.id,e)}>
+     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(typeOf(n.kind).ink==="#FFFFFF"?" is-dark":"")+(selected===n.id?"chosen":"")+(selectedIds.includes(n.id)?" cl-multi-selected":"")+(marqueeIds.includes(n.id)?" cl-marquee-preview":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color,"--card-ink":typeOf(n.kind).ink,"--card-muted":typeOf(n.kind).muted} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onDragStart={e=>e.preventDefault()} onClick={e=>onNodeClick(n.id,e)}>
       <div className="cl-card-head" title="Arrastra para mover la tarjeta"><span className="cl-card-type">{typeOf(n.kind).name}</span><span className="cl-drag-indicator" title="Arrastra para mover"><GripVertical size={16} strokeWidth={2.5}/></span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
       <ReferencePreview url={n.url} title={n.title}/>
