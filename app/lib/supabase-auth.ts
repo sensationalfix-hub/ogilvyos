@@ -9,7 +9,7 @@ export const SUPABASE_PUBLISHABLE_KEY =
 export const SUPABASE_ACCESS_COOKIE = "workos_sb_access";
 export const SUPABASE_REFRESH_COOKIE = "workos_sb_refresh";
 
-export type SupabaseRole = "admin" | "viewer_global" | "employee";
+export type SupabaseRole = "admin";
 
 export type WorkOSProfile = {
   id: string;
