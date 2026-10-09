@@ -28,7 +28,7 @@ function validRecent(value: unknown): value is RecentVisit {
     && typeof v.title === "string" && typeof v.subtitle === "string"
     && typeof v.at === "number" && Number.isFinite(v.at)
     && typeof v.href === "string"
-    && permitted.some(prefix => v.href === prefix || v.href.startsWith(prefix + "?") || v.href.startsWith(prefix + "/"));
+    && permitted.some(prefix => (v.href as string) === prefix || (v.href as string).startsWith(prefix + "?") || (v.href as string).startsWith(prefix + "/"));
 }
 function prettyDate(date: Date, full = false) {
   return new Intl.DateTimeFormat("es-ES", full
