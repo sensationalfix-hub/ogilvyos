@@ -425,6 +425,7 @@ export default function WorkPage() {
   const [accountTaskFilter, setAccountTaskFilter] = useState<TaskLane | "all">("all");
   const [accountProjectFilter, setAccountProjectFilter] = useState<string | "all">("all");
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
+  const [activeProjectSection, setActiveProjectSection] = useState("project-summary");
   const [timelineWeeks, setTimelineWeeks] = useState(8);
   const [weekOffset, setWeekOffset] = useState(0);
   const [projectTaskName, setProjectTaskName] = useState("");
@@ -1526,6 +1527,7 @@ export default function WorkPage() {
     });
   }
   function scrollProjectSection(id: string) {
+    setActiveProjectSection(id);
     const target = document.getElementById(id);
     if (!target) return;
     target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -3061,11 +3063,11 @@ export default function WorkPage() {
           </header>
 
           <nav className="project-workspace-tabs" aria-label="Secciones del proyecto">
-            <button type="button" className="active" onClick={() => scrollProjectSection("project-summary")}>Resumen</button>
-            <button type="button" onClick={() => scrollProjectSection("project-tasks")}>Tareas</button>
-            <button type="button" onClick={() => scrollProjectSection("project-timeline")}>Timeline</button>
-            <button type="button" onClick={() => scrollProjectSection("project-briefing")}>Briefing</button>
-            <button type="button" onClick={() => scrollProjectSection("project-details")}>Detalles</button>
+            <button type="button" className={activeProjectSection === "project-summary" ? "active" : ""} onClick={() => scrollProjectSection("project-summary")}>Resumen</button>
+            <button type="button" className={activeProjectSection === "project-tasks" ? "active" : ""} onClick={() => scrollProjectSection("project-tasks")}>Tareas</button>
+            <button type="button" className={activeProjectSection === "project-timeline" ? "active" : ""} onClick={() => scrollProjectSection("project-timeline")}>Timeline</button>
+            <button type="button" className={activeProjectSection === "project-briefing" ? "active" : ""} onClick={() => scrollProjectSection("project-briefing")}>Briefing</button>
+            <button type="button" className={activeProjectSection === "project-details" ? "active" : ""} onClick={() => scrollProjectSection("project-details")}>Detalles</button>
           </nav>
         </div>
 
