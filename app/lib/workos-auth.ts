@@ -13,7 +13,6 @@ export type WorkOSIdentity = {
   role: WorkOSRole;
   name: string;
   initials: string;
-  employeeName: null;
   source: "legacy" | "supabase";
   refreshedAccessToken?: string;
   refreshedRefreshToken?: string;
@@ -91,7 +90,6 @@ export async function requestIdentity(request: Request): Promise<WorkOSIdentity 
         role: "editor",
         name: identity.profile.full_name || identity.user.email || "WorkOS",
         initials: identity.profile.initials || (identity.profile.full_name || identity.user.email || "WO").slice(0, 2).toUpperCase(),
-        employeeName: null,
         source: "supabase",
       };
     }
@@ -107,8 +105,7 @@ export async function requestIdentity(request: Request): Promise<WorkOSIdentity 
           role: "editor",
           name: identity.profile.full_name || identity.user.email || "WorkOS",
           initials: identity.profile.initials || (identity.profile.full_name || identity.user.email || "WO").slice(0, 2).toUpperCase(),
-          employeeName: null,
-          source: "supabase",
+            source: "supabase",
           refreshedAccessToken: refreshed.access_token,
           refreshedRefreshToken: refreshed.refresh_token,
         };
@@ -123,7 +120,6 @@ export async function requestIdentity(request: Request): Promise<WorkOSIdentity 
     role: legacyRole,
     name: "Jorge",
     initials: "JC",
-    employeeName: null,
     source: "legacy",
   };
 }
