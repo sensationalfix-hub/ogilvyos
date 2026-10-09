@@ -18525,3 +18525,8 @@ body:has(.full-detail-dialog) [data-slot="select-content"] { z-index: 560 !impor
 .account-settings-summary-data{grid-template-columns:repeat(3,minmax(0,1fr))}
 .account-cockpit-bento{grid-template-columns:1fr!important}
 }
+
+/* Personal OS launcher shortcut in Work sidebar */
+.work-home-shortcut{display:grid;place-items:center;width:36px;height:36px;margin:8px 0 0 9px;border:1px solid rgba(37,50,37,.11);border-radius:11px;color:#748272;background:#ffffff8a;text-decoration:none;transition:background .2s,transform .2s}
+.work-home-shortcut:hover{color:#243126;background:#dff5c7;transform:translateY(-1px)}
+.work-home-shortcut svg{width:17px;height:17px}
