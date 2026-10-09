@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: LoginProps) {
         <div className="workos-login-mark">W</div>
         <span>ACCESO PRIVADO</span>
         <h1>WorkOS</h1>
-        <p>Tu acceso determina qué puedes ver y qué puedes tocar. Milagrosamente, una contraseña ya no tiene que fingir que es un sistema de permisos.</p>
+        <p>Tu espacio de trabajo personal. Accede con tu cuenta para gestionar proyectos, tareas e ideas.</p>
         <form action="/api/auth/login" method="post">
           <label htmlFor="email">Email</label>
           <input id="email" name="email" type="email" autoComplete="email" placeholder="nombre@correo.com" />
@@ -25,7 +25,6 @@ export default async function LoginPage({ searchParams }: LoginProps) {
         {error ? <small className="workos-login-error">Email o contraseña incorrectos.</small> : null}
         {setup ? <small className="workos-login-error">El acceso todavía no está configurado en el servidor.</small> : null}
         {confirmed ? <small className="workos-login-success">Cuenta confirmada. Ya puedes entrar.</small> : null}
-        <a className="workos-login-link" href="/register">Crear mi acceso</a>
       </section>
     </main>
   );
