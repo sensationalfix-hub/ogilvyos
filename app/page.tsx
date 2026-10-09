@@ -41,10 +41,8 @@ function dateOf(value?: string|null): Date|null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 function AppIcon({app}:{app:AppKey|"library"}) {
-  if (app === "work") return <BriefcaseBusiness aria-hidden="true"/>;
-  if (app === "life") return <SunMedium aria-hidden="true"/>;
-  if (app === "creative") return <Workflow aria-hidden="true"/>;
-  return <Images aria-hidden="true"/>;
+  const path=app==="creative"?"lab":app==="library"?"ref":app;
+  return <img src={"/app-logos/"+path+".svg"} alt="" draggable={false} aria-hidden="true"/>;
 }
 function RecentIcon({app}:{app:AppKey}) {
   if (app === "work") return <CalendarDays aria-hidden="true"/>;
