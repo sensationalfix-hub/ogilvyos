@@ -366,8 +366,8 @@ export default function CreativeLab(){
   .cl-palette{display:flex;align-items:center;gap:11px;width:100%;background:transparent;border:0;text-align:left;padding:12px 11px;border-radius:11px;font-weight:700;cursor:pointer;color:#30312e}
   .cl-palette:hover{background:#eeeeea}.cl-dot{height:15px;width:15px;border-radius:5px;border:1px solid #00000014}
   .cl-workspace{position:relative;flex:1;min-width:0;overflow:hidden;cursor:grab;touch-action:none;background-image:radial-gradient(#cfd1c9 1px,transparent 1px);background-size:24px 24px}
-  .cl-canvas{position:relative;width:3200px;height:2400px;transform-origin:top left;will-change:transform}
-  .cl-wire{position:absolute;inset:0;pointer-events:none;width:3200px;height:2400px;overflow:visible}
+  .cl-canvas{position:absolute;left:0;top:0;width:0;height:0;overflow:visible;transform-origin:0 0;will-change:transform}
+  .cl-wire{position:absolute;pointer-events:none;overflow:visible}
   .cl-card{position:absolute;width:246px;min-height:155px;border-radius:16px;border:1px solid #d8d8d3;background:#fff;box-shadow:0 7px 21px #0000000c;overflow:hidden;cursor:pointer;user-select:none}
   .cl-card:hover,.cl-card.chosen{box-shadow:0 11px 28px #00000020;border-color:#969994}.cl-card.chosen{outline:2px solid #262722}
   .cl-card-head{padding:12px 15px;font-size:10px;letter-spacing:.1em;font-weight:800;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;cursor:grab;touch-action:none}
@@ -459,6 +459,22 @@ export default function CreativeLab(){
   .cl-card:has(.cl-media-cover) .cl-resize-handle:hover{background:rgba(14,24,19,.85)}
   @media(prefers-reduced-motion:reduce){.cl-resize-handle{transition:none}}
   .cl-zoom{font-variant-numeric:tabular-nums;min-width:42px;text-align:center}
+  .cl-workspace.cl-select-tool{cursor:crosshair}
+  .cl-workspace.cl-select-tool .cl-card{cursor:default}
+  .cl-card.cl-multi-selected{outline:2px solid #8cba35;outline-offset:3px;box-shadow:0 8px 24px #566f3a31,0 0 0 5px #baff4435}
+  .cl-card.cl-multi-selected.is-dragging{outline-color:#34531d}
+  .cl-card.cl-marquee-preview{outline:2px dashed #779f34;outline-offset:2px}
+  .cl-marquee{position:absolute;z-index:24;pointer-events:none;border:1.5px solid #577f31;background:rgba(160,232,75,.13);box-shadow:0 0 0 1px #ffffff90 inset;border-radius:3px}
+  .cl-footer{z-index:26;gap:4px;padding:6px;background:#ffffffdc;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 8px 26px #13201112}
+  .cl-tool{border:0;background:transparent;color:#666f68;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;cursor:pointer;transition:background .2s,color .2s}
+  .cl-tool:hover{background:#f0f3ec}.cl-tool.active{background:#1f2620;color:#fff}
+  .cl-tool svg{width:17px;height:17px}
+  .cl-tool-divider{height:22px;width:1px;background:#dbded6;margin:0 5px}
+  .cl-select-count{font-weight:750;font-size:11px;color:#596a4d;padding:0 6px;white-space:nowrap}
+  .cl-tool:focus-visible{outline:2px solid #82b94b;outline-offset:2px}
+  .cl-workspace.cl-select-tool .cl-port{opacity:0}
+  .cl-workspace.cl-select-tool .cl-card:hover .cl-port{opacity:1}
+  @media(max-width:700px){.cl-footer{left:10px;bottom:10px}.cl-select-count{display:none}}
   `}</style>
   <header className="cl-top">
    <a href="/" className="cl-button" title="Volver a Work"><ArrowLeft/></a>
@@ -474,17 +490,17 @@ export default function CreativeLab(){
     <div className="cl-small">Biblioteca de ideas</div>
     {types.map(t=><button key={t.key} className="cl-palette" onClick={()=>addNode(t.key)}><span className="cl-dot" style={{background:t.color}}/>{t.name}<span style={{marginLeft:"auto",fontSize:16}}>+</span></button>)}
     <div className="cl-small" style={{marginTop:34}}>Herramientas</div>
-    <div className="cl-hint"><strong>Tarjetas:</strong> clic para editar; arrastra desde cualquier punto para moverlas. <strong>Texto largo:</strong> usa la rueda para desplazarte dentro. <strong>Tamaño:</strong> estira la esquina inferior derecha. <strong>Mapa:</strong> arrastra el fondo.</div>
+    <div className="cl-hint"><strong>Mano (H):</strong> mueve el lienzo. <strong>Puntero (V):</strong> selecciona varias tarjetas con un recuadro. <strong>⌘:</strong> selección temporal. <strong>⌘A:</strong> selecciona todo. Arrastra una de las seleccionadas para moverlas juntas.</div>
     {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
    </aside>
-   <div ref={workspaceRef} className={"cl-workspace"+(panning?" cl-panning":"")} onPointerDown={beginPan} onPointerMove={onPointerMove} onPointerUp={e=>{finishResize(e);finishCardDrag(e);stopPan()}} onPointerCancel={e=>{finishResize(e);finishCardDrag(e);stopPan()}} onClick={e=>{if(e.target===e.currentTarget){setSelected(null);setEdgeSelected(null);setConnecting(null)}}}>
+   <div ref={workspaceRef} className={"cl-workspace"+(panning?" cl-panning":"")+(currentTool==="select"?" cl-select-tool":"")} style={{backgroundSize:`${24*zoom}px ${24*zoom}px`,backgroundPosition:`${pan.x}px ${pan.y}px`}} onPointerDown={beginPan} onPointerMove={onPointerMove} onPointerUp={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onPointerCancel={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onClick={e=>{if(e.target===e.currentTarget&&Date.now()>skipCanvasClickUntil.current&&currentTool==="hand")clearSelection()}}>
     {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
     {loading?<div className="cl-empty"><Loader2/> Cargando mapas...</div>:showBoards||!board?<div className="cl-empty" style={{position:"sticky",top:90,left:100,transform:"none",textAlign:"left",maxWidth:470}}>
      <h2 style={{letterSpacing:"-.05em"}}>Tus mapas creativos</h2><p style={{fontSize:13,color:"#777",lineHeight:1.5}}>Un lienzo para relacionar pensamientos, desarrollar racionales y dar forma a tus campañas.</p>
      <div className="cl-list">{boards.map(b=><button key={b.id} className={"cl-board "+(activeId===b.id?"active":"")} onClick={()=>selectBoard(b)}>{b.title}<small>{b.nodes.length} ideas · {b.edges.length} conexiones</small></button>)}</div>
      <button className="cl-button dark" onClick={createBoard} style={{marginTop:18}}><CirclePlus/> Crear mapa</button>
     </div>:<div ref={canvasRef} className="cl-canvas" style={{transform:`translate3d(${pan.x}px,${pan.y}px,0) scale(${zoom})`}}>
-     <svg className="cl-wire" viewBox="0 0 3200 2400">
+     <svg className="cl-wire" style={{left:visibleWorld.left,top:visibleWorld.top,width:visibleWorld.width,height:visibleWorld.height}} viewBox={`${visibleWorld.left} ${visibleWorld.top} ${visibleWorld.width} ${visibleWorld.height}`}>
       {board.edges.map(edge=>{const a=board.nodes.find(n=>n.id===edge.source),b=board.nodes.find(n=>n.id===edge.target);if(!a||!b)return null;const from=edge.sourcePort||"right",to=edge.targetPort||"left",p1=anchor(a,from),p2=anchor(b,to),geometry=curveGeometry(p1,p2,from,to),label=edge.label.slice(0,26),labelWidth=Math.max(66,Math.min(184,label.length*5.9+22));return <g key={edge.id} style={{pointerEvents:"auto",cursor:"pointer"}} onClick={()=>{setEdgeSelected(edge.id);setSelected(null)}}>
        <path d={geometry.path} stroke="transparent" strokeWidth="20" fill="none"/>
        <path d={geometry.path} stroke={edgeSelected===edge.id?"#242e25":"#79867a"} strokeWidth={edgeSelected===edge.id?3:2} className={edgeSelected===edge.id?"cl-selected-wire":""} strokeLinecap="round" fill="none"/>
@@ -493,7 +509,7 @@ export default function CreativeLab(){
        <text x={geometry.mid.x} y={geometry.mid.y+3.5} textAnchor="middle" fontSize="10" fontWeight="650" fill="#515b52">{label}</text></g>})}
       {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
-     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onDragStart={e=>e.preventDefault()} onClick={()=>onNodeClick(n.id)}>
+     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(selected===n.id?"chosen":"")+(selectedIds.includes(n.id)?" cl-multi-selected":"")+(marqueeIds.includes(n.id)?" cl-marquee-preview":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onDragStart={e=>e.preventDefault()} onClick={e=>onNodeClick(n.id,e)}>
       <div className="cl-card-head" title="Arrastra para mover la tarjeta"><span className="cl-card-type">{typeOf(n.kind).name}</span><span className="cl-drag-indicator" title="Arrastra para mover"><GripVertical size={16} strokeWidth={2.5}/></span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
       <ReferencePreview url={n.url} title={n.title}/>
