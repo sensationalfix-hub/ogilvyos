@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     const identity = await resolveSupabaseIdentity(session.access_token);
-    if (!identity) {
+    if (!identity || identity.profile.role !== "admin") {
       return NextResponse.redirect(new URL("/login?error=1", request.url), 303);
     }
 
