@@ -48,7 +48,7 @@ function countChecks(blocks: ContentBlock[]): { total: number; done: number } {
 function updateCheck(blocks: ContentBlock[], id: string, checked: boolean): ContentBlock[] {
   return blocks.map((block) => ({ ...block, checked: block.id === id ? checked : block.checked, children: updateCheck(block.children, id, checked) }));
 }
-export function PageContent({ pageId, readOnly = false }: { pageId: string; readOnly?: boolean }) {
+export function PageContent({ pageId, readOnly = false, heading = "Contenido y checklist", showProperties = true }: { pageId: string; readOnly?: boolean; heading?: string; showProperties?: boolean }) {
   const [data, setData] = useState<PageData | null>(null);
   const [error, setError] = useState(false);
   const [reload, setReload] = useState(0);
@@ -73,10 +73,10 @@ export function PageContent({ pageId, readOnly = false }: { pageId: string; read
   }
   const checks = data ? countChecks(data.blocks) : null;
   return <section className="task-page-content" aria-label="Contenido de la página">
-    <header><h2>Contenido y checklist</h2>{checks && checks.total > 0 && <span>{checks.done} de {checks.total} completados</span>}</header>
+    <header><h2>{heading}</h2>{checks && checks.total > 0 && <span>{checks.done} de {checks.total} completados</span>}</header>
     {error ? <div role="alert"><p>No se ha podido cargar el contenido de esta página.</p><Button variant="outline" onClick={() => setReload((value) => value + 1)}>Reintentar</Button></div> : !data ? <p role="status">Cargando contenido…</p> : <>
       {data.blocks.length ? <Blocks blocks={data.blocks} pending={pending} toggle={toggle} readOnly={readOnly} /> : <p className="content-empty">Esta página no tiene contenido ni checklist.</p>}
-      {data.properties.length > 0 && <details className="content-properties"><summary>Todas las propiedades</summary><dl>{data.properties.map((property) => <div key={property.name}><dt>{property.name}</dt><dd>{property.value}{property.files?.map((file, index) => { const url = safeContentUrl(file.url); return url ? <a key={index} href={url} target="_blank" rel="noreferrer">{file.name}</a> : null; })}</dd></div>)}</dl><p>Última actualización: {new Date(data.updatedAt).toLocaleString('es-ES')}</p></details>}
+      {showProperties && data.properties.length > 0 && <details className="content-properties"><summary>Todas las propiedades</summary><dl>{data.properties.map((property) => <div key={property.name}><dt>{property.name}</dt><dd>{property.value}{property.files?.map((file, index) => { const url = safeContentUrl(file.url); return url ? <a key={index} href={url} target="_blank" rel="noreferrer">{file.name}</a> : null; })}</dd></div>)}</dl><p>Última actualización: {new Date(data.updatedAt).toLocaleString('es-ES')}</p></details>}
     </>}
   </section>;
 }
