@@ -7,10 +7,8 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     authenticated: true,
-    role: identity.role,
     name: identity.name,
     initials: identity.initials,
-    employeeName: identity.employeeName,
     source: identity.source,
   });
 }
