@@ -93,7 +93,7 @@ a.appTile:hover .appArrow{background:#eaf3dc;color:#3c5e25}
 .bottomRight span{display:flex;align-items:center;gap:5px}
 .bottomRight svg{width:12px;height:12px}
 @media(max-width:950px){
- .container{width:min(100% - 40px,1180px)}
+ .container{width:min(1180px,calc(100% - 40px))}
  .welcome{grid-template-columns:1fr;gap:26px;padding:32px}
  .headline{font-size:54px}
  .heroFooter{margin-top:15px}
