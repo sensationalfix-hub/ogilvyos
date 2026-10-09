@@ -132,6 +132,10 @@ export default function CreativeLab(){
  const [resizingId,setResizingId]=useState<string|null>(null);
  const ignoreCardClickUntil=useRef(0);
  const board=boards.find(b=>b.id===activeId);
+ useEffect(()=>{
+  if(!board||showBoards)return;
+  try{window.localStorage.setItem("os.recent.creative",JSON.stringify({app:"creative",title:board.title,subtitle:"Creative Lab · mapa de ideas",href:"/creative?board="+encodeURIComponent(board.id),at:Date.now()}))}catch{}
+ },[board?.id,board?.title,showBoards]);
  navigableRef.current=!!board&&!showBoards;
  const boardRef=useRef(board);boardRef.current=board;
  const latestRef=useRef(boards);latestRef.current=boards;
@@ -148,7 +152,7 @@ export default function CreativeLab(){
  },[activeId]);
  const refresh=useCallback(async()=>{
   try{const r=await fetch("/api/creative",{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"No se pudieron cargar los mapas");
-   setBoards(d.boards||[]);setActiveId(v=>v&&d.boards.some((b:Board)=>b.id===v)?v:d.boards[0]?.id||null);setError("");
+   setBoards(d.boards||[]);const requested=new URLSearchParams(window.location.search).get("board");const match=d.boards.find((b:Board)=>b.id===requested);if(match){setActiveId(match.id);setShowBoards(false)}else setActiveId(v=>v&&d.boards.some((b:Board)=>b.id===v)?v:d.boards[0]?.id||null);setError("");
   }catch(e){setError(e instanceof Error?e.message:"Error de conexión");}
   finally{setLoading(false);loaded.current=true;}
  },[]);
@@ -487,7 +491,7 @@ export default function CreativeLab(){
   @media(max-width:700px){.cl-footer{left:10px;bottom:10px}.cl-select-count{display:none}}
   `}</style>
   <header className="cl-top">
-   <a href="/" className="cl-button" title="Volver a Work"><ArrowLeft/></a>
+   <a href="/" className="cl-button" title="Volver a Home"><ArrowLeft/></a>
    <span className="cl-brand">WORK / CREATIVE LAB</span>
    <button className="cl-button" onClick={()=>setShowBoards(v=>!v)}><GitBranch/> Mapas</button>
    {board?<input className="cl-title" aria-label="Nombre del mapa" value={board.title} onChange={e=>update(b=>({...b,title:e.target.value}))}/>:<strong>Creative Lab</strong>}
