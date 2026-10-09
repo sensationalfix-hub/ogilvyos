@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/login?error=1", request.url), 303);
   }
 
-  const session = await workOSSessionValue(role);
+  const session = await workOSSessionValue();
   if (!session) {
     return NextResponse.redirect(new URL("/login?setup=1", request.url), 303);
   }
