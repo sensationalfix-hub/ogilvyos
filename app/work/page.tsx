@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
-  Check, LayoutDashboard, ListTodo, NotebookPen, Plus, Save, Sparkles, Star,
+  Check, House, LayoutDashboard, ListTodo, NotebookPen, Plus, Save, Sparkles, Star,
   Target, Trash2, TrendingUp, Users, Settings2, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -1711,7 +1711,7 @@ export default function WorkPage() {
     className="os-shell"
   >
     <aside className="sidebar-shell">
-      <div className="brand-lockup"><ModeLogo mode="work" href="/life" /><a href="/" aria-label="Ir a Home" title="Home" className="work-home-shortcut"><LayoutDashboard size={18}/></a></div>
+      <div className="brand-lockup"><ModeLogo mode="work" /></div>
       <div className="nav-section-label"><span>ESPACIOS</span><small>{visibleNavigation.length} vistas</small></div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -1722,6 +1722,7 @@ export default function WorkPage() {
             <DialogFooter><Button onClick={createQuickItem}>Crear</Button></DialogFooter>
           </DialogContent>
         </Dialog>
+      <a href="/" className="sidebar-home-link" title="Volver a Home"><House /><span>Home</span></a>
       <TabsList className="nav-list desktop-nav-list" variant="line" aria-label="Navegación principal">
         {visibleNavigation.map(({ value, label, icon: Icon }) => <TabsTrigger key={value} value={value} className={`nav-item nav-${value} ${value === "dashboard" ? "nav-dashboard" : ""}`}><Icon /><span>{label}</span>{value === "dashboard" && <small>GENERAL</small>}</TabsTrigger>)}
       </TabsList>
@@ -1732,6 +1733,7 @@ export default function WorkPage() {
         <button className={`mobile-home-button ${activeView === "dashboard" ? "active" : ""}`} onClick={() => setActiveView("dashboard")}><LayoutDashboard /><span>Dashboard</span></button>
         <button className={activeView === "accounts" ? "active" : ""} onClick={() => setActiveView("accounts")}><BriefcaseBusiness /><span>Cuentas</span></button>
         <button className={activeView === "team" ? "active" : ""} onClick={() => setActiveView("team")}><Users /><span>Equipo</span></button>
+        <a href="/" aria-label="Ir a Home" title="Home" className="mobile-root-link"><House /><span>Home</span></a>
       </nav>
       <div className="sync-card"><span className="sync-dot" /><div><strong>{schemaState === "live" && dataState === "live" ? "NOTION EN VIVO" : schemaState === "error" || dataState === "error" ? "NOTION · SIN DATOS" : "CONECTANDO NOTION"}</strong><small>{schemaState === "live" && dataState === "live" ? `${liveCounts?.activeTasks ?? tasks.length} tareas · ${liveCounts?.activeProjects ?? projects.length} proyectos · opciones reales` : schemaState === "error" || dataState === "error" ? "No se muestran snapshots antiguos como si fueran actuales" : "Leyendo filas, relaciones y schema…"}</small></div></div>
       <form action="/api/auth/logout" method="post" className="user-chip"><span>{displaySessionInitials}</span><div><strong>{displaySessionName.toUpperCase()}</strong><small>Director Creativo</small></div><button type="submit" className="user-chip-logout">Salir</button></form>
