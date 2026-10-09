@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan } from "lucide-react";
 
-type Kind="insight"|"concepto"|"racional"|"referencia"|"ejecucion";
+type Kind="briefing"|"insight"|"concepto"|"racional"|"referencia"|"ejecucion";
 type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number};
 type Port="top"|"right"|"bottom"|"left";
 type Edge={id:string;source:string;target:string;label:string;sourcePort?:Port;targetPort?:Port};
@@ -25,6 +25,7 @@ const curve=(a:{x:number;y:number},b:{x:number;y:number},from:Port="right",to:Po
 type Board={id:string;title:string;project_id:string|null;nodes:Node[];edges:Edge[];updated_at:string};
 // Shared OS editorial palette, with a lighter violet extension for a fifth card type.
 const types: {key:Kind;name:string;color:string;ink:string;muted:string}[]=[
+ {key:"briefing",name:"Briefing",color:"#DCE9E3",ink:"#18102B",muted:"#3A5148"},
  {key:"insight",name:"Insight",color:"#F5F3FF",ink:"#18102B",muted:"#494059"},
  {key:"concepto",name:"Concepto",color:"#F0E100",ink:"#18102B",muted:"#433B08"},
  {key:"racional",name:"Racional",color:"#D6C3FF",ink:"#18102B",muted:"#494059"},
