@@ -11,6 +11,7 @@ import {
   Gamepad2,
   House,
   LayoutDashboard,
+  LayoutGrid,
   ListTodo,
   Plus,
   Sparkles,
@@ -111,6 +112,14 @@ export default function LifePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [section, setSection] = useState<Section>("today");
+  useEffect(() => {
+    const sectionParam = new URLSearchParams(window.location.search).get("section");
+    if (["today","areas","goals","projects","tasks"].includes(sectionParam || "")) setSection(sectionParam as Section);
+  }, []);
+  useEffect(() => {
+    const titles:Record<Section,string>={today:"Mi día",areas:"Mis áreas",goals:"Objetivos",projects:"Mis proyectos",tasks:"Mis tareas"};
+    try{window.localStorage.setItem("os.recent.life",JSON.stringify({app:"life",title:titles[section],subtitle:"Life · "+titles[section],href:"/life?section="+section,at:Date.now()}))}catch{}
+  }, [section]);
   const [capture, setCapture] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -178,7 +187,7 @@ export default function LifePage() {
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.logoWrap}>
-          <ModeLogo mode="life" href="/" />
+          <ModeLogo mode="life" href="/work" /><a href="/" className={styles.homeBack} title="Volver a Home"><LayoutGrid/> Home</a>
         </div>
 
         <div className={styles.navLabel}>
