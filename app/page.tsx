@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowUpRight, BriefcaseBusiness, CalendarDays, ChevronRight,
   CalendarRange, ChevronLeft, CircleGauge, Clock3, FolderKanban, GripVertical,
-  Check, KeyRound, LayoutDashboard, ListTodo, NotebookPen, Plus, Save, Sparkles, Star,
+  Check, LayoutDashboard, ListTodo, NotebookPen, Plus, Save, Sparkles, Star,
   Target, Trash2, TrendingUp, Users, Settings2, X, Play, Pause, RotateCcw, Mail, Banknote, Palmtree, Activity,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -1058,7 +1058,6 @@ export default function Home() {
     setDetailedMode(false); setDimensionScores({}); setIndividualMode(false); setIndividualScores(Object.fromEntries(target.people.map((name) => [name, 0])));
   }
   async function submitEvaluation() {
-    if (!canEdit) return;
 
     if (!evaluation || !score) return;
     const assigned = evaluation.people.filter((name) => name !== "Por asignar");
@@ -1138,7 +1137,6 @@ export default function Home() {
   }
 
   async function syncNotion(kind: "task" | "project", id: string, changes: Record<string, unknown>) {
-    if (!canEdit) return;
 
     const response = await fetch("/api/notion/update", {
       method: "PATCH",
@@ -1152,7 +1150,7 @@ export default function Home() {
   }
 
   async function saveAccount() {
-    if (!canEdit || !selectedAccount?.id || !accountDraft || accountSaving) return;
+    if (!selectedAccount?.id || !accountDraft || accountSaving) return;
     const sourceAccount = selectedAccount;
     const changes = {
       name: accountDraft.name,
@@ -1228,7 +1226,6 @@ export default function Home() {
 
 
   async function moveTaskLane(id: string, lane: TaskLane) {
-    if (!canEdit) return;
 
     const previous = allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id);
     if (!previous) return;
@@ -1246,7 +1243,6 @@ export default function Home() {
   }
 
   async function moveTask(id: string, status: TaskStatus) {
-    if (!canEdit) return;
 
     const previous = allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id);
     patchTaskLocal(id, { status });
@@ -1262,7 +1258,6 @@ export default function Home() {
     }
   }
   async function moveProject(id: string, status: ProjectStatus) {
-    if (!canEdit) return;
 
     const previous = projects.find((project) => project.id === id);
     patchProjectLocal(id, { status });
@@ -1276,7 +1271,6 @@ export default function Home() {
     }
   }
   async function setPlannerTaskAllDay(taskId: string, destinationDate: string) {
-    if (!canEdit) return;
 
     const previous = allTasks.find((task) => task.id === taskId);
     if (!previous) return;
@@ -1292,7 +1286,6 @@ export default function Home() {
   }
 
   async function movePlannerTask(taskId: string, destinationDate: string, startMinutes: number) {
-    if (!canEdit) return;
 
     const previous = allTasks.find((task) => task.id === taskId);
     if (!previous) return;
@@ -1315,7 +1308,6 @@ export default function Home() {
   }
 
   function startPlannerResize(task: Task, edge: "start" | "end", event: React.PointerEvent<HTMLSpanElement>) {
-    if (!canEdit) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -1354,7 +1346,6 @@ export default function Home() {
   }
 
   async function moveWeekItem(event: React.DragEvent, destinationDate: string) {
-    if (!canEdit) return;
 
     event.preventDefault();
     const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
@@ -1400,21 +1391,18 @@ export default function Home() {
   }
 
   function handleTaskLaneDrop(event: React.DragEvent, destination: TaskLane) {
-    if (!canEdit) return;
 
     event.preventDefault();
     const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind === "task") void moveTaskLane(id, destination);
   }
   function handleDrop(event: React.DragEvent, destination: TaskStatus | ProjectStatus) {
-    if (!canEdit) return;
 
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind === "task") moveTask(id, destination as TaskStatus);
     if (kind === "project") moveProject(id, destination as ProjectStatus);
   }
   async function assignPerson(kind: "task" | "project", id: string, person: string) {
-    if (!canEdit) return;
 
     const currentItem = kind === "task" ? (allTasks.find((task) => task.id === id) ?? tasks.find((task) => task.id === id)) : projects.find((project) => project.id === id);
     if (!currentItem) return;
@@ -1436,7 +1424,6 @@ export default function Home() {
     }
   }
   async function moveToAccount(event: React.DragEvent, account: string) {
-    if (!canEdit) return;
 
     event.preventDefault(); const [kind, id] = event.dataTransfer.getData("text/plain").split(":");
     if (kind !== "task" && kind !== "project") return;
@@ -1459,7 +1446,6 @@ export default function Home() {
     }
   }
   async function createQuickItem() {
-    if (!canEdit) return;
 
     const name = quickName.trim();
     if (!name) return;
@@ -1511,12 +1497,10 @@ export default function Home() {
     }
   }
   function updateDetailField(field: string, value: unknown) {
-    if (!canEdit) return;
 
     setDetail((currentDetail) => currentDetail ? ({ ...currentDetail, [field]: value } as Detail) : currentDetail);
   }
   function updateDetailTaskLane(lane: TaskLane) {
-    if (!canEdit) return;
     setDetail((currentDetail) => {
       if (!currentDetail || currentDetail.kind !== "task") return currentDetail;
       return {
@@ -1539,7 +1523,6 @@ export default function Home() {
   }
 
   async function updateProjectWorkspace(changes: Record<string, unknown>) {
-    if (!canEdit) return;
 
     if (!selectedProjectPage) return;
     const previous = selectedProjectPage;
@@ -1555,7 +1538,6 @@ export default function Home() {
   }
 
   async function updateWorkspaceTask(task: Task, changes: Record<string, unknown>) {
-    if (!canEdit) return;
 
     const next = { ...task, ...changes } as Task;
     patchTaskLocal(task.id, changes as Partial<Task>);
@@ -1568,7 +1550,6 @@ export default function Home() {
   }
 
   async function createTaskForSelectedProject() {
-    if (!canEdit) return;
 
     if (!selectedProjectPage || !projectTaskName.trim()) return;
     const name = projectTaskName.trim();
@@ -1610,7 +1591,6 @@ export default function Home() {
   }
 
   async function saveDetail() {
-    if (!canEdit) return;
 
     if (!detail) return;
     const kind = detail.kind;
@@ -1666,7 +1646,6 @@ export default function Home() {
     return `${month.year}-${String(calendarMonth + 8).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
   async function createCalendarTask() {
-    if (!canEdit) return;
 
     const name = calendarTaskName.trim();
     const dateStart = calendarTaskDate;
@@ -3300,31 +3279,31 @@ export default function Home() {
                   {!(selectedAccount.assignedPeople || []).length && <em>Sin asignar</em>}
                 </div>
               </div>
-              {canEdit && <button type="button" className="account-settings-toggle" onClick={() => setAccountEditing((value) => !value)}><Settings2 /> {accountEditing ? "Cerrar edición" : "Editar cuenta"}</button>}
+              {<button type="button" className="account-settings-toggle" onClick={() => setAccountEditing((value) => !value)}><Settings2 /> {accountEditing ? "Cerrar edición" : "Editar cuenta"}</button>}
             </div>
             {accountEditing && <div className="account-settings-controls">
-              <label><span>Nombre de la cuenta</span><input type="text" value={accountDraft?.name ?? selectedAccount.name} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, name: event.target.value } : draft)} /></label>
-              <label><span>Estado</span><select value={accountDraft?.status ?? selectedAccount.status ?? "Inactiva"} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, status: event.target.value } : draft)}>
+              <label><span>Nombre de la cuenta</span><input type="text" value={accountDraft?.name ?? selectedAccount.name} disabled={accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, name: event.target.value } : draft)} /></label>
+              <label><span>Estado</span><select value={accountDraft?.status ?? selectedAccount.status ?? "Inactiva"} disabled={accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, status: event.target.value } : draft)}>
                 {Array.from(new Set([...(liveSchema?.accounts.status.map((option) => option.name) ?? []), "Activa", "Inactiva", selectedAccount.status ?? "Inactiva"])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
               </select></label>
-              <label><span>Prioridad</span><select value={accountDraft?.priority ?? selectedAccount.priority} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, priority: event.target.value } : draft)}>
+              <label><span>Prioridad</span><select value={accountDraft?.priority ?? selectedAccount.priority} disabled={accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, priority: event.target.value } : draft)}>
                 {Array.from(new Set([...(liveSchema?.accounts.priority.map((option) => option.name) ?? []), selectedAccount.priority])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
               </select></label>
-              <label><span>Contrato</span><select value={accountDraft?.contract ?? selectedAccount.contract} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, contract: event.target.value } : draft)}>
+              <label><span>Contrato</span><select value={accountDraft?.contract ?? selectedAccount.contract} disabled={accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, contract: event.target.value } : draft)}>
                 {Array.from(new Set([...(liveSchema?.accounts.contract.map((option) => option.name) ?? []), selectedAccount.contract])).filter(Boolean).map((value) => <option key={value} value={value}>{value}</option>)}
               </select></label>
               <div className="account-settings-people">
                 <span>Personas asignadas a la cuenta</span>
                 <div className="account-settings-people-grid">
                   {team.map((person) => <label key={person.id} className="account-person-option">
-                    <input type="checkbox" checked={(accountDraft?.assignedPeople ?? selectedAccount.assignedPeople ?? []).includes(person.name)} disabled={!canEdit || accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, assignedPeople: event.target.checked ? [...draft.assignedPeople, person.name] : draft.assignedPeople.filter((name) => name !== person.name) } : draft)} />
+                    <input type="checkbox" checked={(accountDraft?.assignedPeople ?? selectedAccount.assignedPeople ?? []).includes(person.name)} disabled={accountSaving} onChange={(event) => setAccountDraft((draft) => draft ? { ...draft, assignedPeople: event.target.checked ? [...draft.assignedPeople, person.name] : draft.assignedPeople.filter((name) => name !== person.name) } : draft)} />
                     <i className={`avatar avatar-${person.tone}`}>{person.initials}</i>
                     <b>{person.name}</b>
                   </label>)}
                 </div>
                 <small>Asignación directa a la cuenta. No modifica las personas de sus proyectos o tareas.</small>
               </div>
-              {canEdit && <button type="button" className="account-settings-save" disabled={accountSaving || !accountDraft || (accountDraft.name === selectedAccount.name && accountDraft.status === selectedAccount.status && accountDraft.priority === selectedAccount.priority && accountDraft.contract === selectedAccount.contract && JSON.stringify([...accountDraft.assignedPeople].sort()) === JSON.stringify([...(selectedAccount.assignedPeople || [])].sort()))} onClick={saveAccount}>
+              {<button type="button" className="account-settings-save" disabled={accountSaving || !accountDraft || (accountDraft.name === selectedAccount.name && accountDraft.status === selectedAccount.status && accountDraft.priority === selectedAccount.priority && accountDraft.contract === selectedAccount.contract && JSON.stringify([...accountDraft.assignedPeople].sort()) === JSON.stringify([...(selectedAccount.assignedPeople || [])].sort()))} onClick={saveAccount}>
                 <Save /> {accountSaving ? "Guardando..." : "Guardar cambios"}
               </button>}
             </div>}
@@ -3479,33 +3458,33 @@ export default function Home() {
     <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) setDetail(null); }}>
       <DialogContent onEscapeKeyDown={(event) => event.stopPropagation()} className="full-detail-dialog detail-sheet">{detail && <>
         <DialogHeader>
-          <span className="sheet-kicker">{canEdit ? (detail.kind === "task" ? "EDITAR TAREA" : "EDITAR PROYECTO") : (detail.kind === "task" ? "TAREA" : "PROYECTO")}</span>
+          <span className="sheet-kicker">{detail.kind === "task" ? "EDITAR TAREA" : "EDITAR PROYECTO"}</span>
           <DialogTitle>{detail.name}</DialogTitle>
-          <DialogDescription>{canEdit ? "Consulta el contenido y edita los datos desde aquí." : "Consulta el contenido y los datos asociados."}</DialogDescription>
+          <DialogDescription>Consulta el contenido y edita los datos desde aquí.</DialogDescription>
         </DialogHeader>
         <div className="sheet-body detail-editor detail-workspace-body">
           <div className="detail-properties-editor">
-          <label className="editor-field full"><span>Nombre</span><input value={detail.name} readOnly={!canEdit} disabled={!canEdit} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
+          <label className="editor-field full"><span>Nombre</span><input value={detail.name} onChange={(event) => updateDetailField("name", event.target.value)} /></label>
           <div className="editor-grid">
             <div className="editor-field"><span>Estado</span>{detail.kind === "task"
-              ? <Select value={taskLane(detail)} disabled={!canEdit} onValueChange={(value) => updateDetailTaskLane(value as TaskLane)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TASK_LANES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
-              : <Select value={detail.status} disabled={!canEdit} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectStatusOptions.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>}</div>
-            <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} disabled={!canEdit} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskPriorityOptions : projectPriorityOptions).map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
+              ? <Select value={taskLane(detail)} onValueChange={(value) => updateDetailTaskLane(value as TaskLane)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TASK_LANES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
+              : <Select value={detail.status} onValueChange={(value) => updateDetailField("status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectStatusOptions.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>}</div>
+            <div className="editor-field"><span>Prioridad</span><Select value={detail.priority} onValueChange={(value) => updateDetailField("priority", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(detail.kind === "task" ? taskPriorityOptions : projectPriorityOptions).map((priority) => <SelectItem key={priority} value={priority}>{priority}</SelectItem>)}</SelectContent></Select></div>
           </div>
-          <div className="editor-field"><span>Cuenta</span><Select value={detail.account} disabled={!canEdit} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accountOptions.map((account) => <SelectItem key={account.id} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="editor-field"><span>Cuenta</span><Select value={detail.account} onValueChange={(value) => updateDetailField("account", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{accountOptions.map((account) => <SelectItem key={account.id} value={account.name}>{account.name}</SelectItem>)}</SelectContent></Select></div>
           {detail.kind === "task"
-  ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} disabled={!canEdit} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
-  : <div className="editor-field"><span>Tipo</span><Select value={detail.type} disabled={!canEdit} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
+  ? <label className="editor-field"><span>Proyecto</span><Select value={detail.project} onValueChange={(value) => updateDetailField("project", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>)}</SelectContent></Select></label>
+  : <div className="editor-field"><span>Tipo</span><Select value={detail.type} onValueChange={(value) => updateDetailField("type", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{projectTypeOptions.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></div>}
           {detail.kind === "task"
             ? <div className="editor-field full task-schedule-editor">
-                <div className="task-schedule-head"><span>Planificación</span><label className="task-all-day-toggle"><span>Todo el día</span><Switch checked={taskIsAllDay(detail)} disabled={!canEdit} onCheckedChange={(checked) => {
+                <div className="task-schedule-head"><span>Planificación</span><label className="task-all-day-toggle"><span>Todo el día</span><Switch checked={taskIsAllDay(detail)} onCheckedChange={(checked) => {
                   const day = dateOnly(detail.dateStart) || isoDate(new Date());
                   updateDetailField("dateStart", checked ? day : localPlannerIso(day, 9 * 60));
                   updateDetailField("dateEnd", checked ? null : localPlannerIso(day, 10 * 60));
                   updateDetailField("date", new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", ""));
                 }} /></label></div>
                 <div className="task-schedule-grid">
-                  <label><small>Fecha</small><input type="date" disabled={!canEdit} value={dateOnly(detail.dateStart) || ""} onChange={(event) => {
+                  <label><small>Fecha</small><input type="date" value={dateOnly(detail.dateStart) || ""} onChange={(event) => {
                     const day = event.target.value;
                     if (!day) { updateDetailField("dateStart", null); updateDetailField("dateEnd", null); updateDetailField("date", "SIN FECHA"); return; }
                     if (taskIsAllDay(detail)) updateDetailField("dateStart", day);
@@ -3516,12 +3495,12 @@ export default function Home() {
                     updateDetailField("date", new Date(day + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).toUpperCase().replace(".", ""));
                   }} /></label>
                   {!taskIsAllDay(detail) && <>
-                    <label><small>Inicio</small><input type="time" step="900" disabled={!canEdit} value={plannerTimeLabel(plannerMinutes(detail.dateStart, 9 * 60))} onChange={(event) => {
+                    <label><small>Inicio</small><input type="time" step="900" value={plannerTimeLabel(plannerMinutes(detail.dateStart, 9 * 60))} onChange={(event) => {
                       const day = dateOnly(detail.dateStart) || isoDate(new Date());
                       const [h,m] = event.target.value.split(":").map(Number);
                       updateDetailField("dateStart", localPlannerIso(day, h * 60 + m));
                     }} /></label>
-                    <label><small>Fin</small><input type="time" step="900" disabled={!canEdit} value={plannerTimeLabel(plannerMinutes(detail.dateEnd, 10 * 60))} onChange={(event) => {
+                    <label><small>Fin</small><input type="time" step="900" value={plannerTimeLabel(plannerMinutes(detail.dateEnd, 10 * 60))} onChange={(event) => {
                       const day = dateOnly(detail.dateStart) || isoDate(new Date());
                       const [h,m] = event.target.value.split(":").map(Number);
                       updateDetailField("dateEnd", localPlannerIso(day, h * 60 + m));
@@ -3533,9 +3512,9 @@ export default function Home() {
           <div className="editor-field full"><span>Equipo</span><div className="team-chip-editor"><div className="team-selected-chips">{detail.people.filter((name) => name !== "Por asignar").map((name) => { const person = team.find((item) => item.name === name); return <span key={name} className="team-person-chip">{person && <i className={`avatar avatar-${person.tone}`}>{person.initials}</i>}<b>{name}</b><button type="button" aria-label={`Quitar a ${name}`} onClick={() => { const nextPeople = detail.people.filter((personName) => personName !== name && personName !== "Por asignar"); updateDetailField("people", nextPeople.length ? nextPeople : ["Por asignar"]); }}>×</button></span>; })}{detail.people.filter((name) => name !== "Por asignar").length === 0 && <small className="team-empty-selection">Sin equipo asignado</small>}</div><select value="" onChange={(event) => { const name = event.target.value; if (!name) return; const current = detail.people.filter((personName) => personName !== "Por asignar"); if (!current.includes(name)) updateDetailField("people", [...current, name]); event.currentTarget.value = ""; }}><option value="">Añadir persona…</option>{team.filter((person) => !detail.people.includes(person.name)).map((person) => <option key={person.id} value={person.name}>{person.name} · {person.role}</option>)}</select></div></div>
           <div className="sheet-note"><Sparkles /><p><strong>Lectura rápida</strong>{detail.priority === "Alta" ? "Está en zona de atención. Revisa fecha y responsables antes de cerrar." : "Parece controlado. No le añadamos épica administrativa."}</p></div>
           </div>
-          <PageContent key={detail.id} pageId={detail.id} readOnly={!canEdit} />
+          <PageContent key={detail.id} pageId={detail.id} />
         </div>
-        <div className="sheet-actions sheet-actions-stacked">{canEdit && <Button className="close-evaluate-button" onClick={() => startEvaluation({ kind: detail.kind, id: detail.id, name: detail.name, people: detail.people })}><Star /> Cerrar y evaluar</Button>}<div>{canEdit && <Button onClick={saveDetail} className="notion-button"><Save /> Guardar cambios</Button>}</div></div>
+        <div className="sheet-actions sheet-actions-stacked">{<Button className="close-evaluate-button" onClick={() => startEvaluation({ kind: detail.kind, id: detail.id, name: detail.name, people: detail.people })}><Star /> Cerrar y evaluar</Button>}<div>{<Button onClick={saveDetail} className="notion-button"><Save /> Guardar cambios</Button>}</div></div>
       </>}</DialogContent>
     </Dialog>
 
