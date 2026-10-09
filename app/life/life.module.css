@@ -826,3 +826,7 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.homeBack{display:inline-flex;align-items:center;gap:7px;margin-top:13px;padding:8px 11px;border-radius:9px;color:#657164;text-decoration:none;font-size:11px;font-weight:750;transition:background .2s,color .2s}
+.homeBack:hover{background:#eaf0e6;color:#263426}
+.homeBack svg{width:15px;height:15px}
