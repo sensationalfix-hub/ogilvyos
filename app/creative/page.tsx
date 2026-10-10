@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan } from "lucide-react";
 
-type Kind="briefing"|"tension"|"insight"|"idea"|"concepto"|"racional"|"draft"|"referencia"|"ejecucion";
+type Kind="briefing"|"tension"|"insight"|"idea"|"camino"|"concepto"|"racional"|"draft"|"referencia"|"ejecucion";
 type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number};
 type Port="top"|"right"|"bottom"|"left";
 type Edge={id:string;source:string;target:string;label:string;sourcePort?:Port;targetPort?:Port};
@@ -13,7 +13,8 @@ const MIN_WIDTH=220,MAX_WIDTH=700,MIN_HEIGHT=150,MAX_HEIGHT=650;
 const dimensions=(n:Node)=>({width:n.width??PWIDTH,height:n.height??PHEIGHT});
 const anchor=(n:Node,p:Port)=>{const {width,height}=dimensions(n);return {x:n.x+(p==="left"?0:p==="right"?width:width/2),y:n.y+(p==="top"?0:p==="bottom"?height:height/2)};};
 const curveGeometry=(a:{x:number;y:number},b:{x:number;y:number},from:Port="right",to:Port="left")=>{
- const d=Math.max(50,Math.hypot(a.x-b.x,a.y-b.y)*.35);
+ const primary=(from==="left"||from==="right")?Math.abs(a.x-b.x):Math.abs(a.y-b.y);
+ const d=Math.max(22,Math.min(64,primary*.22));
  const off=(p:Port):[number,number]=>p==="left"?[-d,0]:p==="right"?[d,0]:p==="top"?[0,-d]:[0,d];
  const [ax,ay]=off(from),[bx,by]=off(to);
  const cp1={x:a.x+ax,y:a.y+ay},cp2={x:b.x+bx,y:b.y+by};
@@ -29,6 +30,7 @@ const types: {key:Kind;name:string;color:string;ink:string;muted:string}[]=[
  {key:"tension",name:"Tensión",color:"#FF846F",ink:"#18102B",muted:"#5C3029"},
  {key:"insight",name:"Insight",color:"#F5F3FF",ink:"#18102B",muted:"#494059"},
  {key:"idea",name:"Idea",color:"#B7FF4A",ink:"#18102B",muted:"#324417"},
+ {key:"camino",name:"Camino",color:"#9FD4FF",ink:"#18102B",muted:"#36506A"},
  {key:"concepto",name:"Concepto",color:"#F0E100",ink:"#18102B",muted:"#433B08"},
  {key:"racional",name:"Racional",color:"#D6C3FF",ink:"#18102B",muted:"#494059"},
  {key:"draft",name:"Draft",color:"#D9DDD7",ink:"#18102B",muted:"#515651"},
