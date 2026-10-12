@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requestIdentity } from "@/app/lib/workos-auth";
+import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from "@/app/lib/supabase-auth";
 
 export const runtime = "nodejs";
 
@@ -169,7 +170,12 @@ async function resolvePreview(url: URL): Promise<Preview | null> {
 
 export async function GET(request: Request) {
   const identity = await requestIdentity(request);
-  if (!identity) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!identity) {
+    const token = new URL(request.url).searchParams.get("share") || "";
+    if (!/^[0-9a-f-]{36}$/i.test(token)) return NextResponse.json({error:"No autorizado"},{status:401});
+    const check=await fetch(SUPABASE_URL+"/rest/v1/rpc/creative_share_valid",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({p_token:token}),cache:"no-store"});
+    if(!check.ok||await check.json()!==true)return NextResponse.json({error:"Enlace no autorizado"},{status:403});
+  }
   const raw = new URL(request.url).searchParams.get("url") || "";
   const target = safeUrl(raw);
   if (!target) return NextResponse.json({ preview: null, supported: false });
