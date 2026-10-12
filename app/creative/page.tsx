@@ -120,6 +120,13 @@ export default function CreativeLab(){
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
  const [saving,setSaving]=useState(false);
+ const [share,setShare]=useState<{token:string;enabled:boolean}|null>(null);
+ const [shareOpen,setShareOpen]=useState(false);
+ const [shareBusy,setShareBusy]=useState(false);
+ const [livePeople,setLivePeople]=useState<{id:string;name:string;x:number|null;y:number|null}[]>([]);
+ const liveId=useRef<string>("");
+ const liveMouse=useRef<{x:number|null;y:number|null}>({x:null,y:null});
+ const shareToken=share?.enabled?share.token:null;
  const [saved,setSaved]=useState(true);
  const [selected,setSelected]=useState<string|null>(null);
  const [selectedIds,setSelectedIds]=useState<string[]>([]);
@@ -153,6 +160,11 @@ export default function CreativeLab(){
  const [resizingId,setResizingId]=useState<string|null>(null);
  const ignoreCardClickUntil=useRef(0);
  const board=boards.find(b=>b.id===activeId);
+ useEffect(()=>{liveId.current=crypto.randomUUID()},[]);
+ useEffect(()=>{setShare(null);setLivePeople([]);setShareOpen(false);if(!activeId)return;let active=true;fetch("/api/creative/share?board="+activeId,{cache:"no-store"}).then(r=>r.json()).then(d=>{if(active)setShare(d.share||null)}).catch(()=>{});return()=>{active=false}},[activeId]);
+ useEffect(()=>{if(!shareToken||!board||showBoards)return;let active=true,busy=false;const poll=async()=>{if(!active||busy||document.hidden||!liveId.current)return;busy=true;try{const r=await fetch((process.env.NEXT_PUBLIC_SUPABASE_URL||"https://lpjiilefslxlgnupaacz.supabase.co")+"/rest/v1/rpc/creative_live",{method:"POST",headers:{"Content-Type":"application/json",apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||"sb_publishable_mATu3ZkITNszykDr2nw9DQ_W5MW0GNh"},body:JSON.stringify({p_token:shareToken,p_visitor:liveId.current,p_name:"Editor",p_x:liveMouse.current.x,p_y:liveMouse.current.y})});if(r.ok){const d=await r.json();if(active)setLivePeople(d.participants||[])}}finally{busy=false}};void poll();const timer=setInterval(poll,850);return()=>{active=false;clearInterval(timer)}},[shareToken,board?.id,showBoards]);
+ const activateShare=async()=>{if(!board)return;setShareBusy(true);try{const r=await fetch("/api/creative/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({board:board.id})});const d=await r.json();if(!r.ok)throw Error(d.error||"No se pudo compartir");setShare(d.share);await navigator.clipboard.writeText(window.location.origin+"/creative/share/"+d.share.token)}catch(e){setError(String(e))}finally{setShareBusy(false)}};
+ const deactivateShare=async()=>{if(!board)return;setShareBusy(true);try{const r=await fetch("/api/creative/share?board="+board.id,{method:"DELETE"});if(!r.ok)throw Error("No se pudo desactivar");setShare(s=>s?{...s,enabled:false}:null);setLivePeople([])}catch(e){setError(String(e))}finally{setShareBusy(false)}};
  useEffect(()=>{
   if(!board||showBoards)return;
   try{window.localStorage.setItem("os.recent.creative",JSON.stringify({app:"creative",title:board.title,subtitle:"Creative Lab · mapa de ideas",href:"/creative?board="+encodeURIComponent(board.id),at:Date.now()}))}catch{}
@@ -534,6 +546,7 @@ export default function CreativeLab(){
    <button className="cl-button" onClick={()=>setShowBoards(v=>!v)}><GitBranch/> Mapas</button>
    {board?<input className="cl-title" aria-label="Nombre del mapa" value={board.title} onChange={e=>update(b=>({...b,title:e.target.value}))}/>:<strong>Creative Lab</strong>}
    <div className="cl-grow"/>
+   {board&&<div style={{position:"relative"}}><button className="cl-button" onClick={()=>setShareOpen(v=>!v)}><Link2/> Compartir {share?.enabled?"●":""}</button>{shareOpen&&<div style={{position:"absolute",right:0,top:"calc(100% + 10px)",width:275,zIndex:80,padding:17,border:"1px solid #DADFD7",borderRadius:14,boxShadow:"0 15px 50px #0002",background:"white"}}><strong style={{fontSize:14}}>Compartir este mapa</strong><p style={{fontSize:12,color:"#777",lineHeight:1.5}}>Enlace exclusivo, acceso con nombre y navegación de solo lectura.</p>{share?.enabled?<><button className="cl-button dark" style={{width:"100%",justifyContent:"center"}} onClick={()=>navigator.clipboard.writeText(window.location.origin+"/creative/share/"+share.token)}>Copiar enlace</button><button className="cl-button" disabled={shareBusy} onClick={deactivateShare} style={{width:"100%",justifyContent:"center",marginTop:8}}>Desactivar enlace</button><p style={{fontSize:11,color:"#777"}}>{livePeople.length} participantes conectados. Los punteros aparecen en el mapa.</p></>:<button className="cl-button dark" disabled={shareBusy} style={{width:"100%",justifyContent:"center"}} onClick={activateShare}>Crear enlace y copiar</button>}</div>}</div>}
    <span className="cl-state">{saving?<><Loader2 size={14}/> Guardando</>:saved?<><Check size={14}/> Guardado</>:<><Save size={14}/> Sin guardar</>}</span>
    <button className="cl-button dark" onClick={createBoard}><Plus/> Nuevo mapa</button>
   </header>
@@ -545,7 +558,7 @@ export default function CreativeLab(){
     <div className="cl-hint"><strong>Mano (H):</strong> mueve el lienzo. <strong>Puntero (V):</strong> selecciona varias tarjetas con un recuadro. <strong>⌘:</strong> selección temporal. <strong>⌘A:</strong> selecciona todo. Arrastra una de las seleccionadas para moverlas juntas.</div>
     {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
    </aside>
-   <div ref={workspaceRef} className={"cl-workspace"+(panning?" cl-panning":"")+(currentTool==="select"?" cl-select-tool":"")} style={{backgroundSize:`${24*zoom}px ${24*zoom}px`,backgroundPosition:`${pan.x}px ${pan.y}px`}} onPointerDown={beginPan} onPointerMove={onPointerMove} onPointerUp={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onPointerCancel={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onClick={e=>{if(e.target===e.currentTarget&&Date.now()>skipCanvasClickUntil.current&&currentTool==="hand")clearSelection()}}>
+   <div ref={workspaceRef} className={"cl-workspace"+(panning?" cl-panning":"")+(currentTool==="select"?" cl-select-tool":"")} style={{backgroundSize:`${24*zoom}px ${24*zoom}px`,backgroundPosition:`${pan.x}px ${pan.y}px`}} onPointerDown={beginPan} onPointerMove={e=>{onPointerMove(e);const r=workspaceRef.current?.getBoundingClientRect();if(r)liveMouse.current={x:(e.clientX-r.left-pan.x)/zoom,y:(e.clientY-r.top-pan.y)/zoom}}} onPointerLeave={()=>{liveMouse.current={x:null,y:null}}} onPointerUp={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onPointerCancel={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onClick={e=>{if(e.target===e.currentTarget&&Date.now()>skipCanvasClickUntil.current&&currentTool==="hand")clearSelection()}}>
     {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
     {loading?<div className="cl-empty"><Loader2/> Cargando mapas...</div>:showBoards||!board?<div className="cl-empty" style={{position:"sticky",top:90,left:100,transform:"none",textAlign:"left",maxWidth:470}}>
      <h2 style={{letterSpacing:"-.05em"}}>Tus mapas creativos</h2><p style={{fontSize:13,color:"#777",lineHeight:1.5}}>Un lienzo para relacionar pensamientos, desarrollar racionales y dar forma a tus campañas.</p>
@@ -568,6 +581,7 @@ export default function CreativeLab(){
       {PORTS.map(port=><button key={port} className={"cl-port cl-port-"+port} title="Arrastra para conectar" aria-label={"Conectar "+port} onPointerDown={e=>beginWire(e,n.id,port)} onPointerMove={e=>{if(wireDrag.current){e.stopPropagation();setWireEnd(world(e))}}} onPointerUp={e=>{e.stopPropagation();endWire(e)}} onClick={e=>e.stopPropagation()}/>)}
       <button type="button" data-no-card-drag className="cl-resize-handle" title="Arrastra la esquina para cambiar el tamaño" aria-label={"Cambiar tamaño de "+n.title} onPointerDown={e=>beginResize(e,n)} onClick={e=>e.stopPropagation()}><MoveDiagonal2 size={14} strokeWidth={2.5}/></button>
      </div>)}
+     {livePeople.filter(p=>p.id!==liveId.current&&p.x!==null&&p.y!==null).map((p,i)=><div key={p.id} style={{position:"absolute",left:p.x!,top:p.y!,zIndex:40,pointerEvents:"none",display:"flex",gap:4,alignItems:"center"}}><span style={{fontSize:25,color:"#18102B"}}>↖</span><span style={{background:["#FF846F","#D6C3FF","#9FD4FF","#B7FF4A"][i%4],color:"#18102B",padding:"5px 8px",borderRadius:6,fontSize:11,fontWeight:800}}>{p.name}</span></div>)}
     </div>}
     {marquee&&<div className="cl-marquee" style={{left:Math.min(marquee.x0,marquee.x1),top:Math.min(marquee.y0,marquee.y1),width:Math.abs(marquee.x1-marquee.x0),height:Math.abs(marquee.y1-marquee.y0)}}/>}
     <div className="cl-footer">
