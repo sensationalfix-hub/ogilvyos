@@ -28,6 +28,24 @@ function Media({url,title,token}:{url?:string;title:string;token:string}){
  </div>
 }
 const Cursor=({name,color}:{name:string;color:string})=><div style={{display:"flex",alignItems:"start",gap:3}}><svg width="19" height="25" viewBox="0 0 24 30" fill="none"><path d="M2 1.5V25L8.6 18.9L14 28L19 25.2L13.6 16.3L23 15Z" fill={color} stroke="#fff" strokeWidth="3.2" strokeLinejoin="round"/><path d="M2 1.5V25L8.6 18.9L14 28L19 25.2L13.6 16.3L23 15Z" stroke="#18102B" strokeWidth=".7"/></svg><span style={{background:color,color:"#18102B",fontWeight:800,fontSize:11,padding:"5px 8px",borderRadius:6,whiteSpace:"nowrap",boxShadow:"0 2px 9px #0002"}}>{name}</span></div>;
+function ScrollText({title,body,hasMedia}:{title:string;body:string;hasMedia:boolean}){
+ const ref=useRef<HTMLDivElement>(null);
+ const [fade,setFade]=useState(false);
+ useEffect(()=>{
+  const el=ref.current;if(!el)return;
+  const check=()=>setFade(el.scrollHeight-el.scrollTop-el.clientHeight>3);
+  check();
+  const observer=new ResizeObserver(check);
+  observer.observe(el);
+  if(el.firstElementChild)observer.observe(el.firstElementChild);
+  if(el.lastElementChild)observer.observe(el.lastElementChild);
+  return()=>observer.disconnect();
+ },[title,body]);
+ return <div ref={ref} className="cl-share-scroll" onScroll={()=>{const el=ref.current;if(el)setFade(el.scrollHeight-el.scrollTop-el.clientHeight>3)}} onPointerDown={e=>e.stopPropagation()} style={{marginTop:hasMedia?"auto":16,overflowY:"auto",overflowX:"hidden",scrollbarWidth:"thin",overscrollBehavior:"contain",pointerEvents:"auto",minHeight:0,maskImage:fade?"linear-gradient(to bottom,black 0%,black calc(100% - 18px),transparent 100%)":"none",WebkitMaskImage:fade?"linear-gradient(to bottom,black 0%,black calc(100% - 18px),transparent 100%)":"none"}}>
+ <h3 style={{fontSize:18,fontWeight:800,letterSpacing:"-.022em",lineHeight:1.16,margin:"0 0 8px"}}>{title}</h3>
+ <p style={{fontSize:12,lineHeight:1.5,whiteSpace:"pre-wrap",margin:0,opacity:hasMedia?.95:.78}}>{body}</p>
+ </div>;
+}
 export default function SharedBoard({token}:{token:string}){
  const [name,setName]=useState(""),[joined,setJoined]=useState(""),[board,setBoard]=useState<Board|null>(null),[people,setPeople]=useState<Person[]>([]),[error,setError]=useState("");
  const [zoom,setZoom]=useState(.85),[pan,setPan]=useState({x:180,y:120});
@@ -55,10 +73,7 @@ export default function SharedBoard({token}:{token:string}){
  <Media url={n.url} title={n.title} token={token}/>
  <div style={{position:"relative",zIndex:1,height:"100%",boxSizing:"border-box",padding:"12px 15px",display:"flex",flexDirection:"column",pointerEvents:"none",color:hasMedia?"white":ink}}>
  <div style={{fontSize:10,fontWeight:800,letterSpacing:".1em",textTransform:"uppercase"}}>{n.kind}</div>
- <div className="cl-share-scroll" onPointerDown={e=>e.stopPropagation()} style={{marginTop:hasMedia?"auto":16,overflowY:"auto",overflowX:"hidden",scrollbarWidth:"thin",overscrollBehavior:"contain",pointerEvents:"auto",minHeight:0,maskImage:"linear-gradient(to bottom,black 0%,black calc(100% - 18px),transparent 100%)",WebkitMaskImage:"linear-gradient(to bottom,black 0%,black calc(100% - 18px),transparent 100%)"}}>
- <h3 style={{fontSize:18,fontWeight:800,letterSpacing:"-.022em",lineHeight:1.16,margin:"0 0 8px"}}>{n.title}</h3>
- <p style={{fontSize:12,lineHeight:1.5,whiteSpace:"pre-wrap",margin:0,opacity:hasMedia?.95:.78}}>{n.body}</p>
- </div></div></article>})}
+ <ScrollText title={n.title} body={n.body} hasMedia={hasMedia}/></div></article>})}
  {people.filter(p=>p.id!==id.current&&p.x!==null&&p.y!==null).map((p,i)=><div key={p.id} style={{position:"absolute",left:p.x!,top:p.y!,pointerEvents:"none",zIndex:3}}><Cursor name={p.name} color={["#FF846F","#D6C3FF","#B7FF4A","#9FD4FF"][i%4]}/></div>)}
  </div><div style={{position:"absolute",bottom:16,left:16,display:"flex",gap:12,alignItems:"center",padding:9,borderRadius:12,background:"white"}}><button onClick={fit}>⌗</button><button onClick={()=>setZoom(z=>Math.max(.12,z/1.2))}>−</button><span>{Math.round(zoom*100)}%</span><button onClick={()=>setZoom(z=>Math.min(2.5,z*1.2))}>+</button></div>
  </div></div><style>{`
