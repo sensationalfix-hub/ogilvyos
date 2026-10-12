@@ -5,10 +5,10 @@ type Node={id:string;kind:string;title:string;body:string;x:number;y:number;widt
 type Board={title:string;nodes:Node[];edges:{id:string;source:string;target:string;label:string;sourcePort?:string;targetPort?:string}[]};
 type Person={id:string;name:string;x:number|null;y:number|null};
 const colors:Record<string,string>={tension:"#FF846F",idea:"#B7FF4A",camino:"#9FD4FF",concepto:"#F0E100",racional:"#D6C3FF",briefing:"#DCE9E3",insight:"#F5F3FF",draft:"#D9DDD7",referencia:"#834DFB",ejecution:"#18102B",ejecucion:"#18102B"};
-function Media({url,title}:{url?:string;title:string}){
+function Media({url,title,token}:{url?:string;title:string;token:string}){
  const [data,setData]=useState<{image:string;site:string;kind:string}|null>(null);
  const [bad,setBad]=useState(false);
- useEffect(()=>{setData(null);setBad(false);if(!url)return;let active=true;fetch("/api/creative/preview?url="+encodeURIComponent(url)).then(r=>r.ok?r.json():null).then(v=>{if(active)setData(v?.preview||null)}).catch(()=>{});return()=>{active=false}},[url]);
+ useEffect(()=>{setData(null);setBad(false);if(!url)return;let active=true;fetch("/api/creative/preview?url="+encodeURIComponent(url)+"&share="+encodeURIComponent(token)).then(r=>r.ok?r.json():null).then(v=>{if(active)setData(v?.preview||null)}).catch(()=>{});return()=>{active=false}},[url,token]);
  if(!url)return null;
  let direct:string|null=null,video=false;
  try{const u=new URL(url);const host=u.hostname.replace(/^www\\./,"");const id=host==="youtu.be"?u.pathname.slice(1):["youtube.com","m.youtube.com"].includes(host)?u.searchParams.get("v")||u.pathname.match(/^\\/(?:shorts|embed)\\/([^/]+)/)?.[1]:null;if(id&&/^[\\w-]{11}$/.test(id)){direct="https://img.youtube.com/vi/"+id+"/hqdefault.jpg";video=true}else if(/\\.(png|jpe?g|gif|webp|avif)$/i.test(u.pathname))direct=url;}catch{}
@@ -46,7 +46,7 @@ export default function SharedBoard({token}:{token:string}){
  <div style={{position:"absolute",left:0,top:0,transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`,transformOrigin:"0 0"}}>
  <svg style={{position:"absolute",left:-10000,top:-10000,width:20000,height:20000,overflow:"visible"}} viewBox="-10000 -10000 20000 20000">{board?.edges.map(e=>{const a=board.nodes.find(n=>n.id===e.source),b=board.nodes.find(n=>n.id===e.target);if(!a||!b)return null;const p=e.sourcePort||"right",q=e.targetPort||"left";const coord=(n:Node,s:string)=>({x:n.x+(s==="left"?0:s==="right"?(n.width||246):(n.width||246)/2),y:n.y+(s==="top"?0:s==="bottom"?(n.height||160):(n.height||160)/2)});const x=coord(a,p),y=coord(b,q),d=Math.max(22,Math.min(64,Math.abs(y.x-x.x)*.22));return <path key={e.id} d={`M${x.x} ${x.y} C${x.x+d} ${x.y} ${y.x-d} ${y.y} ${y.x} ${y.y}`} fill="none" stroke="#8B968A" strokeWidth="2"/>})}</svg>
  {board?.nodes.map(n=>{const hasMedia=Boolean(n.url&&(/youtube|youtu.be|\\.(mp4|png|jpg|webp)/i.test(n.url)));const ink=["referencia","ejecucion"].includes(n.kind)?"white":"#18102B";return <article key={n.id} style={{position:"absolute",left:n.x,top:n.y,width:n.width||246,height:n.height||160,boxSizing:"border-box",overflow:"hidden",borderRadius:16,boxShadow:"0 10px 26px #0000001d",background:colors[n.kind]||"#ddd",color:ink,border:"1px solid #ffffff20"}}>
- <Media url={n.url} title={n.title}/>
+ <Media url={n.url} title={n.title} token={token}/>
  <div style={{position:"relative",zIndex:1,height:"100%",boxSizing:"border-box",padding:"12px 15px",display:"flex",flexDirection:"column",pointerEvents:"none",color:hasMedia?"white":ink}}>
  <div style={{fontSize:10,fontWeight:800,letterSpacing:".1em",textTransform:"uppercase"}}>{n.kind}</div>
  <div style={{marginTop:hasMedia?"auto":16,overflow:"auto",scrollbarWidth:"thin"}}>
