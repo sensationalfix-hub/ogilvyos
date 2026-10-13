@@ -49,6 +49,10 @@ export async function PATCH(request:Request){const session=await lifeSession(req
  if("notes" in b)payload.notes=trim(b.notes,4000);
  if("collection_id" in b)payload.collection_id=uuid(b.collection_id)?b.collection_id:null;
  if("project_id" in b)payload.project_id=trim(b.project_id,160)||null;
+ if("image_url" in b)payload.image_url=safeExternal(b.image_url);
+ if("site" in b)payload.site=trim(b.site,100)||null;
+ if("kind" in b&&["image","video","audio","web","other"].includes(b.kind))payload.kind=b.kind;
+
  if("title" in b||"notes" in b)payload.auto_tags=tags(String(payload.title||b.current_title||""),String(payload.notes||b.current_notes||""));
  const item=await restPatch(session.accessToken,"reference_items",b.id,payload);if(!item)return reply("Referencia no encontrada",404);return NextResponse.json({item});
  }catch(e){return reply(String(e),500)}}
