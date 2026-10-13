@@ -8,7 +8,7 @@ import {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/creative/share/") || pathname === "/api/creative/preview" || pathname === "/login" || pathname.startsWith("/api/auth/")) {
+  if (pathname.startsWith("/creative/share/") || pathname === "/api/creative/preview" || pathname === "/api/references/art-image" || pathname === "/login" || pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 
