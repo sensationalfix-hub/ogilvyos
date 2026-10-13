@@ -27,3 +27,21 @@
 .ri-error{padding:11px;border-radius:10px;background:#fcebe7;font-size:11px;color:#9d453a;overflow-wrap:anywhere}
 .ri-disclaimer{font-size:9px;line-height:1.55;color:#a0a99b;margin:18px 0 2px}
 @keyframes ri-spin{to{transform:rotate(360deg)}}.ri-spin{animation:ri-spin .8s linear infinite}
+
+.ri-heading{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+.ri-heading>div{display:grid;gap:4px}
+.ri-heading strong{font-size:12px}.ri-heading small{font-size:10px;color:#889486}
+.ri-icon{background:#d1f28a;padding:10px;border-radius:10px}
+.ri-summary{background:#fff;padding:12px;border-radius:10px;margin:12px 0}
+.ri-summary p{font-size:12px;font-weight:750;line-height:1.5;margin:0 0 9px}
+.ri-summary small{display:block;font-size:11px;line-height:1.5;color:#647260}
+.ri-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.ri-tags span{font-size:10px;padding:5px 8px;background:#e8f3dc;border-radius:20px}
+.ri-distance{display:flex;justify-content:space-between;margin:10px 0;font-size:11px;font-weight:750}
+.ri-range{width:100%;accent-color:#91cc3b}.ri-hints{display:flex;justify-content:space-between;font-size:9px;color:#919e8b}
+.ri-cta{display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;width:100%;min-height:44px;background:#c5f368;margin:17px 0;font-weight:850;font-size:12px}
+.ri-subtitle{font-size:10px;letter-spacing:.1em;color:#91a087}
+.ri-proposal{padding:12px 0;border-top:1px solid #e2e9dc}
+.ri-proposal b{display:block;font-size:12px}.ri-proposal>span{font-size:10px;color:#51733f}.ri-proposal p{font-size:11px;color:#65715f;line-height:1.5}
+.ri-actions{display:flex;gap:7px}.ri-actions button{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #dfe5d6;border-radius:8px;padding:9px;font-size:10px}
+.ri-footer{display:block;font-size:9px;color:#96a191;line-height:1.5;margin-top:15px}
