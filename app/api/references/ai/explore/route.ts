@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server";
-import {lifeSession,lifeSelect} from "@/app/lib/life-store";
+import {lifeSession,lifeSelect,lifeInsert} from "@/app/lib/life-store";
 export const maxDuration=50;
 export async function POST(request:Request){
  const user=await lifeSession(request);
@@ -9,6 +9,11 @@ export async function POST(request:Request){
  try{
   const refs=await lifeSelect<{title:string;notes:string;auto_tags:string[]}>(user.accessToken,"reference_items","select=title,notes,auto_tags&limit=40");
   if(!refs.length)return NextResponse.json({error:"Primero guarda una referencia."},{status:400});
+  const runs=await lifeSelect<{id:string}>(user.accessToken,"reference_ai_runs","select=id&created_at=gte."+encodeURIComponent(new Date(Date.now()-86400000).toISOString())+"&limit=22");
+  if(runs.length>=20)return NextResponse.json({error:"Límite de 20 análisis en 24 horas alcanzado."},{status:429});
+  const first=await lifeSelect<{id:string}>(user.accessToken,"reference_items","select=id&limit=1");
+  if(first[0])await lifeInsert(user.accessToken,"reference_ai_runs",{owner_id:user.userId,reference_id:first[0].id});
+
   const prompt="Eres un curador creativo. A partir de estas referencias propone 3 territorios nuevos de exploración conceptual y visual en arte. No inventes obras. Devuelve únicamente JSON: {directions:[{title:string,reason:string,query:string}]}. Title y reason en español; query en inglés de 1-3 palabras, válido para un buscador de museo de arte. Evita sugerir más de lo mismo. Referencias: "+JSON.stringify(refs.map(x=>({title:x.title,notes:x.notes.slice(0,130),tags:x.auto_tags})));
   const r=await fetch("https://ai-gateway.vercel.sh/v1/chat/completions",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({model:"google/gemini-2.5-flash",messages:[{role:"user",content:prompt}],max_tokens:850,response_format:{type:"json_object"}}),signal:AbortSignal.timeout(35000)});
   if(!r.ok)return NextResponse.json({error:"AI Gateway devolvió "+r.status},{status:502});
