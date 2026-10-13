@@ -49,6 +49,11 @@ export async function PATCH(request:Request){
  }catch(e){return message(String(e),500)}
 }
 export async function POST(request:Request){
+ // Fail closed: never initiate paid inference without an explicit production opt-in.
+ if(process.env.REFERENCE_AI_PAID_CALLS_ALLOWED!=="YES_I_ACCEPT_CHARGES"){
+  return NextResponse.json({error:"IA en pausa para evitar cargos de Vercel. El archivo, las búsquedas y las conexiones manuales siguen disponibles.",billing_disabled:true},{status:503});
+ }
+
  const user=await lifeSession(request);if(!user)return message("No autorizado",401);
  const data=await request.json().catch(()=>({}));
  const id=String(data.reference_id||"");
