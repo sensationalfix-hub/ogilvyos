@@ -101,6 +101,14 @@ function MasonryGallery({items,onOpen}:{items:Item[];onOpen:(id:string)=>void}){
   </div>)}
  </div>;
 }
+function DiscoveryImage({work}:{work:ExternalWork}){
+ const [failed,setFailed]=useState(false);
+ useEffect(()=>setFailed(false),[work.id,work.image]);
+ return <div className="rl-discovery-media">
+  {failed?<div className="rl-discovery-unavailable"><ImageIcon size={28}/><span>Vista previa no disponible</span></div>:
+   <img src={work.image} alt="" loading="lazy" decoding="async" onError={()=>setFailed(true)}/>}
+ </div>;
+}
 export default function ReferencesPage(){
  const [data,setData]=useState<Data>({items:[],collections:[],connections:[]});
  const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [busy,setBusy]=useState(false);
@@ -115,7 +123,7 @@ export default function ReferencesPage(){
  const [externalError,setExternalError]=useState("");
  const [savingExternal,setSavingExternal]=useState<number|null>(null);
  const [importStatus,setImportStatus]=useState("");
- const discoveryTerm=externalTerm.trim()||data.items[0]?.auto_tags?.[0]||"surrealism";
+ const discoveryTerm=externalTerm.trim()||"myth";
  useEffect(()=>{
   if(tab!=="discover")return;
   let active=true;
@@ -128,6 +136,7 @@ export default function ReferencesPage(){
   return()=>{active=false;clearTimeout(timer)}
  },[tab,discoveryTerm]);
 
+ useEffect(()=>{window.scrollTo({top:0,behavior:"instant"})},[tab]);
  const load=useCallback(async()=>{try{const r=await fetch("/api/references",{cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"Error de biblioteca");setData({items:d.items||[],collections:d.collections||[],connections:d.connections||[]});setError("")}catch(e){setError(e instanceof Error?e.message:"No se pudo abrir la biblioteca")}finally{setLoading(false)}},[]);
  useEffect(()=>{load();const refresh=()=>load();window.addEventListener("reference-lib:changed",refresh);return()=>window.removeEventListener("reference-lib:changed",refresh)},[load]);
  const selected=data.items.find(x=>x.id===activeId)||null;
@@ -202,12 +211,12 @@ export default function ReferencesPage(){
     <div className="rl-mini-grid">{data.items.slice(0,10).map(item=><button key={item.id} onClick={()=>setActiveId(item.id)}><ItemMedia item={item}/><span>{item.title}</span></button>)}</div>
    </div>}
    {tab==="discover"&&<div className="rl-discover-view">
-    <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Busca piezas nuevas fuera de tu archivo. Esta primera versión abre búsquedas reales en fuentes externas; el feed automático personalizado vendrá cuando conectemos el motor de descubrimiento.</p></div>
+    <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Explora obras reales de colecciones abiertas. Es una búsqueda cultural, todavía no el feed personalizado que estamos preparando.</p></div>
     <label className="rl-discover-search"><Search size={19}/><input placeholder="Ej. ambición mitológica, western urbano, collage surrealista..." value={externalTerm} onChange={e=>setExternalTerm(e.target.value)}/></label>
-    <div className="rl-section-line"><span>PROPUESTAS FUERA DE TU BIBLIOTECA · ART INSTITUTE OF CHICAGO</span><span>{externalLoading?"Buscando...":externalWorks.length+" hallazgos"}</span></div>
+    <div className="rl-section-line"><span>EXPLORACIÓN CULTURAL · CLEVELAND MUSEUM OF ART</span><span>{externalLoading?"Buscando...":externalWorks.length+" hallazgos"}</span></div>
     {externalError&&<p className="rl-import-status">{externalError}</p>}
     {externalLoading?<div className="rl-loading"><Loader2 size={19} className="rl-rotate"/> Consultando obras reales...</div>:externalWorks.length>0?
-      <div className="rl-discovery-grid">{externalWorks.filter(w=>!data.items.some(i=>i.url===w.url)).map(work=><article className="rl-discovery-card" key={work.id}><img src={work.image} alt={work.title} loading="lazy"/><div className="rl-discovery-copy"><h3>{work.title}</h3><p>{work.artist} {work.date?"· "+work.date:""}</p><div><button disabled={savingExternal===work.id} onClick={()=>saveDiscovered(work)}>{savingExternal===work.id?<Loader2 size={15}/>:<Plus size={15}/>} Guardar</button><a href={work.url} target="_blank" rel="noopener noreferrer" title="Ficha de la obra"><ArrowUpRight size={16}/></a></div></div></article>)}</div>
+      <div className="rl-discovery-grid">{externalWorks.filter(w=>!data.items.some(i=>i.url===w.url)).map(work=><article className="rl-discovery-card" key={work.id}><DiscoveryImage work={work}/><div className="rl-discovery-copy"><h3>{work.title}</h3><p>{work.artist} {work.date?"· "+work.date:""}</p><div><button disabled={savingExternal===work.id} onClick={()=>saveDiscovered(work)}>{savingExternal===work.id?<Loader2 size={15}/>:<Plus size={15}/>} Guardar</button><a href={work.url} target="_blank" rel="noopener noreferrer" title="Ficha de la obra"><ArrowUpRight size={16}/></a></div></div></article>)}</div>
       :<div className="rl-muted-empty">Sin resultados públicos para esta búsqueda. Prueba con un concepto distinto.</div>}
     <div className="rl-section-line"><span>AMPLIAR LA BÚSQUEDA EN OTRAS FUENTES</span></div>
     <div className="rl-source-grid">{external.map(e=><a key={e.label} href={e.href} target="_blank" rel="noopener noreferrer"><span><ExternalLink size={20}/></span><h3>{e.label}</h3><p>{e.sub}</p><ArrowUpRight size={17} className="rl-source-arrow"/></a>)}</div>
