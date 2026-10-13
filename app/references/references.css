@@ -208,3 +208,65 @@ body:has(.rl-shell) {
 @media (prefers-reduced-motion:reduce){
  .rl-masonry .rl-card,.rl-masonry .rl-card:hover {transition:none;transform:none}
 }
+
+/* Layout v2: stable, independent stacks. Never let CSS multicol balance heights. */
+.rl-masonry{
+ display:grid !important;
+ columns:unset !important;
+ column-count:unset !important;
+ column-width:auto !important;
+ column-gap:14px !important;
+ width:100%;
+ align-items:start;
+ overflow:visible;
+}
+.rl-masonry-column{
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ min-width:0;
+ gap:14px;
+}
+.rl-masonry-column .rl-card{
+ width:100%;
+ min-width:0;
+ max-width:100%;
+ display:block !important;
+ flex:0 0 auto;
+ position:relative;
+ margin:0 !important;
+ padding:0;
+ break-inside:initial;
+ vertical-align:initial;
+ height:auto;
+ min-height:0;
+ overflow:hidden;
+}
+.rl-masonry-column .rl-card .rl-art {
+ display:flex;
+ width:100%;
+ min-height:130px;
+ max-height:370px;
+}
+.rl-masonry-column .rl-card .rl-img{
+ width:100%;
+ height:auto;
+ max-height:460px;
+ display:block;
+}
+.rl-masonry-column .rl-card:has(.rl-type) .rl-img{
+ width:100%;
+ height:auto;
+ aspect-ratio:16/10;
+ object-fit:cover;
+}
+.rl-masonry-column .rl-media-video{
+ width:100%;
+ max-height:330px;
+}
+.rl-masonry-column .rl-card-caption{display:flex;min-height:58px}
+@media(max-width:600px){
+ .rl-masonry{column-gap:9px!important}
+ .rl-masonry-column{gap:9px}
+ .rl-masonry-column .rl-card .rl-art{min-height:110px}
+}
