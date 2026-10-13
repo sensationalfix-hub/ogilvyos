@@ -124,6 +124,7 @@ export default function CreativeLab(){
  const [shareOpen,setShareOpen]=useState(false);
  const [shareBusy,setShareBusy]=useState(false);
  const [livePeople,setLivePeople]=useState<{id:string;name:string;x:number|null;y:number|null}[]>([]);
+ const consumedReference=useRef<string|null>(null);
  const liveId=useRef<string>("");
  const liveMouse=useRef<{x:number|null;y:number|null}>({x:null,y:null});
  const shareToken=share?.enabled?share.token:null;
@@ -191,6 +192,24 @@ export default function CreativeLab(){
  },[]);
  useEffect(()=>{refresh()},[refresh]);
  useEffect(()=>{let mounted=true;fetch("/api/notion/state",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error("No se pudieron cargar los proyectos");return r.json()}).then(data=>{if(mounted)setProjects(Array.isArray(data.projects)?data.projects:[])}).catch(()=>{if(mounted)setProjectError("No se pudieron cargar los proyectos")});return()=>{mounted=false}},[]);
+ useEffect(()=>{
+  if(!loaded.current||!board)return;
+  const params=new URLSearchParams(window.location.search);
+  const referenceId=params.get("reference");
+  if(!referenceId||consumedReference.current===referenceId)return;
+  consumedReference.current=referenceId;
+  let active=true;
+  fetch("/api/references",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(data=>{
+   if(!active)return;
+   const ref=data?.items?.find((item:{id:string})=>item.id===referenceId);
+   if(!ref)return;
+   const link=ref.url||(ref.media_path?window.location.origin+"/api/references/media?path="+encodeURIComponent(ref.media_path):undefined);
+   const node:Node={id:id(),kind:"referencia",title:ref.title||"Referencia",body:ref.notes||"",url:link,x:Math.round((workspaceSize.width*.47-pan.x)/zoom/20)*20,y:Math.round((workspaceSize.height*.40-pan.y)/zoom/20)*20};
+   update(b=>({...b,nodes:[...b.nodes,node]}));setSelected(node.id);setSelectedIds([node.id]);setShowBoards(false);setSaved(false);
+   params.delete("reference");const q=params.toString();window.history.replaceState({}, "",window.location.pathname+(q?"?"+q:""));
+  }).catch(()=>{});
+  return()=>{active=false};
+ },[board?.id,update,workspaceSize.width,workspaceSize.height,pan.x,pan.y,zoom]);
  useEffect(()=>{
   if(!loaded.current||!board||saved)return;
   const version=seq.current;
