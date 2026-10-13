@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./os-dock.css";
 import { OSDock } from "@/components/os/os-dock";
 
 export const metadata: Metadata = {
