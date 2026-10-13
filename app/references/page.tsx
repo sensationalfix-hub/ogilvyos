@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BookmarkPlus, Check, ChevronDown, Compass, ExternalLink, Film, FolderOpen, GitBranch, Grid2X2, Image as ImageIcon, Layers2, LibraryBig, Link2, Loader2, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, WandSparkles, X } from "lucide-react";
 import { ReferenceCapture } from "@/components/os/reference-capture";
+import { ReferenceIntelligence } from "@/components/os/reference-intelligence";
+import "@/components/os/reference-intelligence.css";
 import "./references.css";
 
 type Item={id:string;title:string;url:string|null;image_url:string|null;media_path:string|null;kind:"image"|"video"|"audio"|"web"|"other";site:string|null;notes:string;auto_tags:string[];collection_id:string|null;project_id:string|null;created_at:string};
@@ -234,6 +236,7 @@ export default function ReferencesPage(){
     <button className="rl-save" disabled={busy||!editTitle.trim()} onClick={updateSelected}><Check size={16}/> Guardar cambios</button>
     {selected.url&&<a className="rl-external-link" href={selected.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> Abrir fuente original</a>}
     <Link className="rl-lab-link" href={"/creative?reference="+encodeURIComponent(selected.id)}><GitBranch size={16}/> Enviar a Creative Lab <ArrowUpRight size={15}/></Link>
+    <ReferenceIntelligence referenceId={selected.id} items={data.items} onUpdate={load}/>
     <div className="rl-divider"/>
     <div className="rl-relationship-title"><strong>Conexiones</strong><span>{relations.length} guardadas</span></div>
     {relations.map(c=>{const other=data.items.find(x=>x.id===(c.source_id===selected.id?c.target_id:c.source_id));return other?<div key={c.id} className="rl-related"><div className="rl-related-thumb"><ItemMedia item={other}/></div><button className="rl-related-copy" onClick={()=>setActiveId(other.id)}><strong>{other.title}</strong><span>{c.relation}</span></button><button title="Eliminar conexión" onClick={()=>disconnect(c.id)}><X size={14}/></button></div>:null})}
