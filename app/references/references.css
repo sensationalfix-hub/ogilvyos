@@ -103,3 +103,108 @@
 .rl-discovery-copy>div{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
 .rl-discovery-copy button{background:#e9f6d3;color:#344529;border:0;display:flex;align-items:center;gap:6px;padding:9px 12px;border-radius:9px;font-size:11px;font-weight:800}
 .rl-discovery-copy a{color:#60695d;display:grid;place-items:center;border:1px solid #e8ebe2;border-radius:8px;width:31px;height:31px}
+
+
+/* Reference Lib owns its scroll context. Other OS apps retain their locked canvases. */
+html:has(.rl-shell) {
+  height:auto !important;
+  min-height:100% !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  overscroll-behavior-y:auto;
+}
+body:has(.rl-shell) {
+  display:block !important;
+  height:auto !important;
+  min-height:100dvh !important;
+  max-height:none !important;
+  overflow:visible !important;
+  padding:0 !important;
+  margin:0 !important;
+}
+.rl-shell {
+  min-height:100dvh !important;
+  height:auto !important;
+  max-height:none !important;
+  overflow:visible !important;
+  align-items:stretch;
+  isolation:isolate;
+}
+.rl-content {
+  min-height:100dvh;
+  height:auto;
+  overflow:visible;
+  flex:1;
+}
+.rl-gallery-view { overflow:visible; }
+
+/* True masonry: retain each artwork's own dimensions instead of a uniform crop. */
+.rl-masonry {
+  columns:auto 225px;
+  column-count:4;
+  column-gap:16px;
+  width:100%;
+}
+.rl-masonry .rl-card {
+  width:100%;
+  display:inline-block;
+  vertical-align:top;
+  break-inside:avoid;
+  -webkit-column-break-inside:avoid;
+  page-break-inside:avoid;
+  margin:0 0 16px;
+  border-radius:15px;
+  background:#fff;
+  box-shadow:0 4px 16px #242c1a0b;
+  transform:translateZ(0);
+}
+.rl-masonry .rl-card:nth-child(n) .rl-img {
+  aspect-ratio:auto;
+  height:auto;
+  width:100%;
+  object-fit:cover;
+}
+.rl-masonry .rl-card:has(.rl-type) .rl-img {
+  aspect-ratio:16 / 10;
+  object-fit:cover;
+}
+.rl-masonry .rl-card .rl-art {
+  min-height:0;
+  aspect-ratio:4 / 5;
+}
+.rl-masonry .rl-card:nth-child(3n+1) .rl-art {aspect-ratio:3 / 4}
+.rl-masonry .rl-card:nth-child(3n+2) .rl-art {aspect-ratio:5 / 4}
+.rl-masonry .rl-card:nth-child(3n) .rl-art {aspect-ratio:1 / 1}
+.rl-masonry .rl-card-caption {
+  padding:11px 13px 13px;
+  gap:5px;
+}
+.rl-masonry .rl-card-caption strong {
+  font-size:12px;
+  letter-spacing:-.012em;
+}
+.rl-masonry .rl-card:hover {
+  transform:translateY(-3px);
+  box-shadow:0 14px 32px #2b332019;
+  z-index:1;
+}
+.rl-media {position:relative;display:block;overflow:hidden;background:#e6e8e2}
+.rl-media-video {aspect-ratio:16/10}
+.rl-media video {display:block;width:100%;height:100%;object-fit:cover;background:#343943}
+.rl-media-play {
+  position:absolute;left:12px;bottom:12px;
+  width:34px;height:34px;border:1px solid #ffffff91;border-radius:50%;
+  display:grid;place-items:center;background:#12191680;color:#fff;
+  pointer-events:none;backdrop-filter:blur(8px);
+}
+.rl-inspector-image .rl-media {height:100%;width:100%;aspect-ratio:auto}
+.rl-inspector-image .rl-media video {height:100%}
+.rl-related-thumb .rl-media,.rl-mini-grid .rl-media {height:100%;aspect-ratio:auto}
+.rl-related-thumb .rl-media-play,.rl-mini-grid .rl-media-play {display:none}
+@media (min-width:1600px) {.rl-masonry{column-count:5}}
+@media (max-width:1180px) {.rl-masonry{column-count:3}}
+@media (max-width:850px) {.rl-masonry{column-count:2}}
+@media (max-width:500px) {.rl-masonry{column-count:2;column-gap:9px}.rl-masonry .rl-card{margin-bottom:9px}}
+@media (prefers-reduced-motion:reduce){
+ .rl-masonry .rl-card,.rl-masonry .rl-card:hover {transition:none;transform:none}
+}
