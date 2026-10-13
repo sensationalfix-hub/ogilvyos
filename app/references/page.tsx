@@ -10,6 +10,7 @@ type Collection={id:string;name:string};
 type Connection={id:string;source_id:string;target_id:string;relation:string;explanation:string};
 type Data={items:Item[];collections:Collection[];connections:Connection[]};
 type PageTab="all"|"connections"|"discover";
+type ExternalWork={id:number;title:string;artist:string;date:string;image:string;url:string;site:string;kind:string};
 const stop=new Set(["para","sobre","desde","hasta","unas","unos","esta","este","entre","tiene","pero","that","with","from","some","this","your","https","www","com","video","image","the","and"]);
 function words(r:Item){const text=[r.title,r.notes,...r.auto_tags].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return Array.from(new Set((text.match(/[a-z]{5,}/g)||[]).filter(t=>!stop.has(t))));}
 function similar(ref:Item,items:Item[]){const a=words(ref);return items.filter(x=>x.id!==ref.id).map(item=>{const b=words(item);const overlap=a.filter(w=>b.includes(w));return {item,overlap,score:overlap.length}}).filter(x=>x.score>0).sort((x,y)=>y.score-x.score).slice(0,6)}
@@ -24,7 +25,24 @@ export default function ReferencesPage(){
  const [editTitle,setEditTitle]=useState("");const [editNotes,setEditNotes]=useState("");const [editCollection,setEditCollection]=useState("");
  const [connectTo,setConnectTo]=useState("");const [connectionLabel,setConnectionLabel]=useState("inspira");
  const [externalTerm,setExternalTerm]=useState("");
+ const [externalWorks,setExternalWorks]=useState<ExternalWork[]>([]);
+ const [externalLoading,setExternalLoading]=useState(false);
+ const [externalError,setExternalError]=useState("");
+ const [savingExternal,setSavingExternal]=useState<number|null>(null);
  const [importStatus,setImportStatus]=useState("");
+ const discoveryTerm=externalTerm.trim()||data.items[0]?.auto_tags?.[0]||"surrealism";
+ useEffect(()=>{
+  if(tab!=="discover")return;
+  let active=true;
+  const timer=setTimeout(async()=>{
+   setExternalLoading(true);setExternalError("");
+   try{const r=await fetch("/api/references/discover?q="+encodeURIComponent(discoveryTerm));const d=await r.json();if(!r.ok)throw Error(d.error||"Error de búsqueda");if(active){setExternalWorks(d.works||[]);setExternalError(d.error||"")}}
+   catch(e){if(active){setExternalWorks([]);setExternalError(e instanceof Error?e.message:"No se pudo buscar")}}
+   finally{if(active)setExternalLoading(false)}
+  },350);
+  return()=>{active=false;clearTimeout(timer)}
+ },[tab,discoveryTerm]);
+
  const load=useCallback(async()=>{try{const r=await fetch("/api/references",{cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"Error de biblioteca");setData({items:d.items||[],collections:d.collections||[],connections:d.connections||[]});setError("")}catch(e){setError(e instanceof Error?e.message:"No se pudo abrir la biblioteca")}finally{setLoading(false)}},[]);
  useEffect(()=>{load();const refresh=()=>load();window.addEventListener("reference-lib:changed",refresh);return()=>window.removeEventListener("reference-lib:changed",refresh)},[load]);
  const selected=data.items.find(x=>x.id===activeId)||null;
@@ -45,6 +63,12 @@ export default function ReferencesPage(){
  const deleteSelected=async()=>{if(!selected||!window.confirm("¿Eliminar esta referencia de la biblioteca?"))return;setBusy(true);try{await request("DELETE",undefined,"/api/references?id="+encodeURIComponent(selected.id));setActiveId(null);await load()}catch(e){setError(String(e))}finally{setBusy(false)}};
  const connect=async(targetId:string,label:string)=>{if(!selected)return;setBusy(true);try{await request("POST",{action:"connection",source_id:selected.id,target_id:targetId,relation:label});setConnectTo("");await load()}catch(e){setError(String(e))}finally{setBusy(false)}};
  const disconnect=async(id:string)=>{setBusy(true);try{await request("DELETE",undefined,"/api/references?type=connection&id="+encodeURIComponent(id));await load()}catch(e){setError(String(e))}finally{setBusy(false)}};
+ const saveDiscovered=async(work:ExternalWork)=>{
+  setSavingExternal(work.id);
+  try{await request("POST",{url:work.url,title:work.title,image_url:work.image,site:work.site,kind:"image"});await load()}
+  catch(e){setExternalError(e instanceof Error?e.message:"No se pudo guardar")}
+  finally{setSavingExternal(null)}
+ };
  const importCreative=async()=>{setBusy(true);setImportStatus("Revisando mapas de Creative Lab...");
  try{const r=await fetch("/api/creative",{cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"No se pudieron leer los mapas");
  const nodes:{url:string;title:string;body?:string;project_id?:string|null}[]=[];const seen=new Set(data.items.map(i=>i.url).filter(Boolean));
@@ -95,6 +119,12 @@ export default function ReferencesPage(){
    {tab==="discover"&&<div className="rl-discover-view">
     <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Busca piezas nuevas fuera de tu archivo. Esta primera versión abre búsquedas reales en fuentes externas; el feed automático personalizado vendrá cuando conectemos el motor de descubrimiento.</p></div>
     <label className="rl-discover-search"><Search size={19}/><input placeholder="Ej. ambición mitológica, western urbano, collage surrealista..." value={externalTerm} onChange={e=>setExternalTerm(e.target.value)}/></label>
+    <div className="rl-section-line"><span>PROPUESTAS FUERA DE TU BIBLIOTECA · ART INSTITUTE OF CHICAGO</span><span>{externalLoading?"Buscando...":externalWorks.length+" hallazgos"}</span></div>
+    {externalError&&<p className="rl-import-status">{externalError}</p>}
+    {externalLoading?<div className="rl-loading"><Loader2 size={19} className="rl-rotate"/> Consultando obras reales...</div>:externalWorks.length>0?
+      <div className="rl-discovery-grid">{externalWorks.filter(w=>!data.items.some(i=>i.url===w.url)).map(work=><article className="rl-discovery-card" key={work.id}><img src={work.image} alt={work.title} loading="lazy"/><div className="rl-discovery-copy"><h3>{work.title}</h3><p>{work.artist} {work.date?"· "+work.date:""}</p><div><button disabled={savingExternal===work.id} onClick={()=>saveDiscovered(work)}>{savingExternal===work.id?<Loader2 size={15}/>:<Plus size={15}/>} Guardar</button><a href={work.url} target="_blank" rel="noopener noreferrer" title="Ficha de la obra"><ArrowUpRight size={16}/></a></div></div></article>)}</div>
+      :<div className="rl-muted-empty">Sin resultados públicos para esta búsqueda. Prueba con un concepto distinto.</div>}
+    <div className="rl-section-line"><span>AMPLIAR LA BÚSQUEDA EN OTRAS FUENTES</span></div>
     <div className="rl-source-grid">{external.map(e=><a key={e.label} href={e.href} target="_blank" rel="noopener noreferrer"><span><ExternalLink size={20}/></span><h3>{e.label}</h3><p>{e.sub}</p><ArrowUpRight size={17} className="rl-source-arrow"/></a>)}</div>
     <div className="rl-roadmap"><WandSparkles size={18}/><div><strong>En preparación: recomendaciones automáticas</strong><p>Análisis multimodal, relaciones semánticas y propuestas de referencias externas verificadas. Sin recomendaciones inventadas ni etiquetas obligatorias.</p></div></div>
    </div>}
