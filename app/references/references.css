@@ -270,3 +270,77 @@ body:has(.rl-shell) {
  .rl-masonry-column{gap:9px}
  .rl-masonry-column .rl-card .rl-art{min-height:110px}
 }
+
+/* Discovery: readable visual references, not six tiny broken tiles. */
+.rl-discovery-grid{
+ display:grid !important;
+ grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+ gap:16px !important;
+ width:100%;
+ align-items:start;
+ margin:14px 0 36px;
+}
+.rl-discovery-card{
+ display:flex !important;
+ flex-direction:column;
+ min-width:0;
+ overflow:hidden;
+ border-radius:16px;
+ background:#fff;
+ border:1px solid #e1e5dc;
+ box-shadow:0 4px 18px #1e29100b;
+}
+.rl-discovery-media{
+ display:grid;
+ place-items:center;
+ width:100%;
+ height:245px;
+ overflow:hidden;
+ background:#f1f1ec;
+}
+.rl-discovery-media img {
+ display:block;
+ width:100%;
+ height:100%;
+ max-height:245px;
+ min-height:0;
+ object-fit:contain;
+ object-position:center;
+ background:transparent;
+}
+.rl-discovery-unavailable{
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ align-items:center;
+ gap:13px;
+ color:#949b8e;
+ font-size:11px;
+ background:linear-gradient(140deg,#eff1eb,#f7f7f3);
+ height:100%;
+ width:100%;
+ text-align:center;
+ padding:15px;
+}
+.rl-discovery-card .rl-discovery-copy{
+ padding:15px;
+ flex:1;
+ display:flex;
+ flex-direction:column;
+ min-height:122px;
+}
+.rl-discovery-copy h3{font-size:13px;line-height:1.35;min-height:0}
+.rl-discovery-copy p{font-size:11px;line-height:1.4;min-height:0}
+.rl-discovery-copy>div{margin-top:auto;padding-top:13px}
+@media(max-width:1300px){
+ .rl-discovery-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+}
+@media(max-width:930px){
+ .rl-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+}
+@media(max-width:560px){
+ .rl-discovery-grid{gap:10px !important}
+ .rl-discovery-media{height:190px}
+ .rl-discovery-media img{max-height:190px}
+ .rl-discovery-card .rl-discovery-copy{padding:10px}
+}
