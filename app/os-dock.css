@@ -1,0 +1,14 @@
+
+.os-dock{position:fixed;z-index:950;bottom:max(20px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:9px;pointer-events:none;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.os-dock>*{pointer-events:auto}
+.os-dock-toggle{border:1px solid #d9dcd4;background:rgba(255,255,252,.94);color:#242622;border-radius:15px;padding:11px 15px;min-height:43px;display:flex;align-items:center;gap:9px;box-shadow:0 8px 32px #00000017,inset 0 1px #fff;backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);font:700 12px inherit;cursor:pointer;transition:transform .2s,background .2s}
+.os-dock-toggle:hover{background:#d6fc60;transform:translateY(-2px)}
+.os-dock-apps{display:flex;align-items:end;gap:10px;border:1px solid #dedfd9;background:rgba(250,251,247,.93);box-shadow:0 15px 45px #0002,inset 0 1px #fff;backdrop-filter:blur(28px) saturate(140%);-webkit-backdrop-filter:blur(28px) saturate(140%);padding:12px 14px;border-radius:22px;animation:os-dock-in .22s cubic-bezier(.16,1,.3,1)}
+.os-dock-app{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:55px;color:#424741;text-decoration:none}
+.os-dock-app-icon{height:52px;width:52px;border-radius:15px;background:#e9ebe5;display:flex;align-items:center;justify-content:center;border:1px solid #d8dad3;transition:transform .22s cubic-bezier(.2,.8,.2,1),background .22s;box-shadow:inset 0 1px #fff}
+.os-dock-app:hover .os-dock-app-icon{transform:translateY(-5px) scale(1.09);background:#ddfb8c}
+.os-dock-app.is-current .os-dock-app-icon{background:#c3f647;border-color:#b4e43c}
+.os-dock-app.is-current .os-dock-app-name:before{content:"•";position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:10px}
+.os-dock-app-name{font-size:10px;font-weight:700;position:relative}
+@keyframes os-dock-in{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:650px){.os-dock{bottom:max(12px,env(safe-area-inset-bottom))}.os-dock-apps{gap:4px;padding:10px}.os-dock-app-icon{width:44px;height:44px}.os-dock-app{min-width:49px}}
