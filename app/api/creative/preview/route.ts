@@ -10,6 +10,7 @@ const TRUSTED = [
   "pinterest.de", "pinterest.it", "pin.it", "unsplash.com", "pexels.com",
   "pixabay.com", "flickr.com", "behance.net", "artstation.com", "dribbble.com",
   "500px.com", "deviantart.com", "open.spotify.com", "spotify.link",
+  "ernestdesumbila.com",
 ];
 const cache = new Map<string, { value: Preview | null; expires: number }>();
 const MAX_HTML_BYTES = 400_000;
