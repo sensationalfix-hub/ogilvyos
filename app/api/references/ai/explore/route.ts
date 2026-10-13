@@ -2,6 +2,11 @@ import {NextResponse} from "next/server";
 import {lifeSession,lifeSelect,lifeInsert} from "@/app/lib/life-store";
 export const maxDuration=50;
 export async function POST(request:Request){
+ // Fail closed: never initiate paid inference without an explicit production opt-in.
+ if(process.env.REFERENCE_AI_PAID_CALLS_ALLOWED!=="YES_I_ACCEPT_CHARGES"){
+  return NextResponse.json({error:"IA en pausa para evitar cargos de Vercel. El archivo, las búsquedas y las conexiones manuales siguen disponibles.",billing_disabled:true},{status:503});
+ }
+
  const user=await lifeSession(request);
  if(!user)return NextResponse.json({error:"Sin sesión"},{status:401});
  const token=process.env.AI_GATEWAY_API_KEY||process.env.VERCEL_OIDC_TOKEN||request.headers.get("x-vercel-oidc-token");
