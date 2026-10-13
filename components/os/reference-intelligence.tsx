@@ -9,8 +9,10 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
  const [distance,setDistance]=useState(55);
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState("");
+ const [enabled,setEnabled]=useState(false);
  const refresh=useCallback(async()=>{
   try{const r=await fetch("/api/references/ai",{cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error);
+  setEnabled(d.enabled===true);
   setInsight((d.insights||[]).find((x:Insight)=>x.reference_id===referenceId)||null);
   setSuggestions((d.suggestions||[]).filter((s:Suggestion)=>s.source_id===referenceId&&s.status==="pending"));}
   catch(e){setError(e instanceof Error?e.message:"No se pudo cargar IA")}
@@ -29,7 +31,8 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
   <div className="ri-distance"><label htmlFor="ri-range">Distancia creativa</label><span>{distance<35?"Directa":distance<70?"Asociativa":"Experimental"}</span></div>
   <input id="ri-range" className="ri-range" type="range" min="0" max="100" value={distance} onChange={e=>setDistance(Number(e.target.value))}/>
   <div className="ri-hints"><span>Más literal</span><span>Más inesperada</span></div>
-  <button className="ri-cta" disabled={loading} onClick={analyze}>{loading?<Loader2 size={15} className="ri-spin"/>:<Sparkles size={15}/>} {loading?"Analizando...":insight?"Explorar nuevas conexiones":"Analizar con IA"}</button>
+  {!enabled&&<p className="ri-disabled">IA de pago desactivada para evitar cargos. Puedes seguir usando y conectando referencias manualmente.</p>}
+  <button className="ri-cta" disabled={loading||!enabled} onClick={analyze}>{loading?<Loader2 size={15} className="ri-spin"/>:<Sparkles size={15}/>} {!enabled?"IA en pausa (sin cargos)":loading?"Analizando...":insight?"Explorar nuevas conexiones":"Analizar con IA"}</button>
   {!!suggestions.length&&<h4 className="ri-subtitle">CONEXIONES PROPUESTAS</h4>}
   {suggestions.map(s=>{const match=items.find(i=>i.id===s.target_id);return match?<div className="ri-proposal" key={s.id}><b>{match.title}</b><span>{s.relation}</span><p>{s.explanation}</p><div className="ri-actions"><button disabled={loading} onClick={()=>decide(s.id,"accepted")}><ThumbsUp size={13}/> Conecta</button><button disabled={loading} onClick={()=>decide(s.id,"rejected")}><ThumbsDown size={13}/> No conecta</button></div></div>:null})}
   {error&&<p className="ri-error" role="alert">{error}</p>}
