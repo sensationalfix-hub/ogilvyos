@@ -12,3 +12,7 @@
 .os-dock-app-name{font-size:10px;font-weight:700;position:relative}
 @keyframes os-dock-in{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:650px){.os-dock{bottom:max(12px,env(safe-area-inset-bottom))}.os-dock-apps{gap:4px;padding:10px}.os-dock-app-icon{width:44px;height:44px}.os-dock-app{min-width:49px}}
+
+.os-dock-add{border:0;background:#20251d;color:#d1f98e;min-width:56px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:7px 8px;cursor:pointer;font:700 10px Inter,ui-sans-serif,system-ui,sans-serif;transition:transform .2s,background .2s}
+.os-dock-add:hover{background:#3d582a;transform:translateY(-5px)}
+.os-dock-toggle{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:12px;font-weight:700}
