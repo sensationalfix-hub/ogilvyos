@@ -15,7 +15,9 @@ export async function GET(request:Request){
   const json=await r.json();
   const works=((json.data||[]) as Artwork[]).filter(a=>a.is_public_domain&&a.image_id&&Number.isInteger(a.id)).slice(0,12).map(a=>({
    id:a.id,title:a.title,artist:a.artist_title||"Artista desconocido",date:a.date_display||"",
-   image:"https://www.artic.edu/iiif/2/"+encodeURIComponent(a.image_id!)+"/full/600,/0/default.jpg",
+   image_id:a.image_id!,
+   image:"/api/references/art-image?id="+encodeURIComponent(a.image_id!),
+   original_image:(json.config?.iiif_url||"https://www.artic.edu/iiif/2")+"/"+encodeURIComponent(a.image_id!)+"/full/843,/0/default.jpg",
    url:"https://www.artic.edu/artworks/"+a.id,site:"Art Institute of Chicago",kind:"image"
   }));
   return NextResponse.json({works,query:raw,source:"Art Institute of Chicago · dominio público"});
