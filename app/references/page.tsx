@@ -14,7 +14,54 @@ type ExternalWork={id:number;title:string;artist:string;date:string;image:string
 const stop=new Set(["para","sobre","desde","hasta","unas","unos","esta","este","entre","tiene","pero","that","with","from","some","this","your","https","www","com","video","image","the","and"]);
 function words(r:Item){const text=[r.title,r.notes,...r.auto_tags].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return Array.from(new Set((text.match(/[a-z]{5,}/g)||[]).filter(t=>!stop.has(t))));}
 function similar(ref:Item,items:Item[]){const a=words(ref);return items.filter(x=>x.id!==ref.id).map(item=>{const b=words(item);const overlap=a.filter(w=>b.includes(w));return {item,overlap,score:overlap.length}}).filter(x=>x.score>0).sort((x,y)=>y.score-x.score).slice(0,6)}
-function ItemMedia({item}:{item:Item}){const src=item.media_path?"/api/references/media?path="+encodeURIComponent(item.media_path):item.image_url;return src?<img className="rl-img" src={src} alt="" loading="lazy"/>:<div className={"rl-art rl-art-"+item.kind}><span>{item.kind==="video"?<Film size={29}/>:item.kind==="audio"?<Layers2 size={30}/>:item.kind==="image"?<ImageIcon size={30}/>:<Link2 size={29}/>}</span><small>{item.site||"REFERENCE"}</small></div>}
+type Preview={image?:string;title?:string;site?:string;kind?:string};
+const previewRequests=new Map<string,Promise<Preview|null>>();
+function directMedia(url:string|null):{src:string;videoFile:boolean}|null{
+ if(!url)return null;
+ try{
+  const u=new URL(url),host=u.hostname.toLowerCase().replace(/^www\\./,"");
+  if(u.protocol!=="https:")return null;
+  const id=host==="youtu.be"?u.pathname.split("/")[1]:["youtube.com","m.youtube.com","music.youtube.com","youtube-nocookie.com"].includes(host)?u.searchParams.get("v")||u.pathname.match(/^\\/(?:shorts|embed|live)\\/([^/]+)/)?.[1]:null;
+  if(id&&/^[A-Za-z0-9_-]{11}$/.test(id))return {src:"https://img.youtube.com/vi/"+id+"/hqdefault.jpg",videoFile:false};
+  if(/\\.(?:png|jpe?g|webp|gif|avif)$/i.test(u.pathname))return {src:u.href,videoFile:false};
+  if(/\\.(?:mp4|webm|m4v)$/i.test(u.pathname))return {src:u.href,videoFile:true};
+ }catch{}
+ return null;
+}
+function loadRichPreview(url:string):Promise<Preview|null>{
+ const cached=previewRequests.get(url);if(cached)return cached;
+ const req=(async()=>{
+  for(const endpoint of ["/api/creative/preview?url=","/api/references/preview?url="]){
+   try{const r=await fetch(endpoint+encodeURIComponent(url));if(!r.ok)continue;const json=await r.json();if(json.preview?.image)return json.preview as Preview;}catch{}
+  }
+  return null;
+ })();
+ previewRequests.set(url,req);
+ if(previewRequests.size>350)previewRequests.clear();
+ return req;
+}
+function ItemMedia({item}:{item:Item}){
+ const direct=directMedia(item.url);
+ const fileVideo=direct?.videoFile===true;
+ const initial=item.media_path?"/api/references/media?path="+encodeURIComponent(item.media_path):item.image_url||(!fileVideo?direct?.src:null)||null;
+ const [rich,setRich]=useState<Preview|null>(null);
+ const [broken,setBroken]=useState(false);
+ useEffect(()=>{setBroken(false);setRich(null)},[item.id,item.image_url,item.url]);
+ useEffect(()=>{
+  if(initial||!item.url||fileVideo)return;
+  let live=true;
+  loadRichPreview(item.url).then(preview=>{
+   if(!live||!preview?.image)return;
+   setRich(preview);
+   fetch("/api/references",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id,image_url:preview.image,site:preview.site||item.site||undefined,kind:preview.kind||item.kind})}).catch(()=>{});
+  }).catch(()=>{});
+  return()=>{live=false};
+ },[item.id,item.url,item.image_url,item.site,item.kind,initial,fileVideo]);
+ const src=broken?null:(initial||rich?.image||null);
+ if(fileVideo&&item.url)return <div className="rl-media rl-media-video"><video key={item.url} src={item.url+"#t=0.2"} preload="metadata" playsInline muted onLoadedMetadata={e=>{const video=e.currentTarget;if(video.duration>0.3){try{video.currentTime=.2}catch{}}}} onError={()=>setBroken(true)}/><span className="rl-media-play"><Film size={19}/></span></div>;
+ if(src)return <img className="rl-img" src={src} alt={item.title} loading="lazy" decoding="async" onError={()=>setBroken(true)}/>;
+ return <div className={"rl-art rl-art-"+item.kind}><span>{item.kind==="video"?<Film size={29}/>:item.kind==="audio"?<Layers2 size={30}/>:item.kind==="image"?<ImageIcon size={30}/>:<Link2 size={29}/>}</span><small>{item.site||"REFERENCE"}</small></div>;
+}
 function domain(url:string|null){try{return url?new URL(url).hostname.replace(/^www\./,""):"Archivo"}catch{return "Referencia"}}
 export default function ReferencesPage(){
  const [data,setData]=useState<Data>({items:[],collections:[],connections:[]});
