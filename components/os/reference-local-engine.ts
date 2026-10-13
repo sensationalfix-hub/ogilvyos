@@ -29,16 +29,27 @@ export function localSuggestions(source:LocalReference,items:LocalReference[],ve
  const pending=new Set(decisions.filter(d=>d.status==="pending"&&d.source_id===source.id).map(d=>d.target_id));
  const favorites=decisions.filter(d=>d.status==="accepted"&&(d.source_id===source.id||d.target_id===source.id)).map(d=>vectors.get(d.source_id===source.id?d.target_id:d.source_id)).filter((v):v is number[]=>!!v);
  const dislikes=decisions.filter(d=>d.status==="rejected"&&(d.source_id===source.id||d.target_id===source.id)).map(d=>vectors.get(d.source_id===source.id?d.target_id:d.source_id)).filter((v):v is number[]=>!!v);
+
+ // Preference transfer: confirmed and rejected associations influence NEW pairs,
+ // even when neither item was part of the original source reference.
+ const globalPairs=decisions.filter(d=>d.status==="accepted"||d.status==="rejected")
+  .map(d=>({from:vectors.get(d.source_id),to:vectors.get(d.target_id),sign:d.status==="accepted"?1:-1}))
+  .filter((p):p is {from:number[];to:number[];sign:number}=>!!p.from&&!!p.to);
  const sourceWords=keyTerms(source);
  const results=items.filter(x=>x.id!==source.id&&!existing.has(x.id)&&!pending.has(x.id)).map(item=>{
   const vector=vectors.get(item.id);if(!vector)return null;
   const similarity=cosine(center,vector);
   const preference=(favorites.length?Math.max(...favorites.map(v=>cosine(v,vector)))*.09:0)-(dislikes.length?Math.max(...dislikes.map(v=>cosine(v,vector)))*.13:0);
+  const learned=globalPairs.length?globalPairs.map(pair=>{
+   const forward=cosine(center,pair.from)*cosine(vector,pair.to);
+   const inverse=cosine(center,pair.to)*cosine(vector,pair.from);
+   return pair.sign*Math.max(0,Math.max(forward,inverse)-.28);
+  }).reduce((sum,value)=>sum+value,0)/Math.sqrt(globalPairs.length)*.18:0;
   const words=Array.from(keyTerms(item));
   const common=words.filter(t=>sourceWords.has(t)).slice(0,3);
   // At maximum distance: keep only plausible semantic relationships, prefer surprising connections.
   const targetSimilarity=.72-distance*.004;
-  const confidence=similarity+preference;
+  const confidence=similarity+preference+learned;
   const ranking=confidence-(Math.abs(similarity-targetSimilarity)*.45);
   const relation=common.length>0?"Territorio compartido":similarity>.55?"Resonancia conceptual":"Analogía por explorar";
   const explanation=common.length>0
