@@ -47,7 +47,7 @@ export default function ReferencesPage(){
  const disconnect=async(id:string)=>{setBusy(true);try{await request("DELETE",undefined,"/api/references?type=connection&id="+encodeURIComponent(id));await load()}catch(e){setError(String(e))}finally{setBusy(false)}};
  const importCreative=async()=>{setBusy(true);setImportStatus("Revisando mapas de Creative Lab...");
  try{const r=await fetch("/api/creative",{cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"No se pudieron leer los mapas");
- const nodes:(Item&{project_id?:string})[]=[];const seen=new Set(data.items.map(i=>i.url).filter(Boolean));
+ const nodes:{url:string;title:string;body?:string;project_id?:string|null}[]=[];const seen=new Set(data.items.map(i=>i.url).filter(Boolean));
  for(const board of d.boards||[])for(const node of board.nodes||[]){if(node.kind!=="referencia"||typeof node.url!=="string"||!node.url.startsWith("https://")||seen.has(node.url))continue;seen.add(node.url);nodes.push({...node,project_id:board.project_id||null})}
  let count=0;
  for(const n of nodes.slice(0,80)){try{await request("POST",{url:n.url,title:n.title||"",notes:n.body||"",project_id:n.project_id||null});count++}catch{}setImportStatus("Importando "+count+" / "+Math.min(nodes.length,80)+" referencias")}
