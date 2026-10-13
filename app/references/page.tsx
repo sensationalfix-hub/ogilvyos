@@ -123,6 +123,12 @@ export default function ReferencesPage(){
  const [aiDirections,setAiDirections]=useState<{title:string;reason:string;query:string}[]>([]);
  const [aiDiscoveryBusy,setAiDiscoveryBusy]=useState(false);
  const [aiDiscoveryError,setAiDiscoveryError]=useState("");
+ const [aiPaidEnabled,setAiPaidEnabled]=useState(false);
+ useEffect(()=>{
+  let active=true;
+  fetch("/api/references/ai",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(active)setAiPaidEnabled(d?.enabled===true)}).catch(()=>{});
+  return()=>{active=false};
+ },[]);
 
  const [externalWorks,setExternalWorks]=useState<ExternalWork[]>([]);
  const [externalLoading,setExternalLoading]=useState(false);
@@ -226,8 +232,8 @@ export default function ReferencesPage(){
     <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Explora obras reales de colecciones abiertas. Es una búsqueda cultural, todavía no el feed personalizado que estamos preparando.</p></div>
 
     <div className="rl-ai-discovery">
-      <div className="rl-ai-discovery-heading"><div><Sparkles size={17}/><strong>Explora con IA</strong><p>Propone rutas nuevas inspiradas en tu archivo. Las obras que encuentres después proceden de un museo real.</p></div>
-      <button type="button" disabled={aiDiscoveryBusy} onClick={exploreAI}>{aiDiscoveryBusy?<Loader2 size={15} className="rl-rotate"/>:<WandSparkles size={15}/>} {aiDiscoveryBusy?"Pensando...":"Sugerirme rutas"}</button></div>
+      <div className="rl-ai-discovery-heading"><div><Sparkles size={17}/><strong>Explora con IA</strong><p>{aiPaidEnabled?"Propone rutas nuevas inspiradas en tu archivo. Las obras encontradas proceden de museos reales.":"IA de pago en pausa para evitar cargos. Sigue disponible la búsqueda gratuita en museos."}</p></div>
+      <button type="button" disabled={aiDiscoveryBusy||!aiPaidEnabled} onClick={exploreAI}>{aiDiscoveryBusy?<Loader2 size={15} className="rl-rotate"/>:<WandSparkles size={15}/>} {!aiPaidEnabled?"IA en pausa":aiDiscoveryBusy?"Pensando...":"Sugerirme rutas"}</button></div>
       {aiDiscoveryError&&<p className="rl-ai-discovery-error">{aiDiscoveryError}</p>}
       {aiDirections.length>0&&<div className="rl-ai-directions">{aiDirections.map((d,i)=><button key={i} onClick={()=>setExternalTerm(d.query)}><span>{d.title}</span><p>{d.reason}</p><small>Buscar: {d.query} ↗</small></button>)}</div>}
     </div>
