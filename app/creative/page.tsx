@@ -129,6 +129,7 @@ export default function CreativeLab(){
  const liveMouse=useRef<{x:number|null;y:number|null}>({x:null,y:null});
  const shareToken=share?.enabled?share.token:null;
  const [saved,setSaved]=useState(true);
+ const [librarySaved,setLibrarySaved]=useState("");
  const [selected,setSelected]=useState<string|null>(null);
  const [selectedIds,setSelectedIds]=useState<string[]>([]);
  const [tool,setTool]=useState<"hand"|"select">("hand");
@@ -232,6 +233,18 @@ export default function CreativeLab(){
   if(!board||!window.confirm("¿Eliminar este mapa y todas sus ideas?"))return;
   const r=await fetch("/api/creative?id="+board.id,{method:"DELETE"});if(!r.ok){setError("No se pudo eliminar");return}
   const rest=boards.filter(b=>b.id!==board.id);setBoards(rest);setActiveId(rest[0]?.id||null);setSelected(null);setSelectedIds([]);
+ };
+ const saveNodeToLibrary=async(node:Node)=>{
+  if(!node.url||!node.url.startsWith("https://"))return;
+  setLibrarySaved("Guardando...");
+  try{
+   let preview:{image?:string;site?:string;kind?:string}|null=null;
+   try{const r=await fetch("/api/references/preview?url="+encodeURIComponent(node.url));if(r.ok)preview=(await r.json()).preview||null}catch{}
+   if(!preview?.image){try{const r=await fetch("/api/creative/preview?url="+encodeURIComponent(node.url));if(r.ok)preview=(await r.json()).preview||preview}catch{}}
+   const r=await fetch("/api/references",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:node.url,title:node.title,notes:node.body,project_id:board?.project_id||null,kind:preview?.kind,image_url:preview?.image,site:preview?.site})});
+   if(!r.ok)throw Error((await r.json()).error||"No se pudo guardar");
+   setLibrarySaved("Guardada en Reference Lib");
+  }catch(e){setLibrarySaved(e instanceof Error?e.message:"Error al guardar")}
  };
  const addNode=(kind:Kind)=>{
   if(!board)return;
@@ -636,6 +649,8 @@ export default function CreativeLab(){
      <label className="cl-label">Racional / desarrollo</label><textarea className="cl-field" value={selectedNode.body} onChange={e=>nodeChange("body",e.target.value)} placeholder="Escribe tu argumento, hipótesis o desarrollo creativo..."/>
      <label className="cl-label">Enlace de referencia</label><input className="cl-field" value={selectedNode.url||""} onChange={e=>nodeChange("url",e.target.value)} placeholder="https://..."/>
      {selectedNode.url&&/^https?:\/\//i.test(selectedNode.url)&&<a href={selectedNode.url} target="_blank" rel="noopener noreferrer" style={{display:"block",fontSize:12,marginTop:9}}>Abrir referencia ↗</a>}
+     {selectedNode.url?.startsWith("https://")&&<button className="cl-button" style={{width:"100%",justifyContent:"center",marginTop:13}} onClick={()=>saveNodeToLibrary(selectedNode)}><Plus/> Guardar en Reference Lib</button>}
+     {librarySaved&&<small style={{display:"block",color:"#66765b",marginTop:8}}>{librarySaved}</small>}
      <button className="cl-button dark" style={{width:"100%",justifyContent:"center",marginTop:30}} onClick={()=>{setConnecting(selectedNode.id);setSourcePort("right");setSelected(null)}}><Link2/> Conectar con otra idea <ArrowRight/></button>
      <button className="cl-button" style={{width:"100%",justifyContent:"center",marginTop:12}} onClick={deleteNode}><Trash2/> Eliminar tarjeta</button>
     </>:selectedEdge?<><div className="cl-small">Conexión</div><h2>Relación entre ideas</h2><label className="cl-label">Qué significa esta conexión</label><input className="cl-field" value={selectedEdge.label} onChange={e=>update(b=>({...b,edges:b.edges.map(x=>x.id===selectedEdge.id?{...x,label:e.target.value}:x)}))}/>
