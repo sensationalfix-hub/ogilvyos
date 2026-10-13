@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { OSDock } from "@/components/os/os-dock";
 
 export const metadata: Metadata = {
   title: "Home · Work, Life y Creative Lab",
@@ -21,5 +22,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es"><body>{children}</body></html>;
+  return <html lang="es"><body>{children}<OSDock /></body></html>;
 }
