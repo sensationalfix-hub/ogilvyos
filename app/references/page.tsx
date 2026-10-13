@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BookmarkPlus, Check, ChevronDown, Compass, ExternalLink, Film, FolderOpen, GitBranch, Grid2X2, Image as ImageIcon, Layers2, LibraryBig, Link2, Loader2, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, WandSparkles, X } from "lucide-react";
 import { ReferenceCapture } from "@/components/os/reference-capture";
 import { ReferenceIntelligence } from "@/components/os/reference-intelligence";
+import { LocalDiscovery } from "@/components/os/reference-local-discovery";
 import "@/components/os/reference-intelligence.css";
 import "./references.css";
 
@@ -120,16 +121,6 @@ export default function ReferencesPage(){
  const [editTitle,setEditTitle]=useState("");const [editNotes,setEditNotes]=useState("");const [editCollection,setEditCollection]=useState("");
  const [connectTo,setConnectTo]=useState("");const [connectionLabel,setConnectionLabel]=useState("inspira");
  const [externalTerm,setExternalTerm]=useState("");
- const [aiDirections,setAiDirections]=useState<{title:string;reason:string;query:string}[]>([]);
- const [aiDiscoveryBusy,setAiDiscoveryBusy]=useState(false);
- const [aiDiscoveryError,setAiDiscoveryError]=useState("");
- const [aiPaidEnabled,setAiPaidEnabled]=useState(false);
- useEffect(()=>{
-  let active=true;
-  fetch("/api/references/ai",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(active)setAiPaidEnabled(d?.enabled===true)}).catch(()=>{});
-  return()=>{active=false};
- },[]);
-
  const [externalWorks,setExternalWorks]=useState<ExternalWork[]>([]);
  const [externalLoading,setExternalLoading]=useState(false);
  const [externalError,setExternalError]=useState("");
@@ -184,11 +175,6 @@ export default function ReferencesPage(){
  await load();setImportStatus(count?count+" referencias importadas desde Creative Lab.":nodes.length?"Algunas referencias no pudieron importarse.":"No hay referencias nuevas con enlace en tus mapas.");
  }catch(e){setImportStatus(e instanceof Error?e.message:"Error al importar")}finally{setBusy(false)}};
 
- const exploreAI=async()=>{setAiDiscoveryBusy(true);setAiDiscoveryError("");
-  try{const r=await fetch("/api/references/ai/explore",{method:"POST"});const d=await r.json();if(!r.ok)throw Error(d.error||"No se pudo explorar");
-   setAiDirections(d.directions||[]);
-  }catch(e){setAiDiscoveryError(e instanceof Error?e.message:"Error de IA")}finally{setAiDiscoveryBusy(false)}
- };
  const searchWord=externalTerm.trim()||(selected?[selected.title,...selected.auto_tags.slice(0,2)].join(" "):query.trim())||"creative art direction";
  const external=[{label:"YouTube",sub:"Spots y piezas audiovisuales",href:"https://www.youtube.com/results?search_query="+encodeURIComponent(searchWord)},{label:"Vimeo",sub:"Cine y dirección creativa",href:"https://vimeo.com/search?q="+encodeURIComponent(searchWord)},{label:"Behance",sub:"Diseño y proyectos visuales",href:"https://www.behance.net/search/projects?search="+encodeURIComponent(searchWord)},{label:"Google Arts & Culture",sub:"Arte y cultura",href:"https://artsandculture.google.com/search?q="+encodeURIComponent(searchWord)}];
  return <main className="rl-shell">
@@ -231,12 +217,7 @@ export default function ReferencesPage(){
    {tab==="discover"&&<div className="rl-discover-view">
     <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Explora obras reales de colecciones abiertas. Es una búsqueda cultural, todavía no el feed personalizado que estamos preparando.</p></div>
 
-    <div className="rl-ai-discovery">
-      <div className="rl-ai-discovery-heading"><div><Sparkles size={17}/><strong>Explora con IA</strong><p>{aiPaidEnabled?"Propone rutas nuevas inspiradas en tu archivo. Las obras encontradas proceden de museos reales.":"IA de pago en pausa para evitar cargos. Sigue disponible la búsqueda gratuita en museos."}</p></div>
-      <button type="button" disabled={aiDiscoveryBusy||!aiPaidEnabled} onClick={exploreAI}>{aiDiscoveryBusy?<Loader2 size={15} className="rl-rotate"/>:<WandSparkles size={15}/>} {!aiPaidEnabled?"IA en pausa":aiDiscoveryBusy?"Pensando...":"Sugerirme rutas"}</button></div>
-      {aiDiscoveryError&&<p className="rl-ai-discovery-error">{aiDiscoveryError}</p>}
-      {aiDirections.length>0&&<div className="rl-ai-directions">{aiDirections.map((d,i)=><button key={i} onClick={()=>setExternalTerm(d.query)}><span>{d.title}</span><p>{d.reason}</p><small>Buscar: {d.query} ↗</small></button>)}</div>}
-    </div>
+    <LocalDiscovery items={data.items} onSelect={setExternalTerm}/>
     <label className="rl-discover-search"><Search size={19}/><input placeholder="Ej. ambición mitológica, western urbano, collage surrealista..." value={externalTerm} onChange={e=>setExternalTerm(e.target.value)}/></label>
     <div className="rl-section-line"><span>EXPLORACIÓN CULTURAL · CLEVELAND MUSEUM OF ART</span><span>{externalLoading?"Buscando...":externalWorks.length+" hallazgos"}</span></div>
     {externalError&&<p className="rl-import-status">{externalError}</p>}
