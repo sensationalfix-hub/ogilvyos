@@ -30,7 +30,7 @@ export async function GET(request:Request){
  lifeSelect<Insight>(user.accessToken,"reference_ai_insights","select=reference_id,themes,visual_language,narrative,creative_mechanism,summary,analyzed_at&limit=500"),
  lifeSelect<Suggestion>(user.accessToken,"reference_ai_suggestions","select=id,source_id,target_id,relation,explanation,status,distance&limit=1000")
  ]);
- return NextResponse.json({insights,suggestions});
+ return NextResponse.json({insights,suggestions,enabled:process.env.REFERENCE_AI_PAID_CALLS_ALLOWED==="YES_I_ACCEPT_CHARGES"});
  }catch(e){return message(String(e),500)}
 }
 export async function PATCH(request:Request){
