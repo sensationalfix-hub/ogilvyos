@@ -146,6 +146,7 @@ export default function HomePage() {
     { id: "work" as const, title: "Work", detail: "Proyectos y operaciones", href: "/work", tone: styles.tileWork },
     { id: "life" as const, title: "Life", detail: "Tu espacio personal", href: "/life", tone: styles.tileLife },
     { id: "creative" as const, title: "Creative Lab", detail: "Ideas conectadas", href: "/creative", tone: styles.tileCreative },
+    { id: "library" as const, title: "Reference Lib", detail: "Referencias y descubrimiento", href: "/references", tone: styles.tileLibrary },
   ];
 
   return (
@@ -200,7 +201,7 @@ export default function HomePage() {
               <p className={styles.sectionKicker}>UN ECOSISTEMA, VARIAS HERRAMIENTAS</p>
               <h2 id="apps-title" className={styles.sectionTitle}>Tus aplicaciones.</h2>
             </div>
-            <span className={styles.sectionMeta}>03 ACTIVAS · 01 EN CAMINO</span>
+            <span className={styles.sectionMeta}>04 APLICACIONES ACTIVAS</span>
           </div>
           <nav className={styles.appDock} aria-label="Abrir aplicaciones">
             {apps.map(app => (
@@ -211,13 +212,7 @@ export default function HomePage() {
                 <span className={styles.dockName}>{app.title}</span>
               </a>
             ))}
-            <div className={styles.dockApp + " " + styles.dockDisabled} title="Biblioteca de referencias, próximamente">
-              <span className={styles.dockIcon + " " + styles.tileLibrary}>
-                <span className={styles.dockIconGlyph}><AppIcon app="library"/></span>
-              </span>
-              <span className={styles.dockName}>Biblioteca</span>
-              <span className={styles.dockSoon}>Próximamente</span>
-            </div>
+            
           </nav>
         </section>
 
