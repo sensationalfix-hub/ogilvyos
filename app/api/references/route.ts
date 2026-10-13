@@ -28,6 +28,11 @@ export async function POST(request:Request){const session=await lifeSession(requ
  const url=safeExternal(b.url);const mediaPath=trim(b.media_path,300);
  if(!url&&!mediaPath)return reply("Introduce una URL https o sube una imagen.",400);
  if(mediaPath&&!mediaPath.startsWith(session.userId+"/"))return reply("Archivo no autorizado.",403);
+ if(url){
+  const q=new URLSearchParams({select:"id,title,url,image_url,media_path,kind,site,notes,auto_tags,collection_id,project_id,created_at",url:"eq."+url,limit:"1"});
+  const existing=await lifeSelect<RefItem>(session.accessToken,"reference_items",q.toString());
+  if(existing[0])return NextResponse.json({item:existing[0],duplicate:true});
+ }
  const collectionId=uuid(b.collection_id)?b.collection_id:null;
  const title=trim(b.title,180)||(url?new URL(url).hostname.replace(/^www\./,""):"Imagen sin título");
  const note=trim(b.notes,4000);
