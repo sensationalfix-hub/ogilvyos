@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BookmarkPlus, Check, ChevronDown, Compass, ExternalLink, Film, FolderOpen, GitBranch, Grid2X2, Image as ImageIcon, Layers2, LibraryBig, Link2, Loader2, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, WandSparkles, X } from "lucide-react";
 import { ReferenceCapture } from "@/components/os/reference-capture";
@@ -58,11 +58,49 @@ function ItemMedia({item}:{item:Item}){
   return()=>{live=false};
  },[item.id,item.url,item.image_url,item.site,item.kind,initial,fileVideo]);
  const src=broken?null:(initial||rich?.image||null);
- if(fileVideo&&item.url)return <div className="rl-media rl-media-video"><video key={item.url} src={item.url+"#t=0.2"} preload="metadata" playsInline muted onLoadedMetadata={e=>{const video=e.currentTarget;if(video.duration>0.3){try{video.currentTime=.2}catch{}}}} onError={()=>setBroken(true)}/><span className="rl-media-play"><Film size={19}/></span></div>;
+ if(fileVideo&&item.url)return <div className="rl-media rl-media-video"><video key={item.url} src={item.url+"#t=3"} preload="metadata" playsInline muted onLoadedMetadata={e=>{const video=e.currentTarget;if(video.duration>1){try{video.currentTime=Math.min(4,video.duration*.12)}catch{}}}} onError={()=>setBroken(true)}/><span className="rl-media-play"><Film size={19}/></span></div>;
  if(src)return <img className="rl-img" src={src} alt={item.title} loading="lazy" decoding="async" onError={()=>setBroken(true)}/>;
  return <div className={"rl-art rl-art-"+item.kind}><span>{item.kind==="video"?<Film size={29}/>:item.kind==="audio"?<Layers2 size={30}/>:item.kind==="image"?<ImageIcon size={30}/>:<Link2 size={29}/>}</span><small>{item.site||"REFERENCE"}</small></div>;
 }
 function domain(url:string|null){try{return url?new URL(url).hostname.replace(/^www\./,""):"Archivo"}catch{return "Referencia"}}
+function MasonryGallery({items,onOpen}:{items:Item[];onOpen:(id:string)=>void}){
+ const containerRef=useRef<HTMLDivElement>(null);
+ const [columns,setColumns]=useState(5);
+ useEffect(()=>{
+  const el=containerRef.current;
+  if(!el)return;
+  const calculate=(width:number)=>{
+   const count=width<440?1:width<640?2:width<860?3:width<1080?4:5;
+   setColumns(current=>current===count?current:count);
+  };
+  calculate(el.getBoundingClientRect().width);
+  const observer=new ResizeObserver(entries=>{if(entries[0])calculate(entries[0].contentRect.width)});
+  observer.observe(el);
+  return()=>observer.disconnect();
+ },[]);
+ const groups=useMemo(()=>{
+  const buckets:Item[][]=Array.from({length:columns},()=>[]);
+  const weight=Array(columns).fill(0) as number[];
+  for(const item of items){
+   const next=weight.indexOf(Math.min(...weight));
+   buckets[next].push(item);
+   // Estimate heights before imagery loads. Each column remains independently stacked.
+   const likelyRatio=item.kind==="video"?0.66:item.kind==="image"?1.25:item.kind==="audio"?0.92:1.05;
+   weight[next]+=likelyRatio+0.29;
+  }
+  return buckets;
+ },[items,columns]);
+ return <div className="rl-masonry" ref={containerRef} style={{gridTemplateColumns:`repeat(${columns},minmax(0,1fr))`}}>
+  {groups.map((group,index)=><div className="rl-masonry-column" key={index}>
+   {group.map(item=><button key={item.id} className="rl-card" type="button" onClick={()=>onOpen(item.id)}>
+    <ItemMedia item={item}/>
+    <span className="rl-card-caption"><strong>{item.title}</strong><small>{item.site||domain(item.url)}</small></span>
+    <span className="rl-card-action"><ArrowUpRight size={16}/></span>
+    {item.kind==="video"&&<span className="rl-type"><Film size={12}/> Vídeo</span>}
+   </button>)}
+  </div>)}
+ </div>;
+}
 export default function ReferencesPage(){
  const [data,setData]=useState<Data>({items:[],collections:[],connections:[]});
  const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [busy,setBusy]=useState(false);
@@ -151,7 +189,7 @@ export default function ReferencesPage(){
    {error&&<div className="rl-error" role="alert">{error}<button onClick={()=>setError("")}>×</button></div>}
    {tab==="all"&&<div className="rl-gallery-view">
     <div className="rl-section-line"><span>{filter==="all"?"TODAS LAS REFERENCIAS":filter==="unfiled"?"SIN CLASIFICAR":data.collections.find(x=>x.id===filter)?.name?.toUpperCase()||"COLECCIÓN"}</span><span>{filtered.length} elementos</span></div>
-    {loading?<div className="rl-loading"><Loader2 size={22} className="rl-rotate"/> Abriendo tu biblioteca...</div>:filtered.length?<div className="rl-masonry">{filtered.map(item=><button key={item.id} className="rl-card" onClick={()=>setActiveId(item.id)}><ItemMedia item={item}/><span className="rl-card-caption"><strong>{item.title}</strong><small>{item.site||domain(item.url)}</small></span><span className="rl-card-action"><ArrowUpRight size={16}/></span>{item.kind==="video"&&<span className="rl-type"><Film size={12}/> Vídeo</span>}</button>)}</div>:
+    {loading?<div className="rl-loading"><Loader2 size={22} className="rl-rotate"/> Abriendo tu biblioteca...</div>:filtered.length?<MasonryGallery items={filtered} onOpen={setActiveId}/>:
     <div className="rl-empty"><div className="rl-empty-art"><LibraryBig size={43}/><i/><i/><i/></div><h2>{data.items.length?"Aquí todavía no hay referencias.":"Toda gran colección empieza por una obsesión."}</h2><p>{data.items.length?"Prueba otro filtro o crea una colección.":"Guarda enlaces e imágenes, o trae las referencias que ya utilizas en Creative Lab."}</p><div className="rl-empty-actions"><button onClick={()=>setCapture(true)}><Plus size={15}/> Añadir referencia</button><button className="secondary" onClick={importCreative} disabled={busy}><Upload size={15}/> Importar de Creative Lab</button></div></div>}
     {data.items.length>0&&<div className="rl-import-footer"><button disabled={busy} onClick={importCreative}><Upload size={15}/> Importar referencias de Creative Lab</button>{importStatus&&<span>{importStatus}</span>}</div>}
     {data.items.length===0&&importStatus&&<p className="rl-import-status">{importStatus}</p>}
