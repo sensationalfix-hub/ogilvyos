@@ -19,12 +19,12 @@ const previewRequests=new Map<string,Promise<Preview|null>>();
 function directMedia(url:string|null):{src:string;videoFile:boolean}|null{
  if(!url)return null;
  try{
-  const u=new URL(url),host=u.hostname.toLowerCase().replace(/^www\\./,"");
+  const u=new URL(url),host=u.hostname.toLowerCase().replace(/^www\./,"");
   if(u.protocol!=="https:")return null;
-  const id=host==="youtu.be"?u.pathname.split("/")[1]:["youtube.com","m.youtube.com","music.youtube.com","youtube-nocookie.com"].includes(host)?u.searchParams.get("v")||u.pathname.match(/^\\/(?:shorts|embed|live)\\/([^/]+)/)?.[1]:null;
+  const id=host==="youtu.be"?u.pathname.split("/")[1]:["youtube.com","m.youtube.com","music.youtube.com","youtube-nocookie.com"].includes(host)?u.searchParams.get("v")||u.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1]:null;
   if(id&&/^[A-Za-z0-9_-]{11}$/.test(id))return {src:"https://img.youtube.com/vi/"+id+"/hqdefault.jpg",videoFile:false};
-  if(/\\.(?:png|jpe?g|webp|gif|avif)$/i.test(u.pathname))return {src:u.href,videoFile:false};
-  if(/\\.(?:mp4|webm|m4v)$/i.test(u.pathname))return {src:u.href,videoFile:true};
+  if(/\.(?:png|jpe?g|webp|gif|avif)$/i.test(u.pathname))return {src:u.href,videoFile:false};
+  if(/\.(?:mp4|webm|m4v)$/i.test(u.pathname))return {src:u.href,videoFile:true};
  }catch{}
  return null;
 }
