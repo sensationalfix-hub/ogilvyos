@@ -240,7 +240,7 @@ export default function ReferencesPage(){
     <button className="rl-save" disabled={busy||!editTitle.trim()} onClick={updateSelected}><Check size={16}/> Guardar cambios</button>
     {selected.url&&<a className="rl-external-link" href={selected.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> Abrir fuente original</a>}
     <Link className="rl-lab-link" href={"/creative?reference="+encodeURIComponent(selected.id)}><GitBranch size={16}/> Enviar a Creative Lab <ArrowUpRight size={15}/></Link>
-    <ReferenceIntelligence referenceId={selected.id} items={data.items} onUpdate={load}/>
+    <ReferenceIntelligence key={selected.id} referenceId={selected.id} items={data.items} onUpdate={load}/>
     <div className="rl-divider"/>
     <div className="rl-relationship-title"><strong>Conexiones</strong><span>{relations.length} guardadas</span></div>
     {relations.map(c=>{const other=data.items.find(x=>x.id===(c.source_id===selected.id?c.target_id:c.source_id));return other?<div key={c.id} className="rl-related"><div className="rl-related-thumb"><ItemMedia item={other}/></div><button className="rl-related-copy" onClick={()=>setActiveId(other.id)}><strong>{other.title}</strong><span>{c.relation}</span></button><button title="Eliminar conexión" onClick={()=>disconnect(c.id)}><X size={14}/></button></div>:null})}
