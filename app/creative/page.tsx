@@ -539,6 +539,19 @@ export default function CreativeLab(){
   .cl-workspace.cl-select-tool .cl-port{opacity:0}
   .cl-workspace.cl-select-tool .cl-card:hover .cl-port{opacity:1}
   @media(max-width:700px){.cl-footer{left:10px;bottom:10px}.cl-select-count{display:none}}
+
+  /* Floating board controls: the workspace now uses the full viewport height. */
+  .cl-root{position:relative}
+  .cl-top{position:absolute;left:252px;right:20px;top:15px;height:auto;min-height:46px;z-index:90;display:flex;align-items:center;gap:10px;padding:0;background:transparent!important;border:0;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none}
+  .cl-top>*{pointer-events:auto}
+  .cl-top>a:first-child,.cl-top>.cl-brand-logo{display:none}
+  .cl-top .cl-title{width:clamp(135px,21vw,280px);min-width:0;min-height:43px;padding:9px 15px;background:rgba(255,255,253,.94);border:1px solid #dedfd7;border-radius:12px;font-size:16px;box-shadow:0 5px 20px #00000013;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+  .cl-top .cl-button{min-height:43px;box-shadow:0 5px 20px #00000013;background:rgba(255,255,253,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+  .cl-top .cl-button.dark{background:#20211f}
+  .cl-top .cl-state{background:rgba(255,255,253,.92);min-height:39px;padding:0 10px;border-radius:10px;white-space:nowrap;box-shadow:0 5px 20px #0000000b}
+  .cl-top .cl-grow{pointer-events:none}
+  @media(max-width:1050px){.cl-top{left:182px;right:12px;gap:7px}.cl-top .cl-title{width:160px}}
+  @media(max-width:700px){.cl-top{left:10px;right:10px;top:9px;gap:6px;flex-wrap:wrap;justify-content:flex-start}.cl-top .cl-title{width:120px;font-size:13px}.cl-top .cl-button{min-height:37px;padding:8px!important}.cl-top .cl-grow{flex:1 1 0}.cl-inspector{top:0}}
   `}</style>
   <header className="cl-top">
    <a href="/" className="cl-button" title="Volver a Home"><ArrowLeft/></a>
