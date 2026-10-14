@@ -18,7 +18,7 @@ type Data={items:Item[];collections:Collection[];connections:Connection[]};
 type PageTab="all"|"connections"|"discover";
 type ExternalWork={id:number;title:string;artist:string;date:string;image:string;url:string;site:string;kind:string};
 const stop=new Set(["para","sobre","desde","hasta","unas","unos","esta","este","entre","tiene","pero","that","with","from","some","this","your","https","www","com","video","image","the","and"]);
-function words(r:Item){const text=[r.title,r.notes,...r.auto_tags].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return Array.from(new Set((text.match(/[a-z]{5,}/g)||[]).filter(t=>!stop.has(t))));}
+function words(r:Item){const text=[r.title,r.notes,...r.auto_tags.filter(tag=>!tag.startsWith("visual:"))].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return Array.from(new Set((text.match(/[a-z]{5,}/g)||[]).filter(t=>!stop.has(t))));}
 function similar(ref:Item,items:Item[]){const a=words(ref);return items.filter(x=>x.id!==ref.id).map(item=>{const b=words(item);const overlap=a.filter(w=>b.includes(w));return {item,overlap,score:overlap.length}}).filter(x=>x.score>0).sort((x,y)=>y.score-x.score).slice(0,6)}
 type Preview={image?:string;title?:string;site?:string;kind?:string};
 const previewRequests=new Map<string,Promise<Preview|null>>();
