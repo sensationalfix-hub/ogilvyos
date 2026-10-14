@@ -106,7 +106,7 @@ export function LibraryPicker({open,onClose,onAdd,existingIds,existingLinks,capa
    </div>
    <div className="cl-lib-results" aria-live="polite">
     {loading?<div className="cl-lib-empty"><Loader2 className="cl-lib-spinner" size={25}/> Cargando tu biblioteca…</div>:
-     error?<div className="cl-lib-empty cl-lib-error"><span>{error}</span><button type="button" onClick={()=>{onClose();window.setTimeout(()=>onClose(),0)}}>Cerrar</button></div>:
+     error?<div className="cl-lib-empty cl-lib-error"><span>{error}</span><button type="button" onClick={onClose}>Cerrar</button></div>:
      filtered.length===0?<div className="cl-lib-empty"><LibraryBig size={28}/>{data.items.length?"No hay referencias para esta búsqueda.":"Todavía no tienes referencias guardadas en Library."}</div>:
      <div className="cl-lib-grid">
       {filtered.map(item=>{
