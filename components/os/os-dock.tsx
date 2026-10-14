@@ -26,7 +26,10 @@ export function OSDock() {
     <span className="os-dock-app-icon"><Icon size={21} strokeWidth={1.9}/></span>
     <span className="os-dock-app-name">{label}</span>
    </Link>)}
-   <button className="os-dock-add" title="Guardar referencia desde cualquier app" aria-label="Guardar referencia" onClick={()=>{setOpen(false);setCapture(true)}}><Plus size={21}/><span>Guardar</span></button>
+   <button type="button" className="os-dock-app os-dock-add" title="Guardar referencia desde cualquier app" aria-label="Guardar referencia" onClick={()=>{setOpen(false);setCapture(true)}}>
+    <span className="os-dock-app-icon"><Plus size={21} strokeWidth={1.9}/></span>
+    <span className="os-dock-app-name">Guardar</span>
+   </button>
   </div>}
   <button className="os-dock-toggle" type="button" aria-label={open?"Cerrar Dock":"Abrir Dock"} aria-expanded={open} aria-controls={open?"os-dock-apps":undefined} onClick={()=>setOpen(v=>!v)}>
    {open?<X size={19}/>:<LayoutGrid size={19}/>}<span>Dock</span>
