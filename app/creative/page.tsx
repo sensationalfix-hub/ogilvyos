@@ -695,10 +695,10 @@ export default function CreativeLab(){
      <button className="cl-button" onClick={()=>{update(b=>({...b,edges:b.edges.filter(x=>x.id!==selectedEdge.id)}));setEdgeSelected(null)}} style={{marginTop:20}}><Trash2/> Eliminar conexión</button></>:null}
    </aside>}
    {connecting&&<div style={{position:"absolute",bottom:20,right:25,background:"#222",color:"white",padding:16,borderRadius:12,zIndex:30,fontSize:13}}>Selecciona la tarjeta de destino <button onClick={()=>setConnecting(null)} style={{marginLeft:20,color:"white",background:"none",border:"none",cursor:"pointer"}}>Cancelar</button></div>}
-   <LibraryPicker open={libraryPickerOpen&&Boolean(board)&&!showBoards} onClose={()=>setLibraryPickerOpen(false)} onAdd={addReferencesFromLibrary}
-    existingIds={(board?.nodes||[]).map(node=>node.library_ref_id||"").filter(Boolean)}
-    existingLinks={(board?.nodes||[]).flatMap(node=>[node.url||"",node.media_path||""]).filter(Boolean)}
-    capacity={Math.max(0,400-(board?.nodes.length||0))}/>
   </div>
+  <LibraryPicker open={libraryPickerOpen&&Boolean(board)&&!showBoards} onClose={()=>setLibraryPickerOpen(false)} onAdd={addReferencesFromLibrary}
+   existingIds={(board?.nodes||[]).map(node=>node.library_ref_id||"").filter(Boolean)}
+   existingLinks={(board?.nodes||[]).flatMap(node=>[node.url||"",node.media_path||""]).filter(Boolean)}
+   capacity={Math.max(0,400-(board?.nodes.length||0))}/>
  </div>;
 }
