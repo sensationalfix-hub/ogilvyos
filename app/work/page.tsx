@@ -3669,23 +3669,43 @@ export default function WorkPage() {
             <header className={`employee-cockpit-header${employeeEditing ? " is-editing" : ""}`}>
               <div className={`employee-cockpit-avatar avatar-${selectedPerson.tone}`}><span>{selectedPerson.initials}</span></div>
               <div className="employee-cockpit-identity">
-                <span className="employee-cockpit-kicker">FICHA DE EMPLEADO</span>
-                <DialogTitle>{selectedPerson.name}</DialogTitle>
-                <DialogDescription>{selectedPerson.role} · {selectedPerson.assignment}</DialogDescription>
+                <div className="employee-identity-eyebrow">
+                  <span className="employee-cockpit-kicker">FICHA DE EMPLEADO</span>
+                  <button type="button" className={`employee-edit-trigger${employeeEditing ? " active" : ""}`} onClick={() => employeeEditing ? cancelEmployeeEdit() : startEmployeeEdit()}><Pencil size={12}/>{employeeEditing ? "Cerrar edición" : "Editar ficha"}</button>
+                </div>
+                <DialogTitle>{employeeEditing && employeeDraft
+                  ? <input className="employee-inline-name" aria-label="Nombre" value={employeeDraft.name} onChange={event => setEmployeeDraft(d => d && ({...d,name:event.target.value}))}/>
+                  : selectedPerson.name}</DialogTitle>
+                <DialogDescription>{employeeEditing && employeeDraft
+                  ? <span className="employee-inline-role">
+                      <select aria-label="Rol" value={employeeDraft.role} onChange={event => setEmployeeDraft(d => d && ({...d,role:event.target.value}))}>
+                        {Array.from(new Set([...((liveSchema?.team.role || []).map(item => item.name)),employeeDraft.role])).filter(Boolean).map(role => <option key={role} value={role}>{role}</option>)}
+                      </select>
+                      <select aria-label="Asignación" value={employeeDraft.assignment} onChange={event => setEmployeeDraft(d => d && ({...d,assignment:event.target.value}))}>
+                        {Array.from(new Set([...((liveSchema?.team.assignment || []).map(item => item.name)),employeeDraft.assignment])).filter(Boolean).map(value => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </span>
+                  : selectedPerson.role + " · " + selectedPerson.assignment}</DialogDescription>
                 <div className="employee-cockpit-project-chips">
                   {selectedPerson.activeProjectNames.slice(0,4).map((project)=><span key={project}>{project}</span>)}
                   {selectedPerson.activeProjectNames.length>4&&<span>+{selectedPerson.activeProjectNames.length-4}</span>}
                 </div>
                 <div className="employee-cockpit-meta">
-                  <span>Incorporación · {shortDate(selectedPerson.joined)}</span>
+                  <span>Incorporación · {employeeEditing && employeeDraft
+                    ? <input className="employee-inline-date" type="date" aria-label="Fecha de incorporación" value={employeeDraft.joined.slice(0,10)} onChange={event => setEmployeeDraft(d => d && ({...d,joined:event.target.value}))}/>
+                    : <button className="employee-inline-trigger" type="button" title="Editar incorporación" onClick={startEmployeeEdit}>{shortDate(selectedPerson.joined)}</button>}</span>
                   <span>{selectedPerson.activeProjects} proyectos activos</span>
                   <span>{selectedPerson.evaluations} evaluaciones</span>
                 </div>
               </div>
               <div className="employee-cockpit-contact">
-                <div><Mail/><span><small>Email</small><b>{selectedPerson.email || "Sin email"}</b></span></div>
-                <div><Banknote/><span><small>Sueldo</small><b>{currencyEUR(selectedPerson.salary)}{selectedPerson.salary != null ? " / año" : ""}</b></span></div>
-                <div><Palmtree/><span><small>Vacaciones restantes</small><b>{selectedPerson.vacationRemaining != null ? `${selectedPerson.vacationRemaining} días` : "—"}</b></span></div>
+                <div><Mail/><span><small>Email</small>{employeeEditing && employeeDraft
+                  ? <input type="email" className="employee-inline-contact-input" value={employeeDraft.email} placeholder="Sin email" aria-label="Email" onChange={event => setEmployeeDraft(d => d && ({...d,email:event.target.value}))}/>
+                  : <button type="button" className="employee-inline-trigger" title="Editar email" onClick={startEmployeeEdit}>{selectedPerson.email || "Sin email"}</button>}</span></div>
+                <div><Banknote/><span><small>Sueldo</small>{employeeEditing && employeeDraft
+                  ? <input type="number" min="0" step="0.01" className="employee-inline-contact-input" value={employeeDraft.salary} placeholder="Sin configurar" aria-label="Sueldo anual" onChange={event => setEmployeeDraft(d => d && ({...d,salary:event.target.value}))}/>
+                  : <button type="button" className="employee-inline-trigger" title="Editar sueldo" onClick={startEmployeeEdit}>{currencyEUR(selectedPerson.salary)}{selectedPerson.salary != null ? " / año" : ""}</button>}</span></div>
+                <div title="Dato calculado en Notion"><Palmtree/><span><small>Vacaciones restantes</small><b>{selectedPerson.vacationRemaining != null ? `${selectedPerson.vacationRemaining} días` : "—"}</b></span></div>
               </div>
               <div className="employee-cockpit-status">
                 <div style={{"--index-color":ratioColor(performance.ratio)} as React.CSSProperties}>
@@ -3696,6 +3716,23 @@ export default function WorkPage() {
                 <div><strong>{selectedPerson.load}%</strong><span>carga actual</span></div>
               </div>
             </header>
+            {employeeEditing && employeeDraft && <EmployeeProfileEditor
+              person={selectedPerson}
+              draft={employeeDraft}
+              options={{
+                role:(liveSchema?.team.role || []).map(item=>item.name),
+                assignment:(liveSchema?.team.assignment || []).map(item=>item.name),
+                contract:(liveSchema?.team.contract || []).map(item=>item.name),
+                tier:(liveSchema?.team.rating || []).map(item=>item.name),
+                skills:(liveSchema?.team.skills || []).map(item=>item.name),
+                growth:(liveSchema?.team.weaknesses || []).map(item=>item.name),
+              }}
+              onChange={partial => setEmployeeDraft(d => d && ({...d,...partial}))}
+              onSave={saveEmployeeEdit}
+              onCancel={cancelEmployeeEdit}
+              saving={employeeSaving}
+              changed={employeeEdited}
+            />}
 
             <section className="employee-cockpit-bento">
               <article className="employee-reading-card">
