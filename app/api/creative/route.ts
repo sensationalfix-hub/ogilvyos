@@ -40,9 +40,19 @@ export async function PATCH(request: Request) {
  }catch(e){return NextResponse.json({error:String(e)},{status:500});}
 }
 export async function DELETE(request:Request){
- const session=await lifeSession(request);if(!session)return NextResponse.json({error:"Sin autorización"},{status:401});
+ let session;
+ try{session=await lifeSession(request)}catch{return NextResponse.json({error:"No se pudo comprobar la sesión"},{status:503})}
+ if(!session)return NextResponse.json({error:"Sin autorización"},{status:401});
  const id=new URL(request.url).searchParams.get("id")||"";
- if(!/^[0-9a-f-]{36}$/i.test(id))return NextResponse.json({error:"ID incorrecto"},{status:400});
- const response=await fetch(SUPABASE_URL+"/rest/v1/creative_boards?id=eq."+encodeURIComponent(id),{method:"DELETE",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+session.accessToken},cache:"no-store"});
- return NextResponse.json({ok:response.ok},{status:response.ok?200:response.status});
+ if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id))return NextResponse.json({error:"ID incorrecto"},{status:400});
+ try{
+  const query=new URLSearchParams({id:"eq."+id,owner_id:"eq."+session.userId,select:"id"});
+  const response=await fetch(SUPABASE_URL+"/rest/v1/creative_boards?"+query.toString(),{
+   method:"DELETE",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+session.accessToken,Prefer:"return=representation"},cache:"no-store"
+  });
+  if(!response.ok)return NextResponse.json({error:"No se pudo eliminar el mapa: "+(await response.text()).slice(0,240)},{status:response.status});
+  const deleted=await response.json() as Array<{id:string}>;
+  if(!deleted.some(row=>row.id===id))return NextResponse.json({error:"Mapa no encontrado o sin permisos para eliminarlo."},{status:404});
+  return NextResponse.json({ok:true});
+ }catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Error al eliminar el mapa"},{status:500})}
 }
