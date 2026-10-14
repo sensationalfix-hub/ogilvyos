@@ -44,3 +44,9 @@
 .cl-lib-insert:disabled{opacity:.4;cursor:not-allowed}
 .cl-lib-insert:not(:disabled):hover{background:#34492c}
 @media(max-width:760px){.cl-lib-backdrop{padding:9px}.cl-lib-dialog{height:calc(100dvh - 18px);border-radius:18px}.cl-lib-head{padding:18px 18px 9px}.cl-lib-heading h2{font-size:23px}.cl-lib-tools{padding:11px 18px;flex-direction:column;align-items:stretch}.cl-lib-tools select{width:100%}.cl-lib-results{padding:13px 18px}.cl-lib-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cl-lib-cover{height:115px}.cl-lib-foot{padding:12px 18px}.cl-lib-foot button{padding:10px 11px}}
+
+.cl-sidebar-library{background:#ecf8d6!important;border:1px solid #cee5a8!important;color:#314722!important;margin:7px 0 0;border-radius:11px}
+.cl-sidebar-library:hover{background:#dafa9e!important}
+.cl-top .cl-from-library{white-space:nowrap;background:#f4f7ee;color:#35462d;border-color:#d5e4c4}
+.cl-top .cl-from-library:hover{background:#e4f7c4}
+@media(max-width:850px){.cl-top .cl-from-library{font-size:0;gap:0;padding:10px!important}.cl-top .cl-from-library svg{width:17px;height:17px}}
