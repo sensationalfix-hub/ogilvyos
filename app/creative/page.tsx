@@ -1,9 +1,11 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan, LibraryBig } from "lucide-react";
+import { LibraryPicker, type LibraryReference } from "@/components/creative/library-picker";
+import "./library-picker.css";
 
 type Kind="briefing"|"tension"|"insight"|"idea"|"camino"|"concepto"|"racional"|"draft"|"referencia"|"ejecucion";
-type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number};
+type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number;library_ref_id?:string;image_url?:string;media_path?:string;media_kind?:string};
 type Port="top"|"right"|"bottom"|"left";
 type Edge={id:string;source:string;target:string;label:string;sourcePort?:Port;targetPort?:Port};
 type ProjectOption={id:string;name:string;account?:string};
@@ -70,15 +72,17 @@ function DirectVideoPreview({url,title}:{url:string;title:string}){
 }
 type RichPreview={image:string;title:string;site:string;kind:"video"|"image"|"audio"};
 const richPreviewCache=new Map<string,RichPreview|null>();
-function ReferencePreview({url,title}:{url?:string;title:string}){
+function ReferencePreview({url,title,imageUrl,mediaPath,mediaKind}:{url?:string;title:string;imageUrl?:string;mediaPath?:string;mediaKind?:string}){
  const direct=mediaPreview(url);
  const directSrc=direct?.src;
+ const mediaFile=mediaPath?"/api/references/media?path="+encodeURIComponent(mediaPath):null;
+ const sourceImage=mediaFile&&mediaKind!=="video"?mediaFile:imageUrl;
  const [rich,setRich]=useState<RichPreview|null>(null);
  const [broken,setBroken]=useState(false);
  useEffect(()=>{
   setBroken(false);
   setRich(null);
-  if(!url||directSrc)return;
+  if(!url||directSrc||sourceImage||mediaFile)return;
   const existing=richPreviewCache.get(url);
   if(existing!==undefined){setRich(existing);return;}
   const controller=new AbortController();
@@ -89,11 +93,12 @@ function ReferencePreview({url,title}:{url?:string;title:string}){
     .catch(()=>{if(!controller.signal.aborted){richPreviewCache.set(url,null);}});
   },450);
   return()=>{window.clearTimeout(timer);controller.abort()};
- },[url,directSrc]);
+ },[url,directSrc,sourceImage,mediaFile]);
+ if(mediaFile&&mediaKind==="video")return <DirectVideoPreview url={mediaFile} title={title}/>;
  if(url&&direct?.kind==="file-video")return <DirectVideoPreview url={url} title={title}/>;
- const src=directSrc||rich?.image;
+ const src=sourceImage||directSrc||rich?.image;
  if(!url||!src||broken)return null;
- const kind=direct?.kind||rich?.kind||"image";
+ const kind=mediaKind||direct?.kind||rich?.kind||"image";
  const site=directSrc?(kind==="video"?"YouTube":"Imagen"):rich?.site||"Referencia";
  const description=rich?.title||title;
  return <div className="cl-media-cover" aria-label={"Vista previa de "+title}>
@@ -130,6 +135,7 @@ export default function CreativeLab(){
  const shareToken=share?.enabled?share.token:null;
  const [saved,setSaved]=useState(true);
  const [librarySaved,setLibrarySaved]=useState("");
+ const [libraryPickerOpen,setLibraryPickerOpen]=useState(false);
  const [selected,setSelected]=useState<string|null>(null);
  const [selectedIds,setSelectedIds]=useState<string[]>([]);
  const [tool,setTool]=useState<"hand"|"select">("hand");
@@ -162,6 +168,7 @@ export default function CreativeLab(){
  const [resizingId,setResizingId]=useState<string|null>(null);
  const ignoreCardClickUntil=useRef(0);
  const board=boards.find(b=>b.id===activeId);
+ useEffect(()=>{setLibraryPickerOpen(false)},[activeId,showBoards]);
  useEffect(()=>{liveId.current=crypto.randomUUID()},[]);
  useEffect(()=>{setShare(null);setLivePeople([]);setShareOpen(false);if(!activeId)return;let active=true;fetch("/api/creative/share?board="+activeId,{cache:"no-store"}).then(r=>r.json()).then(d=>{if(active)setShare(d.share||null)}).catch(()=>{});return()=>{active=false}},[activeId]);
  useEffect(()=>{if(!shareToken||!board||showBoards)return;let active=true,busy=false;const poll=async()=>{if(!active||busy||document.hidden||!liveId.current)return;busy=true;try{const r=await fetch((process.env.NEXT_PUBLIC_SUPABASE_URL||"https://lpjiilefslxlgnupaacz.supabase.co")+"/rest/v1/rpc/creative_live",{method:"POST",headers:{"Content-Type":"application/json",apikey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||"sb_publishable_mATu3ZkITNszykDr2nw9DQ_W5MW0GNh"},body:JSON.stringify({p_token:shareToken,p_visitor:liveId.current,p_name:"Editor",p_x:liveMouse.current.x,p_y:liveMouse.current.y})});if(r.ok){const d=await r.json();if(active)setLivePeople(d.participants||[])}}finally{busy=false}};void poll();const timer=setInterval(poll,850);return()=>{active=false;clearInterval(timer)}},[shareToken,board?.id,showBoards]);
@@ -245,6 +252,34 @@ export default function CreativeLab(){
    if(!r.ok)throw Error((await r.json()).error||"No se pudo guardar");
    setLibrarySaved("Guardada en Reference Lib");
   }catch(e){setLibrarySaved(e instanceof Error?e.message:"Error al guardar")}
+ };
+ const addReferencesFromLibrary=(items:LibraryReference[])=>{
+  if(!board||showBoards||!items.length)return;
+  const occupied=[...board.nodes];
+  const additions:Node[]=[];
+  const originX=Math.round((workspaceSize.width*.32-pan.x)/zoom/20)*20;
+  const originY=Math.round((workspaceSize.height*.30-pan.y)/zoom/20)*20;
+  for(const item of items){
+   if(occupied.length>=400)break;
+   const source=item.url||(item.media_path?window.location.origin+"/api/references/media?path="+encodeURIComponent(item.media_path):undefined);
+   if(occupied.some(node=>node.library_ref_id===item.id ||
+    Boolean(item.url&&node.url===item.url) ||
+    Boolean(item.media_path&&node.media_path===item.media_path)))continue;
+   let x=originX,y=originY;
+   for(let slot=0;slot<800;slot++){
+    const candidateX=originX+(slot%4)*280,candidateY=originY+Math.floor(slot/4)*197;
+    if(occupied.every(n=>{const d=dimensions(n);return candidateX+PWIDTH+16<=n.x||candidateX>=n.x+d.width+16||candidateY+PHEIGHT+16<=n.y||candidateY>=n.y+d.height+16;})){
+     x=candidateX;y=candidateY;break;
+    }
+   }
+   const node:Node={id:id(),kind:"referencia",title:item.title||"Referencia",body:item.notes||"",
+    url:source,x,y,library_ref_id:item.id,image_url:item.image_url||undefined,media_path:item.media_path||undefined,media_kind:item.kind};
+   additions.push(node);occupied.push(node);
+  }
+  if(!additions.length)return;
+  update(b=>({...b,nodes:[...b.nodes,...additions]}));
+  setSelectedIds(additions.map(node=>node.id));setSelected(additions.length===1?additions[0].id:null);
+  setEdgeSelected(null);setTool("hand");
  };
  const addNode=(kind:Kind)=>{
   if(!board)return;
