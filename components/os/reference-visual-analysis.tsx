@@ -71,7 +71,7 @@ async function sourceFrames(item:ReferenceAsset):Promise<{frames:Blob[];origin:s
   catch{ /* use poster as fallback if available, label honestly */ }
  }
  const source=item.media_path?"/api/references/media?path="+encodeURIComponent(item.media_path):item.image_url||(
-  /^https:\/\/.test(url)&&/\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(url)?url:null
+  url.startsWith("https://")&&/\.(png|jpe?g|webp|gif|avif)(?:$|[?#])/i.test(url)?url:null
  );
  if(!source)throw Error("Esta referencia no ofrece una imagen legible. Selecciona una captura o un archivo local para analizarlo.");
  let response:Response;
