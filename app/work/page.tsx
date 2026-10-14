@@ -1,6 +1,8 @@
 "use client";
 
 import { localDateKey } from "@/app/lib/local-date";
+import { HolidayEditor, type HolidayDraft } from "@/components/workos/holiday-editor";
+import "./holidays.css";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -344,6 +346,9 @@ export default function WorkPage() {
   const [imputationProjects, setImputationProjects] = useState<Project[]>(initialProjects);
   const [imputationHolidays, setImputationHolidays] = useState<Holiday[]>(fallbackHolidays);
   const [holidayFilter, setHolidayFilter] = useState<"Todas" | "Vacaciones" | "Extras" | "Semana Santa" | "Navidad">("Todas");
+  const [holidayWindowAnchor, setHolidayWindowAnchor] = useState(() => new Date());
+  const [holidayDraft, setHolidayDraft] = useState<HolidayDraft | null>(null);
+  const [holidayDraftKey, setHolidayDraftKey] = useState(0);
   const [quickNote, setQuickNote] = useState("");
   const [quickNoteReady, setQuickNoteReady] = useState(false);
 
@@ -1029,7 +1034,7 @@ export default function WorkPage() {
     return { nextEvent, weekBuckets, maxWeekCount, busiestWeek, crossings: dayGroups.slice(0, 2) };
   }, [calendarMonth, monthCalendarEvents]);
   const holidayTimelineNames = Array.from(new Set(holidays.filter((holiday) => holiday.segment !== "Festivo").map((holiday) => holiday.name)));
-  const holidayWindowStart = mondayForOperationalWeek(new Date());
+  const holidayWindowStart = mondayForOperationalWeek(holidayWindowAnchor);
   const holidayWindowEnd = addDays(holidayWindowStart, 55);
   const holidayWeekLabels = Array.from({ length: 8 }, (_, index) => addDays(holidayWindowStart, index * 7));
   const peopleHolidayRows = holidays.filter((holiday) => holiday.segment !== "Festivo");
@@ -1050,6 +1055,29 @@ export default function WorkPage() {
   const avgVacationRemaining = teamVacationBase.length
     ? Math.round(teamVacationBase.reduce((sum, person) => sum + (person.leaveUsage?.remainingVacationDays || 0), 0) / teamVacationBase.length)
     : 0;
+
+  function openHolidayEditor(record?: Holiday | null, personName?: string, day?: string) {
+    const start = day || localDateKey(new Date());
+    setHolidayDraft({
+      id: record?.id,
+      name: record?.name || personName || team[0]?.name || "",
+      type: record?.type || "Libres",
+      start: record?.start || start,
+      end: record?.end || start,
+    });
+    setHolidayDraftKey(v => v + 1);
+  }
+
+  async function reloadHolidays(start: string) {
+    const response = await fetch("/api/notion/state", { cache: "no-store" });
+    if (!response.ok) throw new Error("No se pudo recargar el calendario.");
+    const state = await response.json() as LiveState;
+    setTeam(state.team);
+    setHolidays(state.holidays);
+    setImputationHolidays(state.imputationHolidays || state.holidays);
+    setLiveCounts(state.counts);
+    setHolidayWindowAnchor(new Date(start + "T12:00:00"));
+  }
 
   function personPerformance(person: TeamPerson) {
     const boost = ratingBoosts[person.name];
@@ -2939,6 +2967,14 @@ export default function WorkPage() {
                   <button key={filter} className={holidayFilter === filter ? "active" : ""} onClick={() => setHolidayFilter(filter)}>{filter}</button>
                 ))}
               </div>
+              <div className="holiday-toolbar-actions">
+                <div className="holiday-navigation">
+                  <button title="8 semanas anteriores" onClick={() => setHolidayWindowAnchor(addDays(holidayWindowAnchor,-56))}><ChevronLeft /></button>
+                  <button onClick={() => setHolidayWindowAnchor(new Date())}>Hoy</button>
+                  <button title="8 semanas siguientes" onClick={() => setHolidayWindowAnchor(addDays(holidayWindowAnchor,56))}><ChevronRight /></button>
+                </div>
+                <button className="holiday-add-btn" onClick={() => openHolidayEditor()}><Plus /> Añadir ausencia</button>
+              </div>
             </header>
 
             <div className="holidays-timeline-redesign">
@@ -2955,8 +2991,13 @@ export default function WorkPage() {
                       <span className={`avatar avatar-${person.tone}`}>{person.initials}</span>
                       <div><strong>{person.name}</strong><small>{person.role}</small></div>
                       <b>{person.leaveUsage?.remainingVacationDays ?? "—"}</b>
+                      <button className="holiday-person-add" type="button" title={"Añadir ausencia a " + person.name} aria-label={"Añadir ausencia a " + person.name} onClick={() => openHolidayEditor(null,person.name)}><Plus /></button>
                     </div>
-                    <div className="holiday-track-redesign">
+                    <div className="holiday-track-redesign" title="Pulsa en un día para añadir ausencia" onClick={(event) => {
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      const offset = Math.min(55, Math.max(0, Math.floor(((event.clientX - rect.left) / rect.width) * 56)));
+                      openHolidayEditor(null, person.name, localDateKey(addDays(holidayWindowStart, offset)));
+                    }}>
                       {globalHolidayRows.map((holiday) => {
                         const pos = timelinePercent(holiday.start, holidayWindowStart, holidayWindowEnd);
                         if (pos == null || pos < 0 || pos > 100) return null;
@@ -2968,9 +3009,9 @@ export default function WorkPage() {
                         if (left == null || right == null || right < 0 || left > 100) return null;
                         const width = Math.max(2.2, Math.min(100, right) - Math.max(0, left) + 1.8);
                         const kind = holiday.type === "Libres" ? "vacation" : holiday.type === "Convenio" || holiday.type === "Puente" ? "extra" : holiday.type === "Semana Santa" ? "easter" : holiday.type === "Navidad" ? "christmas" : "other";
-                        return <span key={holiday.id || holiday.url} className={`holiday-block-redesign ${kind}`} style={{ left: `${Math.max(0,left)}%`, width: `${width}%` }} title={`${holiday.type} · ${holiday.label}`}>
+                        return <button type="button" key={holiday.id || holiday.url} className={`holiday-block-redesign ${kind}`} style={{ left: `${Math.max(0,left)}%`, width: `${width}%` }} title={`Editar ${holiday.type} · ${holiday.label}`} onClick={(event) => { event.stopPropagation(); openHolidayEditor(holiday); }}>
                           <b>{holiday.type}</b><small>{holiday.label}</small>
-                        </span>;
+                        </button>;
                       })}
                     </div>
                   </div>;
@@ -2978,6 +3019,7 @@ export default function WorkPage() {
               </div>
             </div>
 
+            <p className="holiday-inline-help">Pulsa en la línea de una persona para elegir un día, o en una ausencia para modificarla.</p>
             <footer className="holidays-legend-redesign">
               <span><i className="vacation" /> Vacaciones</span>
               <span><i className="extra" /> Convenio / Puente</span>
@@ -3004,6 +3046,8 @@ export default function WorkPage() {
         </section>
       </TabsContent>
     </main>
+
+    <HolidayEditor key={holidayDraftKey} draft={holidayDraft} onClose={() => setHolidayDraft(null)} onSaved={reloadHolidays} team={team} holidays={holidays} />
 
     {selectedProjectPage && (() => {
       const projectTasks = allTasks.filter((task) => task.project === selectedProjectPage.name);
