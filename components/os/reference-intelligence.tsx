@@ -1,6 +1,6 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
-import {BrainCircuit,Check,Loader2,Sparkles,ThumbsDown,ThumbsUp,X} from "lucide-react";
+import {BrainCircuit,ChevronDown,Info,Loader2,Sparkles,ThumbsDown,ThumbsUp,X} from "lucide-react";
 import {localText,localHash,localSuggestions,type LocalReference,type LocalVector,type LocalDecision} from "./reference-local-engine";
 
 type Suggestion=LocalDecision&{id:string;relation:string;explanation:string;distance:number;model?:string};
@@ -34,11 +34,11 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
  const prior=records.proposals.filter(p=>p.status!=="pending"&&p.model==="local-multilingual-embeddings");
  const analyzed=records.vectors.some(v=>v.reference_id===referenceId&&v.source_hash===localHash(localText(items.find(i=>i.id===referenceId)||{id:referenceId,title:""})));
  const cancel=()=>{operationRef.current++;workerRef.current?.terminate();workerRef.current=null;setRunning(false);setStatus("Análisis cancelado");};
- const saveMatches=async(vectors:LocalVector[],generation:number)=>{
+ const saveMatches=async(vectors:LocalVector[],generation:number,decisions:LocalDecision[])=>{
   if(generation!==operationRef.current)return;
   const source=items.find(i=>i.id===referenceId);if(!source)throw Error("Referencia no disponible");
   const vectorMap=new Map(vectors.map(v=>[v.reference_id,v.embedding]));
-  const ranked=localSuggestions(source,items,vectorMap,records.proposals,distance);
+  const ranked=localSuggestions(source,items,vectorMap,decisions,distance);
   if(!ranked.length){setStatus("No he encontrado conexiones suficientemente sólidas entre estas referencias.");return}
   const result=await post("/api/references/local",{action:"suggestions",source_id:source.id,proposals:ranked.map(row=>({target_id:row.item.id,relation:row.relation,explanation:row.explanation,distance:row.distance}))});
   if(generation!==operationRef.current)return;
@@ -54,7 +54,7 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
    for(const row of fresh.vectors)if(row.model==="paraphrase-multilingual-MiniLM-L12-v2-q8")valid.set(row.reference_id,row);
    const queue=items.slice(0,150).map(i=>({...i,text:localText(i),source_hash:localHash(localText(i))})).filter(i=>valid.get(i.id)?.source_hash!==i.source_hash);
    const complete=fresh.vectors.filter(v=>v.model==="paraphrase-multilingual-MiniLM-L12-v2-q8");
-   if(!queue.length){setStatus("Comparando las referencias ya analizadas...");await saveMatches(complete,generation);return}
+   if(!queue.length){setStatus("Comparando las referencias ya analizadas...");await saveMatches(complete,generation,fresh.proposals);return}
    setStatus("Iniciando modelo local. La primera descarga puede superar los 100 MB...");
    const worker=new Worker("/workers/reference-local-model.js",{type:"module"});
    workerRef.current=worker;
@@ -73,7 +73,7 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
        for(let index=0;index<newVectors.length;index+=30){
         await post("/api/references/local",{action:"embeddings",vectors:newVectors.slice(index,index+30)});
        }
-       await saveMatches([...complete.filter(v=>!newVectors.some(n=>n.reference_id===v.reference_id)),...newVectors],generation);
+       await saveMatches([...complete.filter(v=>!newVectors.some(n=>n.reference_id===v.reference_id)),...newVectors],generation,fresh.proposals);
        resolve();
       }catch(err){reject(err)}
      }
@@ -92,19 +92,42 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
    await refresh();if(status==="accepted")onUpdate();
   }catch(e){setError(e instanceof Error?e.message:"Error de feedback")}finally{setVoting(null)}
  };
- return <section className="ri-panel ri-local">
-  <div className="ri-heading"><span className="ri-icon"><BrainCircuit size={17}/></span><div><strong>Reference Intelligence</strong><small>Modelo multilingüe local · sin inferencia de pago</small></div></div>
-  <div className="ri-local-note">Compara títulos y notas por significado, no por coincidencia literal. La IA de texto se ejecuta en este dispositivo. Si has guardado conceptos desde Lectura visual, también los tendrá en cuenta. El vídeo solo se analiza por fotogramas accesibles.</div>
-  <div className="ri-distance"><label htmlFor="ri-local-distance">Distancia creativa</label><span>{distance<35?"Directa":distance<70?"Asociativa":"Experimental"}</span></div>
-  <input id="ri-local-distance" className="ri-range" type="range" min="0" max="100" value={distance} disabled={running} onChange={e=>setDistance(Number(e.target.value))}/>
-  <div className="ri-hints"><span>Más literal</span><span>Más inesperada</span></div>
-  {running?<button className="ri-cta ri-cancel" onClick={cancel} type="button"><X size={15}/> Cancelar análisis</button>:
-   <button className="ri-cta" onClick={analyze} type="button"><Sparkles size={15}/>{analyzed?"Buscar otras conexiones":"Descubrir conexiones gratis"}</button>}
-  {running&&<div className="ri-progress"><div style={{width:progress+"%"}}/></div>}
-  {status&&<p className="ri-status" role="status">{running&&<Loader2 size={13} className="ri-spin"/>}{status}</p>}
-  {proposals.length>0&&<h4 className="ri-subtitle">CONEXIONES PARA TI · {proposals.length}</h4>}
-  {proposals.map(s=>{const other=items.find(i=>i.id===s.target_id);if(!other)return null;return <div className="ri-proposal" key={s.id}><b>{other.title}</b><span>{s.relation}</span><p>{s.explanation}</p><div className="ri-actions"><button onClick={()=>vote(s,"accepted")} disabled={!!voting||running}><ThumbsUp size={13}/> Conecta</button><button onClick={()=>vote(s,"rejected")} disabled={!!voting||running}><ThumbsDown size={13}/> No conecta</button></div></div>})}
+ const mode=distance<35?"Directa":distance<70?"Asociativa":"Experimental";
+ const modeHint=distance<35?"Prioriza similitudes evidentes de concepto o temática.":distance<70?"Equilibra semejanzas y asociaciones menos obvias.":"Favorece analogías más lejanas, sin garantizar que todas sean útiles.";
+ return <section className="ri-panel ri-local" aria-label="Inteligencia de referencias">
+  <header className="ri-local-head">
+   <div className="ri-heading"><span className="ri-icon"><BrainCircuit size={19}/></span><div><strong>Reference Intelligence</strong><small>Asociaciones entre referencias</small></div></div>
+   <span className="ri-local-badge"><span/> Local · gratis</span>
+  </header>
+  <p className="ri-local-intro">Encuentra relaciones entre ideas, títulos y notas. También incorpora los conceptos visuales que hayas confirmado.</p>
+  <div className="ri-distance-box">
+   <div className="ri-distance-top"><label htmlFor="ri-local-distance">Distancia creativa</label><output htmlFor="ri-local-distance">{mode}</output></div>
+   <p className="ri-distance-description">{modeHint}</p>
+   <input id="ri-local-distance" className="ri-range" type="range" min="0" max="100" value={distance} style={{"--ri-fill":distance+"%"} as React.CSSProperties} disabled={running} onChange={e=>setDistance(Number(e.target.value))}/>
+   <div className="ri-distance-scale"><span>Directa</span><span>Asociativa</span><span>Experimental</span></div>
+  </div>
+  {running?<button className="ri-cta ri-cancel" onClick={cancel} type="button"><X size={16}/> Cancelar búsqueda</button>:<button className="ri-cta" onClick={analyze} type="button"><Sparkles size={17}/>{analyzed?"Buscar nuevas conexiones":"Descubrir conexiones"}</button>}
+  {running&&<div className="ri-progress" role="progressbar" aria-label="Progreso del análisis" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}><div style={{width:progress+"%"}}/></div>}
+  {status&&<p className="ri-status" role="status">{running&&<Loader2 size={15} className="ri-spin"/>}{status}</p>}
   {error&&<p className="ri-error" role="alert">{error}</p>}
-  <small className="ri-footer">Primera vez: descarga aproximada de 120 MB o más, según archivos auxiliares. El modelo queda en la caché del navegador si está disponible. Tu contenido se calcula localmente; solo se sincronizan vectores y decisiones en Supabase.</small>
+  {proposals.length>0&&<div className="ri-results">
+   <div className="ri-results-header"><span>CONEXIONES PROPUESTAS</span><b>{proposals.length}</b></div>
+   {proposals.map(s=>{const other=items.find(i=>i.id===s.target_id);if(!other)return null;return <article className="ri-proposal" key={s.id}>
+    <strong>{other.title}</strong><span className="ri-proposal-relation">{s.relation}</span><p>{s.explanation}</p>
+    <div className="ri-actions">
+     <button className="ri-accept" onClick={()=>vote(s,"accepted")} disabled={!!voting||running}><ThumbsUp size={14}/> Conecta</button>
+     <button className="ri-reject" onClick={()=>vote(s,"rejected")} disabled={!!voting||running}><ThumbsDown size={14}/> No conecta</button>
+    </div>
+   </article>})}
+  </div>}
+  <details className="ri-explain">
+   <summary><span><Info size={15}/> Cómo funciona y qué guarda</span><ChevronDown size={16}/></summary>
+   <div className="ri-explain-body">
+    <p><b>1. Compara.</b> Convierte los textos en vectores de significado con un modelo multilingüe local. Analiza hasta 150 referencias por ejecución.</p>
+    <p><b>2. Propone.</b> La distancia creativa cambia el tipo de semejanzas que prioriza. No analiza vídeos completos ni busca automáticamente referencias externas.</p>
+    <p><b>3. Aprende de ti.</b> «Conecta» guarda una relación; «No conecta» descarta esa pareja. Ambas decisiones influyen ligeramente en próximas propuestas.</p>
+    <p className="ri-private-note">Primera vez: descarga aproximada de 120 MB o más. El cálculo se realiza en este navegador; Supabase conserva vectores y decisiones, no los archivos visuales.</p>
+   </div>
+  </details>
  </section>;
 }
