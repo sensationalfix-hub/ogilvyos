@@ -38,9 +38,8 @@ async function propertiesFor(body: any) {
     "Tipo Ausencia": { select: { name: data.type } },
     Fechas: { date: { start: data.start, ...(data.end !== data.start ? { end: data.end } : {}) } },
     Año: { select: { name: data.start.slice(0, 4) } },
-    // La base original utiliza tres relaciones diferentes en los rollups de Equipo.
+    // Conservamos las relaciones activas que ya utiliza la base de Equipo.
     Equipo: relation,
-    "Nombre 1": relation,
     "Vacaciones Relacion": relation,
   };
 }
