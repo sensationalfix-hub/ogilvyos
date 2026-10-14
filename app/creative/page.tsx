@@ -204,7 +204,8 @@ export default function CreativeLab(){
   if(!loaded.current||!board)return;
   const params=new URLSearchParams(window.location.search);
   const referenceId=params.get("reference");
-  if(!referenceId||consumedReference.current===referenceId)return;
+  const targetBoard=params.get("board");
+  if(!referenceId||!targetBoard||board.id!==targetBoard||consumedReference.current===referenceId)return;
   consumedReference.current=referenceId;
   let active=true;
   fetch("/api/references",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(data=>{
