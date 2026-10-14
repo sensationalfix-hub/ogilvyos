@@ -3047,7 +3047,7 @@ export default function WorkPage() {
       </TabsContent>
     </main>
 
-    <HolidayEditor key={holidayDraftKey} draft={holidayDraft} onClose={() => setHolidayDraft(null)} onSaved={reloadHolidays} team={team} holidays={holidays} />
+    <HolidayEditor key={holidayDraftKey} draft={holidayDraft} onClose={() => setHolidayDraft(null)} onSaved={reloadHolidays} team={team} holidays={imputationHolidays} />
 
     {selectedProjectPage && (() => {
       const projectTasks = allTasks.filter((task) => task.project === selectedProjectPage.name);
