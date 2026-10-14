@@ -626,6 +626,7 @@ export default function CreativeLab(){
    <button className="cl-button" onClick={()=>setShowBoards(v=>!v)}><GitBranch/> Mapas</button>
    {board?<input className="cl-title" aria-label="Nombre del mapa" value={board.title} onChange={e=>update(b=>({...b,title:e.target.value}))}/>:<strong>Creative Lab</strong>}
    <div className="cl-grow"/>
+   {board&&!showBoards&&<button type="button" className="cl-button cl-from-library" onClick={()=>setLibraryPickerOpen(true)}><LibraryBig/> Desde Library</button>}
    {board&&!showBoards&&<div style={{position:"relative"}}><button className="cl-button" onClick={()=>setShareOpen(v=>!v)}><Link2/> Compartir {share?.enabled?"●":""}</button>{shareOpen&&<div style={{position:"absolute",right:0,top:"calc(100% + 10px)",width:275,zIndex:200,padding:17,border:"1px solid #DADFD7",borderRadius:14,boxShadow:"0 15px 50px #0002",background:"white"}}><strong style={{fontSize:14}}>Compartir este mapa</strong><p style={{fontSize:12,color:"#777",lineHeight:1.5}}>Enlace exclusivo, acceso con nombre y navegación de solo lectura.</p>{share?.enabled?<><button className="cl-button dark" style={{width:"100%",justifyContent:"center"}} onClick={()=>navigator.clipboard.writeText(window.location.origin+"/creative/share/"+share.token)}>Copiar enlace</button><button className="cl-button" disabled={shareBusy} onClick={deactivateShare} style={{width:"100%",justifyContent:"center",marginTop:8}}>Desactivar enlace</button><p style={{fontSize:11,color:"#777"}}>{livePeople.length} participantes conectados. Los punteros aparecen en el mapa.</p></>:<button className="cl-button dark" disabled={shareBusy} style={{width:"100%",justifyContent:"center"}} onClick={activateShare}>Crear enlace y copiar</button>}</div>}</div>}
    <span className="cl-state">{saving?<><Loader2 size={14}/> Guardando</>:saved?<><Check size={14}/> Guardado</>:<><Save size={14}/> Sin guardar</>}</span>
    <button className="cl-button dark" onClick={createBoard}><Plus/> Nuevo mapa</button>
@@ -634,6 +635,7 @@ export default function CreativeLab(){
    <aside className="cl-sidebar">
     <div className="cl-small">Biblioteca de ideas</div>
     {types.map(t=><button key={t.key} className="cl-palette" onClick={()=>addNode(t.key)}><span className="cl-dot" style={{background:t.color}}/>{t.name}<span style={{marginLeft:"auto",fontSize:16}}>+</span></button>)}
+    {board&&!showBoards&&<button type="button" className="cl-palette cl-sidebar-library" onClick={()=>setLibraryPickerOpen(true)}><LibraryBig size={17}/> Añadir desde Library <Plus size={15} style={{marginLeft:"auto"}}/></button>}
     <div className="cl-small" style={{marginTop:34}}>Herramientas</div>
     <div className="cl-hint"><strong>Mano (H):</strong> mueve el lienzo. <strong>Puntero (V):</strong> selecciona varias tarjetas con un recuadro. <strong>⌘:</strong> selección temporal. <strong>⌘A:</strong> selecciona todo. Arrastra una de las seleccionadas para moverlas juntas.</div>
     {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
@@ -657,7 +659,7 @@ export default function CreativeLab(){
      {board.nodes.map(n=><div key={n.id} className={"cl-card "+(typeOf(n.kind).ink==="#FFFFFF"?" is-dark":"")+(selected===n.id?"chosen":"")+(selectedIds.includes(n.id)?" cl-multi-selected":"")+(marqueeIds.includes(n.id)?" cl-marquee-preview":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color,"--card-ink":typeOf(n.kind).ink,"--card-muted":typeOf(n.kind).muted} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onDragStart={e=>e.preventDefault()} onClick={e=>onNodeClick(n.id,e)}>
       <div className="cl-card-head" title="Arrastra para mover la tarjeta"><span className="cl-card-type">{typeOf(n.kind).name}</span><span className="cl-drag-indicator" title="Arrastra para mover"><GripVertical size={16} strokeWidth={2.5}/></span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
-      <ReferencePreview url={n.url} title={n.title}/>
+      <ReferencePreview url={n.url} title={n.title} imageUrl={n.image_url} mediaPath={n.media_path} mediaKind={n.media_kind}/>
       {PORTS.map(port=><button key={port} className={"cl-port cl-port-"+port} title="Arrastra para conectar" aria-label={"Conectar "+port} onPointerDown={e=>beginWire(e,n.id,port)} onPointerMove={e=>{if(wireDrag.current){e.stopPropagation();setWireEnd(world(e))}}} onPointerUp={e=>{e.stopPropagation();endWire(e)}} onClick={e=>e.stopPropagation()}/>)}
       <button type="button" data-no-card-drag className="cl-resize-handle" title="Arrastra la esquina para cambiar el tamaño" aria-label={"Cambiar tamaño de "+n.title} onPointerDown={e=>beginResize(e,n)} onClick={e=>e.stopPropagation()}><MoveDiagonal2 size={14} strokeWidth={2.5}/></button>
      </div>)}
@@ -691,7 +693,11 @@ export default function CreativeLab(){
     </>:selectedEdge?<><div className="cl-small">Conexión</div><h2>Relación entre ideas</h2><label className="cl-label">Qué significa esta conexión</label><input className="cl-field" value={selectedEdge.label} onChange={e=>update(b=>({...b,edges:b.edges.map(x=>x.id===selectedEdge.id?{...x,label:e.target.value}:x)}))}/>
      <button className="cl-button" onClick={()=>{update(b=>({...b,edges:b.edges.filter(x=>x.id!==selectedEdge.id)}));setEdgeSelected(null)}} style={{marginTop:20}}><Trash2/> Eliminar conexión</button></>:null}
    </aside>}
-   {connecting&&<div style={{position:"absolute",bottom:20,right:25,background:"#222",color:"white",padding:16,borderRadius:12,zIndex:30,fontSize:13}}>Selecciona la tarjeta de destino <button onClick={()=>setConnecting(null)} style={{marginLeft:20,color:"white",background:"none",border:"none",cursor:"pointer"}}>Cancelar</button></div>}
+   {connecting&&<div style={{position:"absolute",bottom:20,right:25,background:"#222",color:"white",padding:16,borderRadius:12,zIndex:30,fontSize:13}}>Selecciona la tarjeta de destino <button onClick={()=>setConnecting(null)} style={{marginLeft:20,color:"white",background:"none",border:"none",cursor:"pointer"}}>Cancelar</button></div>
+   <LibraryPicker open={libraryPickerOpen&&Boolean(board)&&!showBoards} onClose={()=>setLibraryPickerOpen(false)} onAdd={addReferencesFromLibrary}
+    existingIds={(board?.nodes||[]).map(node=>node.library_ref_id||"").filter(Boolean)}
+    existingLinks={(board?.nodes||[]).flatMap(node=>[node.url||"",node.media_path||""]).filter(Boolean)}
+    capacity={Math.max(0,400-(board?.nodes.length||0))}/>}
   </div>
  </div>;
 }
