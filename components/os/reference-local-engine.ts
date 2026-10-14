@@ -4,8 +4,9 @@ export type LocalDecision={source_id:string;target_id:string;status:string;relat
 export function localText(ref:LocalReference){
  const title=(ref.title||"").trim();
  const notes=(ref.notes||"").trim().slice(0,2000);
- const tags=(ref.auto_tags||[]).slice(0,8).join(", ");
- return ["Referencia: "+title,notes?"Notas: "+notes:"",tags?"Conceptos: "+tags:"",ref.kind?"Formato: "+ref.kind:""].filter(Boolean).join(". ").slice(0,3000);
+ const textTags=(ref.auto_tags||[]).filter(tag=>!tag.startsWith("visual:")).slice(0,6).join(", ");
+ const visualTags=(ref.auto_tags||[]).filter(tag=>tag.startsWith("visual:")).map(tag=>tag.slice(7).replace(/-/g," ")).slice(0,7).join(", ");
+ return ["Referencia: "+title,notes?"Notas: "+notes:"",textTags?"Conceptos: "+textTags:"",visualTags?"Lenguaje visual observado (hipótesis): "+visualTags:"",ref.kind?"Formato: "+ref.kind:""].filter(Boolean).join(". ").slice(0,3000);
 }
 export function localHash(value:string){
  let h=2166136261;
