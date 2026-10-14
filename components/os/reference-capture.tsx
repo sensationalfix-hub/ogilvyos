@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
-import { ArrowUpRight, Check, ImagePlus, Link2, Loader2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { cleanSourceDescription, inferredConcepts } from "@/app/lib/reference-concepts";
+import { ArrowUpRight, Check, ImagePlus, Link2, Loader2, Sparkles, X } from "lucide-react";
 
-type Preview={title?:string;image?:string;site?:string;kind?:string};
+type Preview={title?:string;image?:string;site?:string;kind?:string;description?:string};
 type Collection={id:string;name:string};
 export function ReferenceCapture({open,onClose,onSaved}:{open:boolean;onClose:()=>void;onSaved?:()=>void}){
  const [url,setUrl]=useState("");const [file,setFile]=useState<File|null>(null);
@@ -10,14 +11,38 @@ export function ReferenceCapture({open,onClose,onSaved}:{open:boolean;onClose:()
  const [collections,setCollections]=useState<Collection[]>([]);const [preview,setPreview]=useState<Preview|null>(null);
  const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [done,setDone]=useState(false);
  const [localImage,setLocalImage]=useState("");
+ const [autoNotes,setAutoNotes]=useState(false);
+ const [extracting,setExtracting]=useState(false);
+ const notesTouched=useRef(false);
+ const concepts=useMemo(()=>inferredConcepts(title,notes,7),[title,notes]);
  useEffect(()=>{if(!open)return;fetch("/api/references",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.collections)setCollections(d.collections)}).catch(()=>{});},[open]);
  useEffect(()=>{if(!file){setLocalImage("");return}const objectUrl=URL.createObjectURL(file);setLocalImage(objectUrl);return()=>URL.revokeObjectURL(objectUrl)},[file]);
- useEffect(()=>{if(!open||file||!/^https:\/\//i.test(url))return;let active=true;const timer=setTimeout(async()=>{
- try{const r=await fetch("/api/references/preview?url="+encodeURIComponent(url));const d=await r.json();let p:Preview|null=d.preview||null;
- if(!p){const second=await fetch("/api/creative/preview?url="+encodeURIComponent(url));if(second.ok){const res=await second.json();p=res.preview||null}}
- if(active){setPreview(p);if(p?.title)setTitle(v=>v||p.title||"")}}
- catch{if(active)setPreview(null)}
- },500);return()=>{active=false;clearTimeout(timer)}},[open,url,file]);
+ useEffect(()=>{
+  if(!open||file||!/^https:\/\//i.test(url)){setExtracting(false);return}
+  let active=true;
+  const controller=new AbortController();
+  const timer=setTimeout(async()=>{
+   setExtracting(true);
+   const load=async(endpoint:string):Promise<Preview|null>=>{
+    try{const response=await fetch(endpoint+"?url="+encodeURIComponent(url),{signal:controller.signal});if(!response.ok)return null;const body=await response.json();return body.preview||null}catch{return null}
+   };
+   // No generative API: the two sources expose verified public metadata.
+   const [basic,rich]=await Promise.all([load("/api/references/preview"),load("/api/creative/preview")]);
+   if(!active||controller.signal.aborted)return;
+   const description=cleanSourceDescription(String(rich?.description||basic?.description||""));
+   const found:Preview|null=(basic||rich)?{...rich,...basic,
+    title:basic?.title&&basic.title!=="Vídeo de YouTube"?basic.title:rich?.title||basic?.title,
+    description,image:basic?.image||rich?.image,site:basic?.site||rich?.site,kind:basic?.kind||rich?.kind}:null;
+   setPreview(found);
+   if(found?.title)setTitle(existing=>existing||found.title||"");
+   if(description&&!notesTouched.current){
+    setNotes(previous=>previous.trim()?previous:description);
+    setAutoNotes(true);
+   }
+   setExtracting(false);
+  },550);
+  return()=>{active=false;controller.abort();clearTimeout(timer)};
+ },[open,url,file]);
  const close=()=>{if(busy)return;onClose();setDone(false);setError("")};
  const save=async(e:React.FormEvent)=>{
  e.preventDefault();setBusy(true);setError("");
@@ -26,7 +51,7 @@ export function ReferenceCapture({open,onClose,onSaved}:{open:boolean;onClose:()
  if(file){const form=new FormData();form.set("file",file);const r=await fetch("/api/references/upload",{method:"POST",body:form});const d=await r.json();if(!r.ok)throw Error(d.error||"No se pudo subir");mediaPath=d.path}
  const r=await fetch("/api/references",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:url.trim()||null,media_path:mediaPath||null,title:title.trim()||file?.name||preview?.title||"",notes,collection_id:collection||null,image_url:preview?.image||null,site:preview?.site||null,kind:file?"image":preview?.kind||undefined})});
  const d=await r.json();if(!r.ok)throw Error(d.error||"No se pudo guardar");
- setDone(true);setFile(null);setUrl("");setTitle("");setPreview(null);setNotes("");setCollection("");
+ setDone(true);setFile(null);setUrl("");setTitle("");setPreview(null);setNotes("");setAutoNotes(false);setCollection("");notesTouched.current=false;
  window.dispatchEvent(new Event("reference-lib:changed"));onSaved?.();
  }catch(e){setError(e instanceof Error?e.message:"Error desconocido")}
  finally{setBusy(false)}
@@ -38,14 +63,21 @@ export function ReferenceCapture({open,onClose,onSaved}:{open:boolean;onClose:()
    {done?<div className="rc-success"><Check size={24}/><strong>Guardada en tu biblioteca.</strong><p>Ya puedes encontrarla desde cualquier espacio del OS.</p><button className="rc-main" onClick={()=>{setDone(false);onClose()}}>Continuar</button></div>:
    <form onSubmit={save}>
     <label className="rc-label" htmlFor="rc-url">ENLACE</label>
-    <div className="rc-url"><Link2 size={17}/><input id="rc-url" type="url" value={url} placeholder="Pega una URL de vídeo, imagen, campaña..." onChange={e=>{setUrl(e.target.value);setPreview(null);setTitle("")}} disabled={!!file}/></div>
+    <div className="rc-url"><Link2 size={17}/><input id="rc-url" type="url" value={url} placeholder="Pega una URL de vídeo, imagen, campaña..." onChange={e=>{setUrl(e.target.value);setPreview(null);setTitle("");if(!notesTouched.current){setNotes("");setAutoNotes(false)}}} disabled={!!file}/></div>
     <div className="rc-divider"><span>O</span></div>
-    <label className="rc-upload"><ImagePlus size={20}/><span>{file?file.name:"Subir imagen (JPG, PNG, WebP o GIF)"}</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const f=e.target.files?.[0]||null;setFile(f);if(f){setUrl("");setTitle(f.name.replace(/\.[^.]+$/,""));setPreview(null)}}}/></label>
+    <label className="rc-upload"><ImagePlus size={20}/><span>{file?file.name:"Subir imagen (JPG, PNG, WebP o GIF)"}</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>{const f=e.target.files?.[0]||null;setFile(f);if(f){setUrl("");setTitle(f.name.replace(/\.[^.]+$/,""));setPreview(null);if(!notesTouched.current){setNotes("");setAutoNotes(false)}}}}/></label>
     {(localImage||preview?.image)&&<div className="rc-preview"><img src={localImage||preview?.image} alt="Vista previa"/><span>{preview?.site||"Archivo local"}</span></div>}
     <label className="rc-label" htmlFor="rc-title">TÍTULO <small>opcional</small></label>
     <input className="rc-field" id="rc-title" value={title} placeholder="Detectado automáticamente cuando sea posible" onChange={e=>setTitle(e.target.value)} maxLength={180}/>
-    <label className="rc-label" htmlFor="rc-note">¿POR QUÉ LA GUARDAS? <small>opcional</small></label>
-    <textarea className="rc-field" id="rc-note" rows={3} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Puedes dejarlo vacío. No te vamos a obligar a catalogar la vida."/>
+    <div className="rc-note-title">
+     <label className="rc-label" htmlFor="rc-note">DESCRIPCIÓN / ¿POR QUÉ LA GUARDAS? <small>opcional</small></label>
+     {extracting&&<span className="rc-context-state"><Loader2 size={12} className="rc-spin"/> Detectando contexto</span>}
+     {autoNotes&&!extracting&&<span className="rc-context-state"><Check size={12}/> Desde la fuente</span>}
+    </div>
+    <textarea className="rc-field" id="rc-note" rows={3} value={notes} onChange={e=>{notesTouched.current=true;setAutoNotes(false);setNotes(e.target.value)}} placeholder="Se completará con la descripción pública cuando esté disponible. También puedes añadir qué te interesa."/>
+    {autoNotes&&<p className="rc-context-explainer">Descripción pública de la fuente, no una interpretación de sus imágenes o fotogramas. Puedes editarla libremente.</p>}
+    {!extracting&&concepts.length>0&&<div className="rc-concepts"><span className="rc-concepts-heading"><Sparkles size={13}/> CONCEPTOS DETECTADOS</span><div>{concepts.map(tag=><span key={tag}>{tag}</span>)}</div><small>Se guardan automáticamente para ayudar al motor local a encontrar conexiones.</small></div>}
+    {file&&!notes&&<p className="rc-context-explainer">En archivos subidos no analizamos el contenido visual. Puedes añadir una descripción para obtener mejores conexiones.</p>}
     {collections.length>0&&<><label className="rc-label" htmlFor="rc-collection">COLECCIÓN <small>opcional</small></label><select className="rc-field" id="rc-collection" value={collection} onChange={e=>setCollection(e.target.value)}><option value="">Sin colección</option>{collections.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></>}
     {error&&<p className="rc-error" role="alert">{error}</p>}
     <button className="rc-main" disabled={busy||(!url.trim()&&!file)} type="submit">{busy?<Loader2 size={17} className="rc-spin"/>:<ArrowUpRight size={17}/>} {busy?"Guardando...":"Guardar referencia"}</button>
