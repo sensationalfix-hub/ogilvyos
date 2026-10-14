@@ -48,7 +48,7 @@ async function validatedAbsence(id: unknown) {
   if (typeof id !== "string" || !idRegex.test(id)) throw new Error("Registro no válido.");
   const page = await notionRequest("/pages/" + id);
   const dataSource = String(page?.parent?.data_source_id || "").replace(/-/g, "");
-  if (dataSource !== DATA_SOURCES.holidays.replace(/-/g, "") || page?.archived || page?.in_trash) {
+  if (dataSource !== DATA_SOURCES.holidays.replace(/-/g, "") || page?.in_trash) {
     throw new Error("La ausencia no pertenece a Vacaciones.");
   }
   if (page?.properties?.Segmento?.select?.name === "Festivo") {
@@ -87,7 +87,8 @@ export async function DELETE(request: Request) {
   try {
     const body = await request.json();
     await validatedAbsence(body?.id);
-    await notionRequest("/pages/" + body.id, { method: "PATCH", body: JSON.stringify({ archived: true }) });
+    const updated = await notionRequest("/pages/" + body.id, { method: "PATCH", body: JSON.stringify({ in_trash: true }) });
+    if (updated?.in_trash !== true) throw new Error("Notion no confirmó la eliminación de la ausencia.");
     return NextResponse.json({ ok: true });
   } catch (error) { return failure(error); }
 }
