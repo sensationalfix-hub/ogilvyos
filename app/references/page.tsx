@@ -239,7 +239,7 @@ export default function ReferencesPage(){
     <label className="rl-edit-label" htmlFor="rl-ref-collection">COLECCIÓN</label><select id="rl-ref-collection" className="rl-notes" value={editCollection} onChange={e=>setEditCollection(e.target.value)}><option value="">Sin colección</option>{data.collections.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
     <button className="rl-save" disabled={busy||!editTitle.trim()} onClick={updateSelected}><Check size={16}/> Guardar cambios</button>
     {selected.url&&<a className="rl-external-link" href={selected.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> Abrir fuente original</a>}
-    <Link className="rl-lab-link" href={"/creative?reference="+encodeURIComponent(selected.id)}><GitBranch size={16}/> Enviar a Creative Lab <ArrowUpRight size={15}/></Link>
+    <Link className="rl-lab-link" href="/creative" title="Abre el mapa de destino y usa Añadir desde Library"><GitBranch size={16}/> Abrir Creative Lab <ArrowUpRight size={15}/></Link>
     <ReferenceIntelligence key={selected.id} referenceId={selected.id} items={data.items} onUpdate={load}/>
     <div className="rl-divider"/>
     <div className="rl-relationship-title"><strong>Conexiones</strong><span>{relations.length} guardadas</span></div>
