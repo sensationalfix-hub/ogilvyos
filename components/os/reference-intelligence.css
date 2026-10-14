@@ -132,3 +132,5 @@
 .ri-local .ri-explain-body .ri-private-note{margin-top:12px;color:#9aa598;font-size:9px}
 @media(max-width:420px){.ri-panel.ri-local{padding:13px}.ri-local .ri-local-head{gap:8px}.ri-local .ri-heading{flex-basis:155px}.ri-local .ri-local-badge{font-size:8px;padding:5px 7px}}
 @media(prefers-reduced-motion:reduce){.ri-local .ri-cta,.ri-local .ri-progress>div,.ri-local .ri-explain>summary>svg{transition:none}}
+
+.ri-local .ri-distance-footnote{display:block;margin:13px 0 0;padding-top:10px;border-top:1px solid #edf0e9;font-size:9px;line-height:1.5;color:#9aa597}
