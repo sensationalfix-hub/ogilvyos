@@ -105,6 +105,7 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
    <p className="ri-distance-description">{modeHint}</p>
    <input id="ri-local-distance" className="ri-range" type="range" min="0" max="100" value={distance} style={{"--ri-fill":distance+"%"} as React.CSSProperties} disabled={running} onChange={e=>setDistance(Number(e.target.value))}/>
    <div className="ri-distance-scale"><span>Directa</span><span>Asociativa</span><span>Experimental</span></div>
+   <small className="ri-distance-footnote">Se aplica en la siguiente búsqueda. No cambia conexiones guardadas.</small>
   </div>
   {running?<button className="ri-cta ri-cancel" onClick={cancel} type="button"><X size={16}/> Cancelar búsqueda</button>:<button className="ri-cta" onClick={analyze} type="button"><Sparkles size={17}/>{analyzed?"Buscar nuevas conexiones":"Descubrir conexiones"}</button>}
   {running&&<div className="ri-progress" role="progressbar" aria-label="Progreso del análisis" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}><div style={{width:progress+"%"}}/></div>}
