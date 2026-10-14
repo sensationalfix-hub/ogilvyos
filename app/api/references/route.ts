@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { lifeSession, lifeSelect, lifeInsert } from "@/app/lib/life-store";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/app/lib/supabase-auth";
 import { inferredConcepts } from "@/app/lib/reference-concepts";
+import { VISUAL_TAG_PREFIX, acceptedVisualIds, visualTag } from "@/app/lib/reference-visual-vocabulary";
 
 type RefItem={id:string;title:string;url:string|null;image_url:string|null;media_path:string|null;kind:string;site:string|null;notes:string;auto_tags:string[];collection_id:string|null;project_id:string|null;created_at:string};
 type Collection={id:string;name:string;created_at:string};
@@ -43,6 +44,9 @@ export async function POST(request:Request){const session=await lifeSession(requ
 export async function PATCH(request:Request){const session=await lifeSession(request);if(!session)return reply("Sin autorización",401);
  const b=await request.json().catch(()=>({}));if(!uuid(b.id))return reply("ID incorrecto",400);try{
  if(b.action==="collection"){const name=trim(b.name,110);if(!name)return reply("Nombre vacío",400);return NextResponse.json({collection:await restPatch(session.accessToken,"reference_collections",b.id,{name})})}
+ const needsCurrent="visual_labels" in b || "title" in b || "notes" in b;
+ const previous=needsCurrent ? (await lifeSelect<Pick<RefItem,"id"|"title"|"notes"|"auto_tags">>(session.accessToken,"reference_items","select=id,title,notes,auto_tags&id=eq."+b.id+"&limit=1"))[0] : null;
+ if(needsCurrent&&!previous)return reply("Referencia no encontrada",404);
  const payload:Record<string,unknown>={updated_at:new Date().toISOString()};
  if("title" in b)payload.title=trim(b.title,180)||"Sin título";
  if("notes" in b)payload.notes=trim(b.notes,4000);
@@ -52,7 +56,14 @@ export async function PATCH(request:Request){const session=await lifeSession(req
  if("site" in b)payload.site=trim(b.site,100)||null;
  if("kind" in b&&["image","video","audio","web","other"].includes(b.kind))payload.kind=b.kind;
 
- if("title" in b||"notes" in b)payload.auto_tags=tags(String(payload.title||b.current_title||""),String(payload.notes||b.current_notes||""));
+ if(needsCurrent&&previous){
+  // Text edits must NOT erase visual observations. Only an explicit visual update replaces them.
+  const visual="visual_labels" in b
+   ? acceptedVisualIds(b.visual_labels).map(visualTag)
+   : (previous.auto_tags||[]).filter(tag=>tag.startsWith(VISUAL_TAG_PREFIX));
+  const textual=tags(String(payload.title??previous.title),String(payload.notes??previous.notes));
+  payload.auto_tags=[...new Set([...textual,...visual])].slice(0,18);
+ }
  const item=await restPatch(session.accessToken,"reference_items",b.id,payload);if(!item)return reply("Referencia no encontrada",404);return NextResponse.json({item});
  }catch(e){return reply(String(e),500)}}
 export async function DELETE(request:Request){const session=await lifeSession(request);if(!session)return reply("Sin autorización",401);
