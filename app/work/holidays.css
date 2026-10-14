@@ -1,0 +1,34 @@
+/* Vacaciones: edición sencilla sin alterar la grilla compartida */
+.holiday-toolbar-actions { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.holiday-add-btn { display:inline-flex; align-items:center; gap:8px; border:0; border-radius:14px; padding:11px 15px; background:#111; color:#fff; font-weight:750; cursor:pointer; white-space:nowrap; }
+.holiday-add-btn:hover { background:#303030; }
+.holiday-add-btn svg { width:16px; height:16px; }
+.holiday-navigation { display:flex; align-items:center; gap:4px; background:#f2f3f1; border-radius:12px; padding:4px; }
+.holiday-navigation button { border:0; cursor:pointer; background:transparent; border-radius:9px; padding:7px 9px; display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; }
+.holiday-navigation button:hover { background:white; }
+.holiday-navigation svg { width:16px; height:16px; }
+.holidays-toolbar-redesign { gap:14px; flex-wrap:wrap; }
+.holiday-person-meta { position:relative; }
+.holiday-person-meta .holiday-person-add { border:1px solid #e0e2df; background:#fff; color:#333; width:26px; height:26px; flex:0 0 26px; display:grid; place-items:center; border-radius:8px; cursor:pointer; opacity:0.65; }
+.holiday-person-meta .holiday-person-add svg { width:15px; height:15px; }
+.holiday-person-row:hover .holiday-person-add,.holiday-person-add:focus-visible {opacity:1;background:#d5fb75;border-color:#d5fb75}
+.holiday-track-redesign { cursor:crosshair; }
+.holiday-track-redesign .holiday-block-redesign { cursor:pointer; border:0; text-align:left; font:inherit; }
+.holiday-track-redesign .holiday-block-redesign:hover { filter:brightness(.92); box-shadow:0 0 0 2px rgba(0,0,0,.22); }
+.holiday-track-redesign .global-holiday-marker { pointer-events:none; }
+.holiday-track-redesign:focus-visible { outline:2px solid #111; outline-offset:3px; }
+.holiday-inline-help { font-size:12px; color:#767b71; margin:8px 2px 0; }
+.holiday-editor-dialog { max-width:520px; background:#fff; color:#171a16; border-radius:22px; padding:28px; }
+.holiday-editor-form { display:grid; gap:16px; margin-top:12px; }
+.holiday-editor-form label { display:flex; flex-direction:column; gap:7px; font-size:11px; font-weight:800; letter-spacing:.045em; color:#666e63; text-transform:uppercase; }
+.holiday-editor-form select,.holiday-editor-form input[type=date] { width:100%; background:#f5f6f3; border:1px solid #e0e3dd; border-radius:11px; color:#171a16; padding:12px; font:inherit; font-size:14px; outline-offset:2px; }
+.holiday-editor-dates { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.holiday-editor-summary { border-radius:13px; background:#effacb; display:flex; flex-direction:column; padding:16px; gap:5px; }
+.holiday-editor-summary strong { font-size:21px; font-weight:900; }
+.holiday-editor-summary span { font-size:12px; line-height:1.5; color:#495442; }
+.holiday-editor-error { font-size:12px; color:#b02b32; }
+.holiday-editor-actions {display:flex;justify-content:space-between;gap:10px;margin-top:16px;align-items:center}
+.holiday-editor-actions .holiday-danger {border:0;background:transparent;color:#b02b32;font-size:13px;font-weight:700;cursor:pointer}
+.holiday-editor-actions .holiday-save {border:0;border-radius:12px;padding:12px 17px;background:#121512;color:white;font-weight:800;cursor:pointer}
+.holiday-editor-actions button:disabled {opacity:.45;cursor:wait}
+@media(max-width:740px){.holiday-toolbar-actions{width:100%;justify-content:space-between}.holiday-editor-dialog{padding:20px}.holiday-editor-dates{grid-template-columns:1fr}}
