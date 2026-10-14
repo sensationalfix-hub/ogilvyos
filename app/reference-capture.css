@@ -12,3 +12,14 @@
 .rc-field{display:block;width:100%;background:#fff;border:1px solid #dedfd9;border-radius:11px;min-height:45px;padding:12px;color:#20231f;font:500 13px Inter,ui-sans-serif,system-ui,sans-serif;outline:0}.rc-field:focus,.rc-url:focus-within{border-color:#7bab33}.rc-field::placeholder{color:#a3a8a0}
 .rc-main{border:0;border-radius:13px;background:#c5f465;color:#21251a;font-weight:800;font-size:13px;min-height:47px;display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:24px;cursor:pointer}.rc-main:disabled{opacity:.45;cursor:not-allowed}.rc-main:hover:not(:disabled){background:#b8ed50}
 .rc-error{background:#ffdfd8;color:#8e302c;padding:11px;border-radius:9px;font-size:12px}.rc-footnote{font-size:11px;text-align:center;color:#9b9d98;margin-top:12px}.rc-success{text-align:center;display:grid;place-items:center;gap:12px;padding:35px 0 8px}.rc-success svg{background:#c6f565;border-radius:50%;padding:8px;width:48px;height:48px}.rc-success p{font-size:12px;color:#797e75}.rc-spin{animation:rc-spin 1s linear infinite}@keyframes rc-spin{to{transform:rotate(360deg)}}
+
+/* Semantic context stays subordinate to the reference itself. */
+.rc-note-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:19px;margin-bottom:9px;flex-wrap:wrap}
+.rc-note-title .rc-label{margin:0}
+.rc-context-state{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;background:#edf6df;color:#647f48;border:1px solid #dceac8;border-radius:7px;font-size:10px;font-weight:740;white-space:nowrap}
+.rc-context-explainer{font-size:10px;color:#8d968c;line-height:1.55;margin:8px 2px 0}
+.rc-concepts{margin-top:13px;padding:13px;background:#f3f5ee;border:1px solid #e6ebde;border-radius:12px}
+.rc-concepts-heading{display:flex;align-items:center;gap:7px;color:#6f7e64;font-size:9px;letter-spacing:.09em;font-weight:850}
+.rc-concepts>div{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.rc-concepts>div>span{display:inline-block;border:1px solid #dfe9d0;background:#fff;color:#445440;font-size:10px;font-weight:680;padding:5px 8px;border-radius:7px}
+.rc-concepts>small{display:block;margin-top:11px;font-size:10px;line-height:1.4;color:#939d90}

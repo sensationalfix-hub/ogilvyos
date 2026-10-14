@@ -4,13 +4,13 @@ import {SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY} from "@/app/lib/supabase-auth";
 
 export const runtime = "nodejs";
 
-type Preview = { image: string; title: string; site: string; kind: "video" | "image" | "audio" };
+type Preview = { image: string; title: string; site: string; kind: "video" | "image" | "audio"; description?: string };
 const TRUSTED = [
   "vimeo.com", "pinterest.com", "pinterest.es", "pinterest.co.uk", "pinterest.fr",
   "pinterest.de", "pinterest.it", "pin.it", "unsplash.com", "pexels.com",
   "pixabay.com", "flickr.com", "behance.net", "artstation.com", "dribbble.com",
   "500px.com", "deviantart.com", "open.spotify.com", "spotify.link",
-  "ernestdesumbila.com",
+  "ernestdesumbila.com", "youtube.com", "youtu.be", "youtube-nocookie.com",
 ];
 const cache = new Map<string, { value: Preview | null; expires: number }>();
 const MAX_HTML_BYTES = 400_000;
@@ -66,7 +66,7 @@ function readMeta(html: string) {
     image: values["og:image:secure_url"] || values["og:image"] || values["twitter:image"] || values["twitter:image:src"] || "",
     title: values["og:title"] || values["twitter:title"] || decodeEntities(title.replace(/\s+/g, " ").trim()),
     site: values["og:site_name"] || "",
-    description: values["og:description"] || "",
+    description: values["og:description"] || values["twitter:description"] || values["description"] || "",
     video: values["og:type"] === "video" || Boolean(values["og:video"]),
   };
 }
@@ -141,7 +141,7 @@ async function resolvePreview(url: URL): Promise<Preview | null> {
       if (page) {
         const meta = readMeta(page.html);
         const image = publicImage(meta.image, page.url);
-        if (image) return { image, title: meta.title.slice(0, 180), site: "Spotify", kind: "audio" };
+        if (image) return { image, title: meta.title.slice(0, 180), site: "Spotify", kind: "audio", description: meta.description.slice(0, 1100) };
       }
     } catch { /* Spotify can reject private or restricted tracks */ }
     return null;
@@ -153,9 +153,9 @@ async function resolvePreview(url: URL): Promise<Preview | null> {
       oembed.searchParams.set("width", "640");
       const res = await fetch(oembed, { signal: AbortSignal.timeout(6500), redirect: "error", cache: "no-store" });
       if (res.ok) {
-        const data: { thumbnail_url?: string; title?: string } = await res.json();
+        const data: { thumbnail_url?: string; title?: string; description?: string } = await res.json();
         const image = publicImage(data.thumbnail_url, url);
-        if (image) return { image, title: String(data.title || "Vídeo de Vimeo").slice(0, 180), site: "Vimeo", kind: "video" };
+        if (image) return { image, title: String(data.title || "Vídeo de Vimeo").slice(0, 180), site: "Vimeo", kind: "video", description: String(data.description || "").replace(/<[^>]*>/g," ").slice(0,1100) };
       }
     } catch { /* Vimeo may restrict some private/unlisted videos */ }
   }
@@ -163,10 +163,10 @@ async function resolvePreview(url: URL): Promise<Preview | null> {
   if (!page) return null;
   const info = readMeta(page.html);
   const image = publicImage(info.image, page.url);
-  if (!image) return null;
+  if (!image && !info.description) return null;
   const currentHost = page.url.hostname.toLowerCase();
   const site = info.site || (currentHost.includes("pinterest") || currentHost === "pin.it" ? "Pinterest" : currentHost.includes("vimeo") ? "Vimeo" : currentHost.replace(/^www\./, ""));
-  return { image, title: info.title.slice(0, 180), site: site.slice(0, 60), kind: info.video || currentHost.includes("vimeo") ? "video" : "image" };
+  return { image: image || "", title: info.title.slice(0, 180), site: site.slice(0, 60), kind: info.video || currentHost.includes("vimeo") || currentHost.includes("youtube") || currentHost==="youtu.be" ? "video" : "image", description: info.description.slice(0,1100) };
 }
 
 export async function GET(request: Request) {

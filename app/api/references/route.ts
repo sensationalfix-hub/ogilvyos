@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { lifeSession, lifeSelect, lifeInsert } from "@/app/lib/life-store";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/app/lib/supabase-auth";
+import { inferredConcepts } from "@/app/lib/reference-concepts";
 
 type RefItem={id:string;title:string;url:string|null;image_url:string|null;media_path:string|null;kind:string;site:string|null;notes:string;auto_tags:string[];collection_id:string|null;project_id:string|null;created_at:string};
 type Collection={id:string;name:string;created_at:string};
@@ -8,9 +9,7 @@ const reply=(error:string,status:number)=>NextResponse.json({error},{status});
 const uuid=(v:unknown)=>typeof v==="string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const trim=(v:unknown,max:number)=>typeof v==="string"?v.trim().slice(0,max):"";
 const safeExternal=(v:unknown)=>{if(typeof v!=="string"||v.length>3000)return null;try{const u=new URL(v);return u.protocol==="https:" && !u.username&&!u.password&&!u.port?u.href:null}catch{return null}};
-const terms=["cine","cinematic","cinema","film","western","deporte","sport","nike","real madrid","futbol","football","mitologia","myth","arte","art","fotografia","photo","tipografia","typography","music","musica","video","animation","animacion","surreal","surrealismo","arquitectura","architecture","advertising","publicidad","campana","campaign","ambicion","ambition","humor","comedia","comedy","brutalismo","brutalist"];
-const stop=new Set(["https","www","com","the","and","this","with","para","este","esta","desde","sobre","https","video","una","uno","de","del","los","las","por","con","que","you","your","from","more","into","una"]);
-function tags(title:string,notes:string){const v=(title+" "+notes).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();const lex=terms.filter(t=>v.includes(t)).slice(0,7);const words=v.match(/[a-z]{5,}/g)||[];return Array.from(new Set([...lex,...words.filter(t=>!stop.has(t)).slice(0,5)])).slice(0,10)}
+function tags(title:string,notes:string){return inferredConcepts(title,notes,9)}
 function kindOf(url:string){if(/\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(url))return "image";if(/youtube\.com|youtu\.be|vimeo\.com|\.mp4(\?|$)/i.test(url))return "video";if(/spotify\.com|soundcloud\.com/i.test(url))return "audio";return "web"}
 function headers(token:string,extra:Record<string,string>={}){return {apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+token,"Content-Type":"application/json",...extra}}
 async function restPatch(token:string,table:string,id:string,body:Record<string,unknown>){const r=await fetch(SUPABASE_URL+"/rest/v1/"+table+"?id=eq."+id,{method:"PATCH",headers:headers(token,{Prefer:"return=representation"}),body:JSON.stringify(body),cache:"no-store"});if(!r.ok)throw new Error(await r.text());const rows=await r.json();return rows[0]||null}
