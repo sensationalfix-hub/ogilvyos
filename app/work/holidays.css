@@ -32,3 +32,7 @@
 .holiday-editor-actions .holiday-save {border:0;border-radius:12px;padding:12px 17px;background:#121512;color:white;font-weight:800;cursor:pointer}
 .holiday-editor-actions button:disabled {opacity:.45;cursor:wait}
 @media(max-width:740px){.holiday-toolbar-actions{width:100%;justify-content:space-between}.holiday-editor-dialog{padding:20px}.holiday-editor-dates{grid-template-columns:1fr}}
+
+/* Keep the inline add control inside the same employee row. */
+.holidays-view-redesign .holiday-person-meta { grid-template-columns: 38px minmax(0,1fr) 24px 24px; gap:5px; padding-left:10px; padding-right:6px; }
+.holidays-view-redesign .holiday-person-meta .holiday-person-add {width:24px;height:24px;flex-basis:24px;}
