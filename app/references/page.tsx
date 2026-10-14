@@ -4,8 +4,11 @@ import Link from "next/link";
 import { ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BookmarkPlus, Check, ChevronDown, Compass, ExternalLink, Film, FolderOpen, GitBranch, Grid2X2, Image as ImageIcon, Layers2, LibraryBig, Link2, Loader2, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, WandSparkles, X } from "lucide-react";
 import { ReferenceCapture } from "@/components/os/reference-capture";
 import { ReferenceIntelligence } from "@/components/os/reference-intelligence";
+import { ReferenceVisualAnalysis } from "@/components/os/reference-visual-analysis";
+import { VISUAL_LABELS } from "@/app/lib/reference-visual-vocabulary";
 import { LocalDiscovery } from "@/components/os/reference-local-discovery";
 import "@/components/os/reference-intelligence.css";
+import "@/components/os/reference-visual-analysis.css";
 import "./references.css";
 
 type Item={id:string;title:string;url:string|null;image_url:string|null;media_path:string|null;kind:"image"|"video"|"audio"|"web"|"other";site:string|null;notes:string;auto_tags:string[];collection_id:string|null;project_id:string|null;created_at:string};
@@ -15,7 +18,7 @@ type Data={items:Item[];collections:Collection[];connections:Connection[]};
 type PageTab="all"|"connections"|"discover";
 type ExternalWork={id:number;title:string;artist:string;date:string;image:string;url:string;site:string;kind:string};
 const stop=new Set(["para","sobre","desde","hasta","unas","unos","esta","este","entre","tiene","pero","that","with","from","some","this","your","https","www","com","video","image","the","and"]);
-function words(r:Item){const text=[r.title,r.notes,...r.auto_tags].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return Array.from(new Set((text.match(/[a-z]{5,}/g)||[]).filter(t=>!stop.has(t))));}
+function words(r:Item){const text=[r.title,r.notes,...r.auto_tags.filter(tag=>!tag.startsWith("visual:"))].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return Array.from(new Set((text.match(/[a-z]{5,}/g)||[]).filter(t=>!stop.has(t))));}
 function similar(ref:Item,items:Item[]){const a=words(ref);return items.filter(x=>x.id!==ref.id).map(item=>{const b=words(item);const overlap=a.filter(w=>b.includes(w));return {item,overlap,score:overlap.length}}).filter(x=>x.score>0).sort((x,y)=>y.score-x.score).slice(0,6)}
 type Preview={image?:string;title?:string;site?:string;kind?:string};
 const previewRequests=new Map<string,Promise<Preview|null>>();
@@ -152,6 +155,11 @@ export default function ReferencesPage(){
  }),[data.items,query,filter]);
  const relations=selected?data.connections.filter(c=>c.source_id===selected.id||c.target_id===selected.id):[];
  const suggested=selected?similar(selected,data.items).filter(x=>!relations.some(c=>c.source_id===x.item.id||c.target_id===x.item.id)).slice(0,4):[];
+ const visualSuggestions=selected?data.items.filter(item=>item.id!==selected.id).map(item=>{
+  const current=new Set((selected.auto_tags||[]).filter(tag=>tag.startsWith("visual:")));
+  const overlap=(item.auto_tags||[]).filter(tag=>current.has(tag));
+  return {item,overlap};
+ }).filter(row=>row.overlap.length>=1&&!relations.some(c=>c.source_id===row.item.id||c.target_id===row.item.id)).sort((a,b)=>b.overlap.length-a.overlap.length).slice(0,4):[];
  const request=async(method:"POST"|"PATCH"|"DELETE",body?:Record<string,unknown>,url="/api/references")=>{
  const r=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});const d=await r.json();if(!r.ok)throw Error(d.error||"Error al guardar");return d
  };
@@ -240,10 +248,12 @@ export default function ReferencesPage(){
     <button className="rl-save" disabled={busy||!editTitle.trim()} onClick={updateSelected}><Check size={16}/> Guardar cambios</button>
     {selected.url&&<a className="rl-external-link" href={selected.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> Abrir fuente original</a>}
     <Link className="rl-lab-link" href="/creative" title="Abre el mapa de destino y usa Añadir desde Library"><GitBranch size={16}/> Abrir Creative Lab <ArrowUpRight size={15}/></Link>
+    <ReferenceVisualAnalysis key={selected.id+"-vision"} item={selected} onUpdate={load}/>
     <ReferenceIntelligence key={selected.id} referenceId={selected.id} items={data.items} onUpdate={load}/>
     <div className="rl-divider"/>
     <div className="rl-relationship-title"><strong>Conexiones</strong><span>{relations.length} guardadas</span></div>
     {relations.map(c=>{const other=data.items.find(x=>x.id===(c.source_id===selected.id?c.target_id:c.source_id));return other?<div key={c.id} className="rl-related"><div className="rl-related-thumb"><ItemMedia item={other}/></div><button className="rl-related-copy" onClick={()=>setActiveId(other.id)}><strong>{other.title}</strong><span>{c.relation}</span></button><button title="Eliminar conexión" onClick={()=>disconnect(c.id)}><X size={14}/></button></div>:null})}
+    {visualSuggestions.length>0&&<><span className="rl-edit-label">AFINIDADES VISUALES · POR CONCEPTOS GUARDADOS</span>{visualSuggestions.map(row=><div key={row.item.id} className="rl-related"><div className="rl-related-thumb"><ItemMedia item={row.item}/></div><button className="rl-related-copy" onClick={()=>setActiveId(row.item.id)}><strong>{row.item.title}</strong><span>Comparten {row.overlap.slice(0,2).map(tag=>VISUAL_LABELS.find(l=>l.id===tag.slice(7))?.name||tag.slice(7)).join(", ")}</span></button><button title="Conectar por lenguaje visual" disabled={busy} onClick={()=>connect(row.item.id,"comparte lenguaje visual")}><Plus size={16}/></button></div>)}</>}
     {suggested.length>0&&<><span className="rl-edit-label">POSIBLES AFINIDADES · POR TEXTO</span>{suggested.map(c=><div key={c.item.id} className="rl-related"><div className="rl-related-thumb"><ItemMedia item={c.item}/></div><button className="rl-related-copy" onClick={()=>setActiveId(c.item.id)}><strong>{c.item.title}</strong><span>Comparten {c.overlap.slice(0,2).join(", ")}</span></button><button title="Conectar" disabled={busy} onClick={()=>connect(c.item.id,"comparte tema")}><Plus size={16}/></button></div>)}</>}
     <span className="rl-edit-label">CONECTAR MANUALMENTE</span>
     <div className="rl-connect-form"><select value={connectTo} onChange={e=>setConnectTo(e.target.value)}><option value="">Elegir otra referencia</option>{data.items.filter(x=>x.id!==selected.id&&!relations.some(c=>c.source_id===x.id||c.target_id===x.id)).map(x=><option key={x.id} value={x.id}>{x.title}</option>)}</select><select value={connectionLabel} onChange={e=>setConnectionLabel(e.target.value)}><option>inspira</option><option>comparte tema</option><option>contradice</option><option>misma estética</option><option>desarrolla</option></select><button disabled={!connectTo||busy} onClick={()=>connect(connectTo,connectionLabel)}><Plus size={14}/> Conectar</button></div>

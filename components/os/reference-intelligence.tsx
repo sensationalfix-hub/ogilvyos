@@ -94,7 +94,7 @@ export function ReferenceIntelligence({referenceId,items,onUpdate}:{referenceId:
  };
  return <section className="ri-panel ri-local">
   <div className="ri-heading"><span className="ri-icon"><BrainCircuit size={17}/></span><div><strong>Reference Intelligence</strong><small>Modelo multilingüe local · sin inferencia de pago</small></div></div>
-  <div className="ri-local-note">Compara títulos y notas por significado, no por coincidencia literal. La IA se ejecuta en este dispositivo. Por ahora no analiza el contenido de los vídeos ni reconoce objetos de las imágenes.</div>
+  <div className="ri-local-note">Compara títulos y notas por significado, no por coincidencia literal. La IA de texto se ejecuta en este dispositivo. Si has guardado conceptos desde Lectura visual, también los tendrá en cuenta. El vídeo solo se analiza por fotogramas accesibles.</div>
   <div className="ri-distance"><label htmlFor="ri-local-distance">Distancia creativa</label><span>{distance<35?"Directa":distance<70?"Asociativa":"Experimental"}</span></div>
   <input id="ri-local-distance" className="ri-range" type="range" min="0" max="100" value={distance} disabled={running} onChange={e=>setDistance(Number(e.target.value))}/>
   <div className="ri-hints"><span>Más literal</span><span>Más inesperada</span></div>

@@ -1,0 +1,27 @@
+.rv-panel{margin:15px 0 19px;background:#f6f8f3;border:1px solid #e2e8dd;border-radius:16px;padding:16px;color:#242b21}
+.rv-head{display:flex;gap:10px;align-items:center}
+.rv-icon{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:#e5f2d0;display:grid;place-items:center;color:#405b2b}
+.rv-head>div{display:flex;flex-direction:column;gap:3px}
+.rv-head strong{font-size:12px;letter-spacing:-.02em}
+.rv-head small{font-size:10px;color:#79906b}
+.rv-explanation{font-size:11px;line-height:1.6;color:#778273;margin:13px 0}
+.rv-existing,.rv-proposals{padding:10px 0}
+.rv-existing>small,.rv-proposals>small{font-size:9px;letter-spacing:.07em;color:#86957e;font-weight:850}
+.rv-existing>div,.rv-proposals>div{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rv-existing>div>span{border:1px solid #dde6d4;border-radius:8px;padding:6px 9px;background:#fff;font-size:10px;font-weight:700;color:#617656}
+.rv-proposals button{cursor:pointer;border:1px solid #e4e8e0;border-radius:9px;background:#fff;color:#6d756b;padding:7px 9px;font-size:11px;font-weight:720;display:inline-flex;align-items:center;gap:5px}
+.rv-proposals button.active{border-color:#a8d86b;color:#2b4320;background:#e7fabf}
+.rv-action,.rv-apply{border:0;border-radius:10px;padding:12px;display:flex;justify-content:center;align-items:center;gap:8px;width:100%;background:#242b21;color:#d5fc8d;font-size:11px;font-weight:850;cursor:pointer;margin-top:10px}
+.rv-cancel{background:#f6deda;color:#904039}
+.rv-apply{background:#c1f46c;color:#28351d}
+.rv-action:hover:not(:disabled){background:#40582d}
+.rv-apply:hover:not(:disabled){background:#b2eb56}
+.rv-upload{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:transparent;border:1px solid #d8e1d2;border-radius:10px;color:#64735d;padding:10px;font-size:10px;font-weight:800;cursor:pointer;margin-top:8px}
+.rv-upload:hover:not(:disabled){background:#fff}
+.rv-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.rv-apply:disabled,.rv-action:disabled,.rv-upload:disabled{opacity:.55;cursor:not-allowed}
+.rv-status{font-size:10px;color:#667e56;line-height:1.5;margin:10px 0}
+.rv-error{font-size:10px;line-height:1.5;background:#ffe5df;border-radius:9px;padding:10px;color:#96392c;margin:9px 0}
+.rv-foot{display:block;font-size:9px;line-height:1.6;color:#a0aa99;margin-top:11px}
+@keyframes rv-rotate{to{transform:rotate(360deg)}}
+.rv-spin{animation:rv-rotate 1s linear infinite}
