@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan, LibraryBig } from "lucide-react";
 import { LibraryPicker, type LibraryReference } from "@/components/creative/library-picker";
 import "./library-picker.css";
+import "./board-controls.css";
 
 type Kind="briefing"|"tension"|"insight"|"idea"|"camino"|"concepto"|"racional"|"draft"|"referencia"|"ejecucion";
 type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number;library_ref_id?:string;image_url?:string;media_path?:string;media_kind?:string};
@@ -136,6 +137,10 @@ export default function CreativeLab(){
  const [saved,setSaved]=useState(true);
  const [librarySaved,setLibrarySaved]=useState("");
  const [libraryPickerOpen,setLibraryPickerOpen]=useState(false);
+ const [deletingBoardId,setDeletingBoardId]=useState<string|null>(null);
+ const [revealedBoardId,setRevealedBoardId]=useState<string|null>(null);
+ const boardSwipeStart=useRef<{id:string;x:number;y:number}|null>(null);
+ const blockBoardClickUntil=useRef(0);
  const [selected,setSelected]=useState<string|null>(null);
  const [selectedIds,setSelectedIds]=useState<string[]>([]);
  const [tool,setTool]=useState<"hand"|"select">("hand");
@@ -237,10 +242,42 @@ export default function CreativeLab(){
    setBoards(p=>[d.board,...p]);setActiveId(d.board.id);setShowBoards(false);setSelected(null);setSelectedIds([]);setEdgeSelected(null);setSaved(true);
   }catch(e){setError(String(e));}
  };
- const deleteBoard=async()=>{
-  if(!board||!window.confirm("¿Eliminar este mapa y todas sus ideas?"))return;
-  const r=await fetch("/api/creative?id="+board.id,{method:"DELETE"});if(!r.ok){setError("No se pudo eliminar");return}
-  const rest=boards.filter(b=>b.id!==board.id);setBoards(rest);setActiveId(rest[0]?.id||null);setSelected(null);setSelectedIds([]);
+ const deleteBoard=async(target:Board)=>{
+  if(deletingBoardId)return;
+  const title=target.title.trim()||"Sin título";
+  if(!window.confirm("¿Eliminar definitivamente «"+title+"»?\n\nSe borrarán sus "+target.nodes.length+" tarjetas y "+target.edges.length+" conexiones. Esta acción no se puede deshacer."))return;
+  setDeletingBoardId(target.id);setError("");
+  try{
+   const response=await fetch("/api/creative?id="+encodeURIComponent(target.id),{method:"DELETE"});
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok||result.ok!==true)throw Error(result.error||"No se ha podido eliminar el mapa.");
+   setBoards(previous=>previous.filter(item=>item.id!==target.id));
+   if(activeId===target.id){
+    const next=boards.find(item=>item.id!==target.id);
+    setActiveId(next?.id||null);
+    clearSelection();setConnecting(null);setShare(null);setSaved(true);
+    try{
+     const recent=window.localStorage.getItem("os.recent.creative");
+     if(recent&&JSON.parse(recent).href?.includes(target.id))window.localStorage.removeItem("os.recent.creative");
+    }catch{}
+   }
+   setRevealedBoardId(null);
+  }catch(e){setError(e instanceof Error?e.message:"Error al eliminar el mapa");}
+  finally{setDeletingBoardId(null);}
+ };
+ const onBoardTouchStart=(event:React.TouchEvent,id:string)=>{
+  const touch=event.touches[0];
+  if(touch)boardSwipeStart.current={id,x:touch.clientX,y:touch.clientY};
+ };
+ const onBoardTouchEnd=(event:React.TouchEvent,id:string)=>{
+  const initial=boardSwipeStart.current;boardSwipeStart.current=null;
+  const touch=event.changedTouches[0];
+  if(!touch||!initial||initial.id!==id)return;
+  const dx=touch.clientX-initial.x,dy=touch.clientY-initial.y;
+  if(Math.abs(dx)>42&&Math.abs(dx)>Math.abs(dy)*1.35){
+   blockBoardClickUntil.current=Date.now()+550;
+   setRevealedBoardId(dx<0?id:null);
+  }
  };
  const saveNodeToLibrary=async(node:Node)=>{
   if(!node.url||!node.url.startsWith("https://"))return;
@@ -305,6 +342,7 @@ export default function CreativeLab(){
  const clearSelection=()=>{setSelectedIds([]);setSelected(null);setEdgeSelected(null)};
  const deleteNode=()=>{if(!selected)return;update(b=>({...b,nodes:b.nodes.filter(n=>n.id!==selected),edges:b.edges.filter(e=>e.source!==selected&&e.target!==selected)}));clearSelection()};
  const nodeChange=(field:"title"|"body"|"url",value:string)=>{if(selected)update(b=>({...b,nodes:b.nodes.map(n=>n.id===selected?{...n,[field]:value}:n)}))};
+ const changeNodeKind=(kind:Kind)=>{if(selected&&types.some(type=>type.key===kind))update(b=>({...b,nodes:b.nodes.map(n=>n.id===selected?{...n,kind}:n)}))};
  const world=(event:React.PointerEvent)=>{const r=canvasRef.current?.getBoundingClientRect();return {x:r?(event.clientX-r.left)/zoom:0,y:r?(event.clientY-r.top)/zoom:0}};
  const beginWire=(e:React.PointerEvent<HTMLButtonElement>,source:string,port:Port)=>{e.preventDefault();e.stopPropagation();setConnecting(source);setSourcePort(port);setWireEnd(world(e));wireDrag.current=true;e.currentTarget.setPointerCapture(e.pointerId);setSelected(null);setEdgeSelected(null)};
  const endWire=(e:React.PointerEvent)=>{if(!wireDrag.current||!connecting)return;const p=world(e);const target=boardRef.current?.nodes.find(n=>{const {width,height}=dimensions(n);return n.id!==connecting&&p.x>=n.x-18&&p.x<=n.x+width+18&&p.y>=n.y-18&&p.y<=n.y+height+18;});
@@ -645,7 +683,10 @@ export default function CreativeLab(){
     {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
     {loading?<div className="cl-empty"><Loader2/> Cargando mapas...</div>:showBoards||!board?<div className="cl-empty" style={{position:"sticky",top:90,left:100,transform:"none",textAlign:"left",maxWidth:470}}>
      <h2 style={{letterSpacing:"-.05em"}}>Tus mapas creativos</h2><p style={{fontSize:13,color:"#777",lineHeight:1.5}}>Un lienzo para relacionar pensamientos, desarrollar racionales y dar forma a tus campañas.</p>
-     <div className="cl-list">{boards.map(b=><button key={b.id} className={"cl-board "+(activeId===b.id?"active":"")} onClick={()=>selectBoard(b)}>{b.title}<small>{b.nodes.length} ideas · {b.edges.length} conexiones</small></button>)}</div>
+     <div className="cl-list">{boards.map(b=><div key={b.id} className={"cl-board-entry"+(revealedBoardId===b.id?" is-revealed":"")} onTouchStart={e=>onBoardTouchStart(e,b.id)} onTouchEnd={e=>onBoardTouchEnd(e,b.id)}>
+      <button type="button" className={"cl-board "+(activeId===b.id?"active":"")} disabled={deletingBoardId===b.id} onClick={()=>{if(Date.now()<blockBoardClickUntil.current)return;setRevealedBoardId(null);selectBoard(b)}}><span className="cl-board-title">{b.title}</span><small>{b.nodes.length} ideas · {b.edges.length} conexiones</small></button>
+      <button type="button" className="cl-board-delete" title={"Eliminar «"+b.title+"»"} aria-label={"Eliminar mapa "+b.title} disabled={Boolean(deletingBoardId)} onClick={e=>{e.preventDefault();e.stopPropagation();void deleteBoard(b)}}>{deletingBoardId===b.id?<Loader2 size={18} className="cl-board-delete-spinner"/>:<Trash2 size={18}/>}</button>
+     </div>)}</div>
      <button className="cl-button dark" onClick={createBoard} style={{marginTop:18}}><CirclePlus/> Crear mapa</button>
     </div>:<div ref={canvasRef} className="cl-canvas" style={{transform:`translate3d(${pan.x}px,${pan.y}px,0) scale(${zoom})`}}>
      <svg className="cl-wire" style={{left:visibleWorld.left,top:visibleWorld.top,width:visibleWorld.width,height:visibleWorld.height}} viewBox={`${visibleWorld.left} ${visibleWorld.top} ${visibleWorld.width} ${visibleWorld.height}`}>
@@ -683,6 +724,8 @@ export default function CreativeLab(){
    {board&&!showBoards&&(selectedNode||selectedEdge)&&<aside className="cl-inspector">
     <button className="cl-button" onClick={()=>{setSelected(null);setEdgeSelected(null);setConnecting(null)}} style={{float:"right"}}><X/></button>
     {selectedNode?<><div className="cl-small">Editor de ideas</div><h2>{typeOf(selectedNode.kind).name}</h2>
+     <label className="cl-label" htmlFor="cl-kind-select">Tipo de tarjeta</label>
+     <div className="cl-kind-control"><span className="cl-kind-swatch" style={{backgroundColor:typeOf(selectedNode.kind).color}} aria-hidden="true"/><select id="cl-kind-select" className="cl-field cl-kind-select" value={selectedNode.kind} onChange={e=>changeNodeKind(e.target.value as Kind)}>{types.map(type=><option key={type.key} value={type.key}>{type.name}</option>)}</select></div>
      <label className="cl-label">Título</label><input className="cl-field" value={selectedNode.title} onChange={e=>nodeChange("title",e.target.value)}/>
      <label className="cl-label">Racional / desarrollo</label><textarea className="cl-field" value={selectedNode.body} onChange={e=>nodeChange("body",e.target.value)} placeholder="Escribe tu argumento, hipótesis o desarrollo creativo..."/>
      <label className="cl-label">Enlace de referencia</label><input className="cl-field" value={selectedNode.url||""} onChange={e=>nodeChange("url",e.target.value)} placeholder="https://..."/>
