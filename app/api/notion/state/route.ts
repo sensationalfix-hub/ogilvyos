@@ -89,6 +89,28 @@ function numeric(page: PageRow, name: string): number | null {
   return null;
 }
 
+function readonlyTeamFields(page: PageRow) {
+  const order = ["Antigüedad", "Libres", "Extras", "Restantes", "Gastados", "Días Usados", "Carga", "Nº Evaluaciones",
+    "Calidad hist.", "Timing hist.", "Colaboración hist.", "Autonomía hist.", "Impacto hist.",
+    "Proyectos", "Tareas", "Evaluaciones", "Vacaciones", "Empleado", "Nombre 1", "Dedicacion"];
+  const entries = Object.entries(page.properties || {}).filter(([, prop]) => ["formula","rollup","relation"].includes(prop?.type));
+  return entries.sort(([nameA],[nameB]) => {
+    const a = order.indexOf(nameA), b = order.indexOf(nameB);
+    return (a < 0 ? 999 : a) - (b < 0 ? 999 : b) || nameA.localeCompare(nameB,"es");
+  }).map(([label, prop]) => {
+    const type = String(prop.type || "");
+    const object = type === "formula" ? prop.formula : type === "rollup" ? prop.rollup : null;
+    let value: string | null = null;
+    if (type === "relation") value = (prop.relation?.length || 0) + (prop.has_more ? "+ registros" : " registros");
+    else if (object?.number != null) value = String(Math.round(object.number * 100) / 100);
+    else if (typeof object?.string === "string") value = object.string;
+    else if (typeof object?.boolean === "boolean") value = object.boolean ? "Sí" : "No";
+    else if (object?.date?.start) value = String(object.date.start);
+    else if (Array.isArray(object?.array)) value = String(object.array.length) + " elementos";
+    return { label, type: type === "formula" ? "Fórmula" : type === "rollup" ? "Rollup" : "Relación", value: value || "—" };
+  });
+}
+
 function emailValue(page: PageRow, name: string): string | null {
   const value = prop(page, name);
   if (typeof value?.email === "string" && value.email.trim()) return value.email.trim();
@@ -310,6 +332,7 @@ export async function GET(request: Request) {
           email: emailValue(page, "Email"),
           salary: numeric(page, "Sueldo"),
           vacationRemaining: numeric(page, "Restantes"),
+          readonlyNotion: readonlyTeamFields(page),
           leaveAllowance: {
             base: numeric(page, "Base"),
             convenio: numeric(page, "Convenio"),
