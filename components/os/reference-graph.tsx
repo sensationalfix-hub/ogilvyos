@@ -124,6 +124,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
  const drag=useRef<{id:number;node:string;offsetX:number;offsetY:number;startX:number;startY:number;moved:boolean}|null>(null);
  const linkPointer=useRef<{id:number;source:string}|null>(null);
  const suppressClick=useRef(false);
+ const dragPaint=useRef<number|null>(null);
  const cameraRef=useRef(camera);
  cameraRef.current=camera;
  const graph=useMemo(()=>makeGraph(items,collections,connections,scope,query,page,suggestions),[items,collections,connections,scope,query,page,suggestions]);
@@ -163,6 +164,9 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
   if(graph.nodes.length<2||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
   let raf=0,step=0;
   const animate=()=>{
+   // While a node is in hand, the simulation must not move *any* node.
+   // Let the pointer own every position update until release.
+   if(drag.current){raf=requestAnimationFrame(animate);return;}
    const coords=positions.current;
    const ids=graph.nodes.map(n=>n.id);
    const forces=new Map<string,{x:number;y:number}>();
@@ -251,7 +255,9 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
   setCamera(old=>{const next=Math.max(.42,Math.min(2.1,old.zoom*factor));const scale=next/old.zoom;return {x:px-(px-old.x)*scale,y:py-(py-old.y)*scale,zoom:next};});
  };
  const onDown=(event:ReactPointerEvent<HTMLDivElement>)=>{
-  if(event.button!==0||(event.target instanceof Element&&event.target.closest(".rlg-node,.rlg-line-hit,.rlg-panel,.rlg-controls,.rlg-top")))return;
+  if(event.button!==0||(event.target instanceof Element&&event.target.closest(".rlg-node,.rlg-line-hit,.rlg-panel,.rlg-controls,.rlg-top,.rlg-mode-note,.rlg-hint")))return;
+  // A click on empty canvas clears selection, but does not dismiss a connection draft being edited.
+  setFocus(null);setActiveEdge(null);setConnectSource(null);
   pan.current={id:event.pointerId,x:event.clientX,y:event.clientY,camX:cameraRef.current.x,camY:cameraRef.current.y};
   event.currentTarget.setPointerCapture(event.pointerId);
  };
@@ -263,6 +269,49 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
   if(pan.current?.id===event.pointerId)pan.current=null;
   if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
  };
+ // Pointer listeners live on window rather than on the moving node.
+ // Safari can send uneven pointer coordinates if a transformed element captures its own pointer.
+ useEffect(()=>{
+  const paint=()=>{
+   if(dragPaint.current!==null)return;
+   dragPaint.current=requestAnimationFrame(()=>{dragPaint.current=null;setFrame(v=>v+1);});
+  };
+  const move=(event:PointerEvent)=>{
+   const d=drag.current;if(!d||d.id!==event.pointerId)return;
+   if(Math.hypot(event.clientX-d.startX,event.clientY-d.startY)>3)d.moved=true;
+   if(!d.moved)return;
+   const rect=canvas.current?.getBoundingClientRect();
+   if(!rect)return;
+   const c=cameraRef.current;
+   const p=positions.current.get(d.node);
+   if(!p)return;
+   const x=(event.clientX-rect.left-c.x)/c.zoom-d.offsetX;
+   const y=(event.clientY-rect.top-c.y)/c.zoom-d.offsetY;
+   // The cursor gives an absolute position, not incremental changes from a moving DOM target.
+   p.x=x;p.y=y;p.vx=0;p.vy=0;
+   paint();
+  };
+  const release=(event:PointerEvent)=>{
+   const d=drag.current;if(!d||d.id!==event.pointerId)return;
+   const p=positions.current.get(d.node);
+   if(p){p.dragging=false;p.vx=0;p.vy=0;p.pinnedUntil=performance.now()+900;}
+   drag.current=null;
+   suppressClick.current=d.moved;
+   // Browser click (if any) is dispatched after pointerup; do not suppress a future click.
+   requestAnimationFrame(()=>{suppressClick.current=false;});
+   paint();
+  };
+  window.addEventListener("pointermove",move,{passive:true});
+  window.addEventListener("pointerup",release);
+  window.addEventListener("pointercancel",release);
+  return()=>{
+   window.removeEventListener("pointermove",move);
+   window.removeEventListener("pointerup",release);
+   window.removeEventListener("pointercancel",release);
+   if(dragPaint.current!==null)cancelAnimationFrame(dragPaint.current);
+   dragPaint.current=null;
+  };
+ },[]);
  const nodeDown=(event:ReactPointerEvent<HTMLButtonElement>,id:string)=>{
   if(event.button!==0)return;
   event.stopPropagation();
@@ -270,23 +319,6 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
   const p=positions.current.get(id);if(!p)return;
   drag.current={id:event.pointerId,node:id,offsetX:point.x-p.x,offsetY:point.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
   p.dragging=true;p.vx=0;p.vy=0;
-  event.currentTarget.setPointerCapture(event.pointerId);
- };
- const nodeMove=(event:ReactPointerEvent<HTMLButtonElement>)=>{
-  const d=drag.current;if(!d||d.id!==event.pointerId)return;
-  const point=worldAt(event.clientX,event.clientY);
-  if(Math.hypot(event.clientX-d.startX,event.clientY-d.startY)>4)d.moved=true;
-  if(!d.moved)return;
-  const p=positions.current.get(d.node);
-  if(p){p.x=point.x-d.offsetX;p.y=point.y-d.offsetY;p.vx=0;p.vy=0;setFrame(v=>v+1);}
- };
- const nodeUp=(event:ReactPointerEvent<HTMLButtonElement>)=>{
-  if(drag.current?.id!==event.pointerId)return;
-  const p=positions.current.get(drag.current.node);
-  if(p){p.dragging=false;p.vx=0;p.vy=0;p.pinnedUntil=performance.now()+650;}
-  suppressClick.current=drag.current.moved;
-  drag.current=null;
-  if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
  };
  const linkStart=(event:ReactPointerEvent<HTMLSpanElement>,source:string)=>{
   if(event.button!==0)return;
@@ -351,8 +383,8 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
      {linkDrag&&<path className="rlg-draft-line" d={"M "+pos(linkDrag.source).x+" "+pos(linkDrag.source).y+" L "+linkDrag.x+" "+linkDrag.y}/>}
     </svg>
     {graph.nodes.map(node=>{
-     const p=pos(node.id),selected=focus===node.id||connectSource===node.id,muted=Boolean(focus&&!neighbors.has(node.id));
-     return <button key={node.id} type="button" data-graph-node={node.id} className={"rlg-node "+(node.cluster?"is-cluster ":"")+(selected?"is-selected ":"")+(muted?"is-dimmed":"")} style={{transform:"translate("+p.x+"px,"+p.y+"px)"}} onPointerDown={e=>nodeDown(e,node.id)} onPointerMove={nodeMove} onPointerUp={nodeUp} onPointerCancel={nodeUp} onClick={()=>choose(node)} onDoubleClick={()=>{if(!node.cluster)onOpen(node.id);}} aria-label={(node.cluster?"Abrir colección ":"Seleccionar referencia ")+node.title}>
+     const p=pos(node.id),selected=focus===node.id||connectSource===node.id,muted=Boolean(focus&&!neighbors.has(node.id)),dragging=drag.current?.node===node.id;
+     return <button key={node.id} type="button" data-graph-node={node.id} className={"rlg-node "+(node.cluster?"is-cluster ":"")+(selected?"is-selected ":"")+(muted?"is-dimmed":"")+(dragging?" is-dragging":"")} style={{transform:"translate("+p.x+"px,"+p.y+"px)"}} onPointerDown={e=>nodeDown(e,node.id)} onClick={()=>choose(node)} onDoubleClick={()=>{if(!node.cluster)onOpen(node.id);}} aria-label={(node.cluster?"Abrir colección ":"Seleccionar referencia ")+node.title}>
       <span className="rlg-orb">{node.cluster?<><Layers3 size={23}/><span className="rlg-count">{node.count}</span></>:node.image?<img draggable={false} src={node.image} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/>:<span className="rlg-placeholder"><GitBranch size={22}/></span>}</span>
       {!node.cluster&&(selected||connectMode)&&<span className="rlg-node-handle" title="Arrastra hasta otra referencia para conectarlas" onPointerDown={event=>linkStart(event,node.id)} onPointerMove={linkMove} onPointerUp={linkEnd} onPointerCancel={linkEnd} onClick={event=>event.stopPropagation()}><Plus size={15}/></span>}
       <span className="rlg-node-name">{node.title}</span>
