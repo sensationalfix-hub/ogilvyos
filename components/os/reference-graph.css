@@ -12,7 +12,7 @@
 .rlg-grid{position:absolute;inset:0;background-image:radial-gradient(#bcc6b34d 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(to bottom,#0008,#0005);pointer-events:none}
 .rlg-canvas::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,#eaf2e242 0%,transparent 65%)}
 .rlg-stage{position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 0;will-change:transform}
-.rlg-wires{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;z-index:0}
+.rlg-wires{position:absolute;top:-360px;left:-560px;pointer-events:none;overflow:visible;z-index:0}
 .rlg-wire{transition:opacity .16s}
 .rlg-wire.is-muted{opacity:.06}
 .rlg-line{fill:none;stroke:#b5c2ab;stroke-width:1.4;opacity:.8;vector-effect:non-scaling-stroke;pointer-events:none}
