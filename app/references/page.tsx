@@ -201,7 +201,7 @@ export default function ReferencesPage(){
   </aside>
   <section className="rl-content">
    {tab!=="connections"&&<header className="rl-header">
-    <div className="rl-title-block"><span className="rl-eyebrow">ARCHIVO / IDEAS / REFERENCIAS</span><h1>{tab==="all"?"Tu universo visual.":tab==="connections"?"Conecta las ideas.":"Encuentra lo inesperado."}</h1><p>{tab==="all"?"Todo lo que te inspira, en un solo lugar.":tab==="connections"?"Las relaciones existen. Solo hay que saber encontrarlas.":"De tu biblioteca hacia nuevas referencias."}</p></div>
+    <div className="rl-title-block"><span className="rl-eyebrow">ARCHIVO / IDEAS / REFERENCIAS</span><h1>{tab==="all"?"Tu universo visual.":"Encuentra lo inesperado."}</h1><p>{tab==="all"?"Todo lo que te inspira, en un solo lugar.":"De tu biblioteca hacia nuevas referencias."}</p></div>
     <button className="rl-add" onClick={()=>setCapture(true)}><Plus size={17}/> Añadir referencia</button>
    </header>}
    <div className={"rl-toolbar"+(tab==="connections"?" rl-graph-toolbar":"")}>
