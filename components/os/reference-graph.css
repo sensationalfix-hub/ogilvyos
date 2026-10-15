@@ -129,3 +129,19 @@
 .rlg-node{left:-66px;top:-36.5px;translate:none;will-change:transform;backface-visibility:hidden}
 .rlg-node.is-cluster{top:-45.5px}
 .rlg-node .rlg-orb{backface-visibility:hidden}
+
+
+/* Affinity layouts stay inside the existing restrained reference-library HUD. */
+.rlg-layout-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid #dce5d5;border-radius:10px;background:#ffffffed;box-shadow:0 5px 18px #26371b12;backdrop-filter:blur(14px)}
+.rl-immersive .rlg-actions .rlg-layout-switch button,
+.rlg-actions .rlg-layout-switch button{margin:0;padding:8px 11px;border:0;border-radius:7px;background:transparent;color:#7b8575;font-weight:750;font-size:10px;box-shadow:none;transition:background .2s,color .2s}
+.rl-immersive .rlg-actions .rlg-layout-switch button.is-active,
+.rlg-actions .rlg-layout-switch button.is-active{background:#c5f56c;color:#2c3b1f;box-shadow:0 1px 5px #2c411616}
+.rlg-nearby{margin:19px 0 8px;padding:14px 0;border-top:1px solid #e3e9dd;display:grid;gap:7px}
+.rlg-nearby>.rlg-panel-eyebrow{margin-bottom:2px}
+.rlg-nearby button{background:#f4f7ef;border:1px solid #e8eddf;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:12px;text-align:left;font-size:10px;color:#495843}
+.rlg-nearby button:hover{background:#e9f3dd}
+.rlg-nearby button>span{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.rlg-nearby button small{flex-shrink:0;font-size:9px;color:#859878}
+@media(max-width:1100px){.rl-immersive .rlg-top{left:15px;right:15px}.rl-immersive .rlg-title>span:last-child{display:none}.rlg-layout-switch button{white-space:nowrap}}
+@media(max-width:860px){.rl-immersive .rlg-top{top:122px;gap:7px}.rl-immersive .rlg-actions{max-width:100%;gap:5px}.rl-immersive .rlg-actions .rlg-layout-switch button{padding:8px}}
