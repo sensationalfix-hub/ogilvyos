@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ArrowLeft, ArrowUpRight, Check, GitBranch, Layers3, Maximize2, Minus, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, GitBranch, Layers3, Maximize2, Minus, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import "./reference-graph.css";
 
 type Item = { id:string; title:string; url:string|null; image_url:string|null; media_path:string|null; kind:string; site:string|null; notes:string; auto_tags:string[]; collection_id:string|null };
@@ -9,7 +9,7 @@ type Collection = { id:string; name:string };
 type Connection = { id:string; source_id:string; target_id:string; relation:string; explanation:string };
 type Node = { id:string; title:string; image:string|null; kind:string; collection:string; group:string; count:number; cluster:boolean };
 type Edge = { id:string; source:string; target:string; saved:boolean; relation:string; explanation:string; strength:number };
-type Point = { x:number;y:number;vx:number;vy:number;dragging?:boolean };
+type Point = { x:number;y:number;vx:number;vy:number;dragging?:boolean;pinnedUntil?:number };
 type Camera = { x:number;y:number;zoom:number };
 
 const WIDTH = 1120;
@@ -101,19 +101,28 @@ function initialPoint(node:Node,index:number,count:number):Point {
  const radius=150+(hash(node.id)%220);
  return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius*.7,vx:0,vy:0};
 }
-export function ReferenceGraph({items,collections,connections,query,onOpen}:{items:Item[];collections:Collection[];connections:Connection[];query:string;onOpen:(id:string)=>void}) {
+export function ReferenceGraph({items,collections,connections,query,onOpen,onRefresh}:{items:Item[];collections:Collection[];connections:Connection[];query:string;onOpen:(id:string)=>void;onRefresh:()=>void|Promise<void>}) {
  const [scope,setScope]=useState<string|null>(null);
  const [page,setPage]=useState(0);
  const [suggestions,setSuggestions]=useState(true);
  const [focus,setFocus]=useState<string|null>(null);
  const [activeEdge,setActiveEdge]=useState<string|null>(null);
+ const [connectMode,setConnectMode]=useState(false);
+ const [connectSource,setConnectSource]=useState<string|null>(null);
+ const [draft,setDraft]=useState<{source:string;target:string}|null>(null);
+ const [relation,setRelation]=useState("inspira");
+ const [explanation,setExplanation]=useState("");
+ const [saving,setSaving]=useState(false);
+ const [actionError,setActionError]=useState("");
+ const [linkDrag,setLinkDrag]=useState<{source:string;x:number;y:number}|null>(null);
  const [camera,setCamera]=useState<Camera>({x:500,y:360,zoom:1});
  const [frame,setFrame]=useState(0);
  const [dims,setDims]=useState({width:1000,height:660});
  const canvas=useRef<HTMLDivElement>(null);
  const positions=useRef<Map<string,Point>>(new Map());
  const pan=useRef<{id:number;x:number;y:number;camX:number;camY:number}|null>(null);
- const drag=useRef<{id:number;node:string;x:number;y:number;moved:boolean}|null>(null);
+ const drag=useRef<{id:number;node:string;offsetX:number;offsetY:number;startX:number;startY:number;moved:boolean}|null>(null);
+ const linkPointer=useRef<{id:number;source:string}|null>(null);
  const suppressClick=useRef(false);
  const cameraRef=useRef(camera);
  cameraRef.current=camera;
@@ -142,7 +151,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
   el.addEventListener("wheel",handler,{passive:false});
   return()=>el.removeEventListener("wheel",handler);
  },[]);
- useEffect(()=>{setPage(0);setScope(null);setFocus(null);setActiveEdge(null);},[query]);
+ useEffect(()=>{setPage(0);setScope(null);setFocus(null);setActiveEdge(null);setConnectSource(null);setDraft(null);},[query]);
  useEffect(()=>{
   const old=positions.current;
   const next=new Map<string,Point>();
@@ -182,8 +191,8 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
     fa.x+=fx;fa.y+=fy;fb.x-=fx;fb.y-=fy;
    }
    for(const id of ids){
-    const p=coords.get(id),f=forces.get(id);if(!p||!f||p.dragging)continue;
-    p.vx=(p.vx+f.x)*.87;p.vy=(p.vy+f.y)*.87;
+    const p=coords.get(id),f=forces.get(id);if(!p||!f||p.dragging||(p.pinnedUntil&&performance.now()<p.pinnedUntil))continue;
+    p.vx=Math.max(-3,Math.min(3,(p.vx+f.x)*.82));p.vy=Math.max(-3,Math.min(3,(p.vy+f.y)*.82));
     p.x=Math.max(-WIDTH/2,Math.min(WIDTH/2,p.x+p.vx));
     p.y=Math.max(-HEIGHT/2,Math.min(HEIGHT/2,p.y+p.vy));
    }
@@ -195,6 +204,49 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
  },[graph.nodes,edges]);
  useEffect(()=>{if(focus&&!graph.nodes.some(n=>n.id===focus))setFocus(null);if(activeEdge&&!edges.some(e=>e.id===activeEdge))setActiveEdge(null);},[graph.nodes,edges,focus,activeEdge]);
  const reset=()=>{setCamera({x:dims.width/2,y:dims.height/2,zoom:1});setFocus(null);setActiveEdge(null);};
+ const worldAt=(clientX:number,clientY:number)=>{
+  const rect=canvas.current?.getBoundingClientRect();
+  const c=cameraRef.current;
+  return {x:(clientX-(rect?.left||0)-c.x)/c.zoom,y:(clientY-(rect?.top||0)-c.y)/c.zoom};
+ };
+ const openEdge=(edge:Edge)=>{
+  setActiveEdge(edge.id);setFocus(null);setDraft(null);setConnectMode(false);setConnectSource(null);
+  setRelation(edge.saved?edge.relation:"comparte tema");
+  setExplanation(edge.saved?edge.explanation:"");
+  setActionError("");
+ };
+ const prepareConnection=(source:string,target:string)=>{
+  if(source===target)return;
+  const linked=edges.find(e=>e.saved&&((e.source===source&&e.target===target)||(e.target===source&&e.source===target)));
+  if(linked){openEdge(linked);return;}
+  setDraft({source,target});setActiveEdge(null);setFocus(null);setConnectMode(false);setConnectSource(null);
+  setRelation("inspira");setExplanation("");setActionError("");
+ };
+ const saveConnection=async()=>{
+  const pair=draft||(!draft&&active?{source:active.source,target:active.target}:null);
+  if(!pair||saving)return;
+  const editing=active?.saved&&!draft;
+  setSaving(true);setActionError("");
+  try{
+   const response=await fetch("/api/references",{
+    method:editing?"PATCH":"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(editing?{action:"connection",id:active?.id,relation,explanation}:{action:"connection",source_id:pair.source,target_id:pair.target,relation,explanation})
+   });
+   const json=await response.json();if(!response.ok)throw new Error(json.error||"No se pudo guardar la conexión.");
+   setDraft(null);setActiveEdge(null);setConnectSource(null);await onRefresh();
+  }catch(error){setActionError(error instanceof Error?error.message:"Error al guardar.");}
+  finally{setSaving(false);}
+ };
+ const removeConnection=async()=>{
+  if(!active?.saved||saving||!window.confirm("¿Eliminar esta conexión?"))return;
+  setSaving(true);setActionError("");
+  try{
+   const response=await fetch("/api/references?type=connection&id="+encodeURIComponent(active.id),{method:"DELETE"});
+   const json=await response.json();if(!response.ok)throw new Error(json.error||"No se pudo eliminar.");
+   setActiveEdge(null);await onRefresh();
+  }catch(error){setActionError(error instanceof Error?error.message:"Error al eliminar.");}
+  finally{setSaving(false);}
+ };
  const zoom=(factor:number,px=dims.width/2,py=dims.height/2)=>{
   setCamera(old=>{const next=Math.max(.42,Math.min(2.1,old.zoom*factor));const scale=next/old.zoom;return {x:px-(px-old.x)*scale,y:py-(py-old.y)*scale,zoom:next};});
  };
@@ -214,42 +266,76 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
  const nodeDown=(event:ReactPointerEvent<HTMLButtonElement>,id:string)=>{
   if(event.button!==0)return;
   event.stopPropagation();
-  drag.current={id:event.pointerId,node:id,x:event.clientX,y:event.clientY,moved:false};
-  const p=positions.current.get(id);if(p)p.dragging=true;
+  const point=worldAt(event.clientX,event.clientY);
+  const p=positions.current.get(id);if(!p)return;
+  drag.current={id:event.pointerId,node:id,offsetX:point.x-p.x,offsetY:point.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
+  p.dragging=true;p.vx=0;p.vy=0;
   event.currentTarget.setPointerCapture(event.pointerId);
  };
  const nodeMove=(event:ReactPointerEvent<HTMLButtonElement>)=>{
   const d=drag.current;if(!d||d.id!==event.pointerId)return;
-  const dx=event.clientX-d.x,dy=event.clientY-d.y;
-  if(Math.abs(dx)+Math.abs(dy)>3)d.moved=true;
+  const point=worldAt(event.clientX,event.clientY);
+  if(Math.hypot(event.clientX-d.startX,event.clientY-d.startY)>4)d.moved=true;
+  if(!d.moved)return;
   const p=positions.current.get(d.node);
-  if(p){p.x+=dx/cameraRef.current.zoom;p.y+=dy/cameraRef.current.zoom;p.vx=0;p.vy=0;setFrame(v=>v+1);}
-  d.x=event.clientX;d.y=event.clientY;
+  if(p){p.x=point.x-d.offsetX;p.y=point.y-d.offsetY;p.vx=0;p.vy=0;setFrame(v=>v+1);}
  };
  const nodeUp=(event:ReactPointerEvent<HTMLButtonElement>)=>{
   if(drag.current?.id!==event.pointerId)return;
-  const p=positions.current.get(drag.current.node);if(p)p.dragging=false;
+  const p=positions.current.get(drag.current.node);
+  if(p){p.dragging=false;p.vx=0;p.vy=0;p.pinnedUntil=performance.now()+650;}
   suppressClick.current=drag.current.moved;
   drag.current=null;
   if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
  };
+ const linkStart=(event:ReactPointerEvent<HTMLSpanElement>,source:string)=>{
+  if(event.button!==0)return;
+  event.preventDefault();event.stopPropagation();
+  const point=worldAt(event.clientX,event.clientY);
+  linkPointer.current={id:event.pointerId,source};
+  setLinkDrag({source,x:point.x,y:point.y});
+  event.currentTarget.setPointerCapture(event.pointerId);
+ };
+ const linkMove=(event:ReactPointerEvent<HTMLSpanElement>)=>{
+  if(linkPointer.current?.id!==event.pointerId)return;
+  event.stopPropagation();
+  const point=worldAt(event.clientX,event.clientY);
+  setLinkDrag({source:linkPointer.current.source,x:point.x,y:point.y});
+ };
+ const linkEnd=(event:ReactPointerEvent<HTMLSpanElement>)=>{
+  const lp=linkPointer.current;if(!lp||lp.id!==event.pointerId)return;
+  event.preventDefault();event.stopPropagation();
+  const destination=document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>("[data-graph-node]");
+  const target=destination?.dataset.graphNode;
+  if(target&&target!==lp.source&&graph.nodes.some(n=>n.id===target&&!n.cluster))prepareConnection(lp.source,target);
+  else{setConnectMode(true);setConnectSource(lp.source);setFocus(lp.source);}
+  setLinkDrag(null);linkPointer.current=null;
+  if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
+ };
  const choose=(node:Node)=>{
   if(suppressClick.current){suppressClick.current=false;return;}
-  if(node.cluster){setScope(node.group);setPage(0);setFocus(null);setActiveEdge(null);reset();return;}
+  if(node.cluster){setScope(node.group);setPage(0);setFocus(null);setActiveEdge(null);setConnectSource(null);reset();return;}
+  if(connectMode){
+   if(!connectSource){setConnectSource(node.id);setFocus(node.id);setActiveEdge(null);return;}
+   if(connectSource===node.id){setConnectSource(null);setFocus(null);return;}
+   prepareConnection(connectSource,node.id);return;
+  }
   setFocus(node.id);setActiveEdge(null);
  };
  const pos=(id:string)=>positions.current.get(id)||{x:0,y:0};
  void frame;
  return <div className="rlg">
-  <div className="rlg-top">
-   <div className="rlg-title"><span className="rlg-led"/><strong>{groupTitle?"Explorando "+groupTitle:"Mapa de conexiones"}</strong><span>{shownCount} referencias · {edges.filter(e=>e.saved).length} enlaces confirmados</span></div>
-   <div className="rlg-actions">
-    {scope&&<button onClick={()=>{setScope(null);setPage(0);reset();}}><ArrowLeft size={14}/> Todos los grupos</button>}
-    <button className={suggestions?"rlg-toggled":""} onClick={()=>setSuggestions(v=>!v)} title="Mostrar u ocultar afinidades calculadas con etiquetas"><Sparkles size={14}/> Afinidades {suggestions?"ON":"OFF"}</button>
-   </div>
-  </div>
   <div className="rlg-canvas" ref={canvas} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-label="Mapa interactivo de referencias">
    <div className="rlg-grid"/>
+   <div className="rlg-top">
+    <div className="rlg-title"><span className="rlg-led"/><strong>{groupTitle?"Explorando "+groupTitle:"Mapa de conexiones"}</strong><span>{shownCount} referencias · {edges.filter(e=>e.saved).length} enlaces confirmados</span></div>
+    <div className="rlg-actions">
+     {scope&&<button onClick={()=>{setScope(null);setPage(0);reset();}}><ArrowLeft size={14}/> Todos los grupos</button>}
+     <button className={connectMode?"rlg-toggled rlg-connect-active":"rlg-connect-button"} onClick={()=>{setConnectMode(v=>!v);setConnectSource(null);setActiveEdge(null);setDraft(null);setFocus(null);}}><GitBranch size={14}/> {connectMode?"Selecciona origen":"Conectar nodos"}</button>
+     <button className={suggestions?"rlg-toggled":""} onClick={()=>setSuggestions(v=>!v)} title="Mostrar u ocultar afinidades calculadas con etiquetas"><Sparkles size={14}/> Afinidades {suggestions?"ON":"OFF"}</button>
+    </div>
+   </div>
+   {connectMode&&<div className="rlg-mode-note">{connectSource?"Ahora selecciona la referencia de destino.":"Selecciona el primer nodo para conectarlo con otro."}<button onClick={()=>{setConnectMode(false);setConnectSource(null);setFocus(null);}}>Cancelar</button></div>}
    <div className="rlg-stage" style={{transform:"translate("+camera.x+"px,"+camera.y+"px) scale("+camera.zoom+")"}}>
     <svg className="rlg-wires" width={WIDTH} height={HEIGHT} viewBox={"-"+WIDTH/2+" -"+HEIGHT/2+" "+WIDTH+" "+HEIGHT} aria-hidden="true">
      {edges.map(e=>{
@@ -259,14 +345,16 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
       const d="M "+a.x+" "+a.y+" L "+b.x+" "+b.y;
       return <g key={e.id} className={"rlg-wire "+(e.saved?"is-saved":"is-proposed")+(emphasized?" is-visible":" is-muted")+(chosen?" is-chosen":"")}>
        <path className="rlg-line" d={d}/>
-       <path className="rlg-line-hit" d={d} onPointerDown={event=>event.stopPropagation()} onClick={()=>{setActiveEdge(e.id);setFocus(null);}}><title>{e.relation}</title></path>
+       <path className="rlg-line-hit" d={d} onPointerDown={event=>event.stopPropagation()} onClick={()=>openEdge(e)}><title>{e.relation}</title></path>
       </g>;
      })}
+     {linkDrag&&<path className="rlg-draft-line" d={"M "+pos(linkDrag.source).x+" "+pos(linkDrag.source).y+" L "+linkDrag.x+" "+linkDrag.y}/>}
     </svg>
     {graph.nodes.map(node=>{
-     const p=pos(node.id),selected=focus===node.id,muted=Boolean(focus&&!neighbors.has(node.id));
-     return <button key={node.id} type="button" className={"rlg-node "+(node.cluster?"is-cluster ":"")+(selected?"is-selected ":"")+(muted?"is-dimmed":"")} style={{transform:"translate("+p.x+"px,"+p.y+"px)"}} onPointerDown={e=>nodeDown(e,node.id)} onPointerMove={nodeMove} onPointerUp={nodeUp} onPointerCancel={nodeUp} onClick={()=>choose(node)} onDoubleClick={()=>{if(!node.cluster)onOpen(node.id);}} aria-label={(node.cluster?"Abrir colección ":"Seleccionar referencia ")+node.title}>
+     const p=pos(node.id),selected=focus===node.id||connectSource===node.id,muted=Boolean(focus&&!neighbors.has(node.id));
+     return <button key={node.id} type="button" data-graph-node={node.id} className={"rlg-node "+(node.cluster?"is-cluster ":"")+(selected?"is-selected ":"")+(muted?"is-dimmed":"")} style={{transform:"translate("+p.x+"px,"+p.y+"px)"}} onPointerDown={e=>nodeDown(e,node.id)} onPointerMove={nodeMove} onPointerUp={nodeUp} onPointerCancel={nodeUp} onClick={()=>choose(node)} onDoubleClick={()=>{if(!node.cluster)onOpen(node.id);}} aria-label={(node.cluster?"Abrir colección ":"Seleccionar referencia ")+node.title}>
       <span className="rlg-orb">{node.cluster?<><Layers3 size={23}/><span className="rlg-count">{node.count}</span></>:node.image?<img draggable={false} src={node.image} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/>:<span className="rlg-placeholder"><GitBranch size={22}/></span>}</span>
+      {!node.cluster&&(selected||connectMode)&&<span className="rlg-node-handle" title="Arrastra hasta otra referencia para conectarlas" onPointerDown={event=>linkStart(event,node.id)} onPointerMove={linkMove} onPointerUp={linkEnd} onPointerCancel={linkEnd}><Plus size={15}/></span>}
       <span className="rlg-node-name">{node.title}</span>
       {node.cluster&&<span className="rlg-cluster-caption">ABRIR GRUPO</span>}
      </button>;
@@ -290,20 +378,30 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
      })}
      {!edges.some(e=>e.source===focus||e.target===focus)&&<p>Sin relaciones visibles. Puedes crearlas desde el detalle.</p>}
     </div>
+    <button className="rlg-secondary" onClick={()=>{setConnectMode(true);setConnectSource(focusNode.id);}}>Conectar con otra referencia <GitBranch size={14}/></button>
     <button className="rlg-primary" onClick={()=>onOpen(focusNode.id)}>Abrir referencia <ArrowUpRight size={15}/></button>
    </aside>}
-   {active&&<aside className="rlg-panel">
-    <button className="rlg-close" onClick={()=>setActiveEdge(null)} aria-label="Cerrar conexión"><X size={16}/></button>
-    <div className="rlg-panel-eyebrow">{active.saved?"CONEXIÓN GUARDADA":"POSIBLE AFINIDAD"}</div>
-    <h3>{graph.nodes.find(n=>n.id===active.source)?.title}</h3>
-    <div className="rlg-edge-relation">{active.saved?<Check size={14}/>:<Sparkles size={14}/>} {active.relation}</div>
-    <h3>{graph.nodes.find(n=>n.id===active.target)?.title}</h3>
-    <p>{active.explanation||(active.saved?"Relación creada manualmente. Puedes completarla desde el detalle de la referencia.":"Afinidad calculada por etiquetas.")}</p>
-    <button className="rlg-primary" onClick={()=>{const node=graph.nodes.find(n=>n.id===active.source);if(node&&!node.cluster)onOpen(node.id);}}>Abrir referencia <ArrowUpRight size={15}/></button>
+   {(active||draft)&&<aside className="rlg-panel rlg-editor" onPointerDown={event=>event.stopPropagation()}>
+    <button className="rlg-close" onClick={()=>{setActiveEdge(null);setDraft(null);setActionError("");}} aria-label="Cerrar conexión"><X size={16}/></button>
+    <div className="rlg-panel-eyebrow">{draft?"NUEVA CONEXIÓN":active?.saved?"EDITAR CONEXIÓN":"CONFIRMAR AFINIDAD"}</div>
+    <h3>{graph.nodes.find(n=>n.id===(draft?.source||active?.source))?.title||"Origen"}</h3>
+    <div className="rlg-edge-relation"><GitBranch size={14}/> conectado con</div>
+    <h3>{graph.nodes.find(n=>n.id===(draft?.target||active?.target))?.title||"Destino"}</h3>
+    <label className="rlg-form-label" htmlFor="rlg-relation">TIPO DE RELACIÓN</label>
+    <select id="rlg-relation" className="rlg-form-input" value={relation} onChange={event=>setRelation(event.target.value)}>
+     <option value="inspira">Inspira</option><option value="comparte tema">Comparte tema</option><option value="misma estética">Misma estética</option><option value="comparte lenguaje visual">Comparte lenguaje visual</option><option value="desarrolla">Desarrolla</option><option value="contradice">Contradice</option><option value="conecta con">Conecta con</option>
+     {!["inspira","comparte tema","misma estética","comparte lenguaje visual","desarrolla","contradice","conecta con"].includes(relation)&&<option value={relation}>{relation}</option>}
+    </select>
+    <label className="rlg-form-label" htmlFor="rlg-explanation">POR QUÉ SE CONECTAN</label>
+    <textarea id="rlg-explanation" className="rlg-form-input" rows={3} maxLength={500} placeholder="Opcional: explica la relación entre estas ideas…" value={explanation} onChange={event=>setExplanation(event.target.value)}/>
+    {active&&!active.saved&&<p className="rlg-suggestion-note">{active.explanation}</p>}
+    {actionError&&<p className="rlg-action-error" role="alert">{actionError}</p>}
+    <button disabled={saving} className="rlg-primary" onClick={saveConnection}>{saving?"Guardando…":active?.saved&&!draft?"Guardar cambios":"Guardar conexión"} <Check size={15}/></button>
+    {active?.saved&&!draft&&<button disabled={saving} className="rlg-delete-link" onClick={removeConnection}><Trash2 size={14}/> Eliminar conexión</button>}
    </aside>}
    {!items.length&&<div className="rlg-empty"><GitBranch size={26}/><strong>El mapa espera sus primeras referencias.</strong><span>Añade referencias para empezar a descubrir conexiones.</span></div>}
    {items.length>0&&!graph.nodes.length&&<div className="rlg-empty"><GitBranch size={25}/><strong>Sin coincidencias.</strong><span>Prueba otra búsqueda.</span></div>}
-   <div className="rlg-hint"><span className="rlg-line-legend"/> Guardada <span className="rlg-line-legend proposed"/> Afinidad sugerida <span className="rlg-hint-desktop"> · Arrastra para mover · Rueda para zoom · Doble clic para abrir</span></div>
+   <div className="rlg-hint"><span className="rlg-line-legend"/> Guardada <span className="rlg-line-legend proposed"/> Afinidad sugerida <span className="rlg-hint-desktop"> · Arrastra para mover · Usa el + para enlazar · Doble clic para abrir</span></div>
   </div>
   <div className="rlg-bottom">
    <span>{graph.collapsing?"Vista agrupada para evitar saturación. Haz clic en un grupo para explorarlo.":query?"Resultados filtrados en tu biblioteca.":"Las líneas discontinuas son sugerencias, no se guardan automáticamente."}</span>
