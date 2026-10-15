@@ -17,7 +17,8 @@ type Collection={id:string;name:string};
 type Connection={id:string;source_id:string;target_id:string;relation:string;explanation:string};
 type Data={items:Item[];collections:Collection[];connections:Connection[]};
 type PageTab="all"|"connections"|"discover";
-type ExternalWork={id:number;title:string;artist:string;date:string;image:string;url:string;site:string;kind:string};
+type ExternalWork={id:string;title:string;description:string;date:string;image:string;url:string;site:string;source:"directors"|"reasonwhy"|"publicista";kind:"video"|"web";mode:"live"|"selection"};
+type DiscoverySource="all"|ExternalWork["source"];
 const stop=new Set(["para","sobre","desde","hasta","unas","unos","esta","este","entre","tiene","pero","that","with","from","some","this","your","https","www","com","video","image","the","and"]);
 function words(r:Item){const text=[r.title,r.notes,...r.auto_tags.filter(tag=>!tag.startsWith("visual:"))].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return Array.from(new Set((text.match(/[a-z]{5,}/g)||[]).filter(t=>!stop.has(t))));}
 function similar(ref:Item,items:Item[]){const a=words(ref);return items.filter(x=>x.id!==ref.id).map(item=>{const b=words(item);const overlap=a.filter(w=>b.includes(w));return {item,overlap,score:overlap.length}}).filter(x=>x.score>0).sort((x,y)=>y.score-x.score).slice(0,6)}
@@ -111,9 +112,11 @@ function MasonryGallery({items,onOpen}:{items:Item[];onOpen:(id:string)=>void}){
 function DiscoveryImage({work}:{work:ExternalWork}){
  const [failed,setFailed]=useState(false);
  useEffect(()=>setFailed(false),[work.id,work.image]);
- return <div className="rl-discovery-media">
-  {failed?<div className="rl-discovery-unavailable"><ImageIcon size={28}/><span>Vista previa no disponible</span></div>:
+ return <div className={"rl-discovery-media"+(!work.image||failed?" is-placeholder":"")}>
+  {!work.image||failed?
+   <span className="rl-discovery-placeholder"><Film size={31}/><small>{work.source==="directors"?"FILM / CAMPAIGN":"CREATIVE / CAMPAIGN"}</small></span>:
    <img src={work.image} alt="" loading="lazy" decoding="async" onError={()=>setFailed(true)}/>}
+  <span className="rl-discovery-media-type">{work.source==="directors"?"SPOT / FILM":"CAMPAÑA"}</span>
  </div>;
 }
 export default function ReferencesPage(){
@@ -128,15 +131,16 @@ export default function ReferencesPage(){
  const [externalWorks,setExternalWorks]=useState<ExternalWork[]>([]);
  const [externalLoading,setExternalLoading]=useState(false);
  const [externalError,setExternalError]=useState("");
- const [savingExternal,setSavingExternal]=useState<number|null>(null);
+ const [savingExternal,setSavingExternal]=useState<string|null>(null);
+ const [discoverySource,setDiscoverySource]=useState<DiscoverySource>("all");
  const [importStatus,setImportStatus]=useState("");
- const discoveryTerm=externalTerm.trim()||"myth";
+ const discoveryTerm=externalTerm.trim();
  useEffect(()=>{
   if(tab!=="discover")return;
   let active=true;
   const timer=setTimeout(async()=>{
    setExternalLoading(true);setExternalError("");
-   try{const r=await fetch("/api/references/discover?q="+encodeURIComponent(discoveryTerm));const d=await r.json();if(!r.ok)throw Error(d.error||"Error de búsqueda");if(active){setExternalWorks(d.works||[]);setExternalError(d.error||"")}}
+   try{const r=await fetch("/api/references/discover?q="+encodeURIComponent(discoveryTerm),{cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"Error de búsqueda");if(active){setExternalWorks(d.works||[]);setExternalError(d.error||"")}}
    catch(e){if(active){setExternalWorks([]);setExternalError(e instanceof Error?e.message:"No se pudo buscar")}}
    finally{if(active)setExternalLoading(false)}
   },350);
@@ -171,7 +175,7 @@ export default function ReferencesPage(){
  const disconnect=async(id:string)=>{setBusy(true);try{await request("DELETE",undefined,"/api/references?type=connection&id="+encodeURIComponent(id));await load()}catch(e){setError(String(e))}finally{setBusy(false)}};
  const saveDiscovered=async(work:ExternalWork)=>{
   setSavingExternal(work.id);
-  try{await request("POST",{url:work.url,title:work.title,image_url:work.image,site:work.site,kind:"image"});await load()}
+  try{await request("POST",{url:work.url,title:work.title,image_url:work.image||null,site:work.site,kind:work.kind,notes:work.description});await load()}
   catch(e){setExternalError(e instanceof Error?e.message:"No se pudo guardar")}
   finally{setSavingExternal(null)}
  };
@@ -184,8 +188,13 @@ export default function ReferencesPage(){
  await load();setImportStatus(count?count+" referencias importadas desde Creative Lab.":nodes.length?"Algunas referencias no pudieron importarse.":"No hay referencias nuevas con enlace en tus mapas.");
  }catch(e){setImportStatus(e instanceof Error?e.message:"Error al importar")}finally{setBusy(false)}};
 
- const searchWord=externalTerm.trim()||(selected?[selected.title,...selected.auto_tags.slice(0,2)].join(" "):query.trim())||"creative art direction";
- const external=[{label:"YouTube",sub:"Spots y piezas audiovisuales",href:"https://www.youtube.com/results?search_query="+encodeURIComponent(searchWord)},{label:"Vimeo",sub:"Cine y dirección creativa",href:"https://vimeo.com/search?q="+encodeURIComponent(searchWord)},{label:"Behance",sub:"Diseño y proyectos visuales",href:"https://www.behance.net/search/projects?search="+encodeURIComponent(searchWord)},{label:"Google Arts & Culture",sub:"Arte y cultura",href:"https://artsandculture.google.com/search?q="+encodeURIComponent(searchWord)}];
+ const discoveryLinks=[
+  {id:"directors" as const,label:"Directors' Library",url:"https://directorslibrary.com/videos/latest/campaigns/"},
+  {id:"reasonwhy" as const,label:"Reason Why",url:"https://www.reasonwhy.es/noticias-sobre/campanas-de-publicidad"},
+  {id:"publicista" as const,label:"El Publicista",url:"https://www.elpublicista.es/"}
+ ];
+ const discoveryVisible=externalWorks.filter(work=>discoverySource==="all"||work.source===discoverySource);
+ const sourceCount=(source:DiscoverySource)=>source==="all"?externalWorks.length:externalWorks.filter(w=>w.source===source).length;
  return <main className={"rl-shell"+(tab==="connections"?" rl-immersive":"")}>
   <aside className="rl-sidebar">
    <Link href="/" className="rl-brand"><span className="rl-logo"><LibraryBig size={22}/></span><span>REF<span>LIB</span><small>OS</small></span></Link>
@@ -199,15 +208,16 @@ export default function ReferencesPage(){
    <button className={"rl-sidenav"+(tab==="all"&&filter==="unfiled"?" active":"")} onClick={()=>{setTab("all");setFilter("unfiled")}}><Layers2 size={16}/> Sin clasificar</button>
    <div className="rl-sidebar-bottom"><span className="rl-status-dot"/> Tu archivo creativo <small>{data.items.length} referencias guardadas</small></div>
   </aside>
-  <section className="rl-content">
-   {tab!=="connections"&&<header className="rl-header">
-    <div className="rl-title-block"><span className="rl-eyebrow">ARCHIVO / IDEAS / REFERENCIAS</span><h1>{tab==="all"?"Tu universo visual.":"Encuentra lo inesperado."}</h1><p>{tab==="all"?"Todo lo que te inspira, en un solo lugar.":"De tu biblioteca hacia nuevas referencias."}</p></div>
+  <section className={"rl-content"+(tab==="discover"?" rl-discover-content":"")}>
+   {tab==="all"&&<header className="rl-header">
+    <div className="rl-title-block"><span className="rl-eyebrow">ARCHIVO / IDEAS / REFERENCIAS</span><h1>Tu universo visual.</h1><p>Todo lo que te inspira, en un solo lugar.</p></div>
     <button className="rl-add" onClick={()=>setCapture(true)}><Plus size={17}/> Añadir referencia</button>
    </header>}
    <div className={"rl-toolbar"+(tab==="connections"?" rl-graph-toolbar":"")}>
-    <div className="rl-search"><Search size={18}/><input aria-label="Buscar referencias" placeholder="Buscar una idea, un autor, un concepto..." value={query} onChange={e=>{setQuery(e.target.value);if(tab==="discover")setTab("all")}}/><kbd>⌘ K</kbd></div>
+    <div className="rl-search"><Search size={18}/><input aria-label={tab==="discover"?"Buscar campañas":"Buscar referencias"} placeholder={tab==="discover"?"Buscar spots, marcas, directores, ideas...":"Buscar una idea, un autor, un concepto..."} value={tab==="discover"?externalTerm:query} onChange={e=>{if(tab==="discover")setExternalTerm(e.target.value);else setQuery(e.target.value)}}/><kbd>⌘ K</kbd></div>
     <div className="rl-tabs"><button className={tab==="all"?"active":""} onClick={()=>setTab("all")}>Galería</button><button className={tab==="connections"?"active":""} onClick={()=>setTab("connections")}>Conexiones</button><button className={tab==="discover"?"active":""} onClick={()=>setTab("discover")}>Explorar</button></div>
     {tab==="connections"&&<button className="rl-add rl-graph-add" onClick={()=>setCapture(true)}><Plus size={16}/> Añadir referencia</button>}
+    {tab==="discover"&&<button className="rl-add rl-discover-add" onClick={()=>setCapture(true)}><Plus size={16}/> Añadir referencia</button>}
    </div>
    {error&&<div className="rl-error" role="alert">{error}<button onClick={()=>setError("")}>×</button></div>}
    {tab==="all"&&<div className="rl-gallery-view">
@@ -218,19 +228,36 @@ export default function ReferencesPage(){
     {data.items.length===0&&importStatus&&<p className="rl-import-status">{importStatus}</p>}
    </div>}
    {tab==="connections"&&(loading?<div className="rl-loading"><Loader2 size={22} className="rl-rotate"/> Construyendo el mapa...</div>:<ReferenceGraph items={data.items} collections={data.collections} connections={data.connections} query={query} onOpen={setActiveId} onRefresh={load}/>)}
-   {tab==="discover"&&<div className="rl-discover-view">
-    <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Explora obras reales de colecciones abiertas. Es una búsqueda cultural, todavía no el feed personalizado que estamos preparando.</p></div>
-
-    <LocalDiscovery items={data.items} onSelect={setExternalTerm}/>
-    <label className="rl-discover-search"><Search size={19}/><input placeholder="Ej. ambición mitológica, western urbano, collage surrealista..." value={externalTerm} onChange={e=>setExternalTerm(e.target.value)}/></label>
-    <div className="rl-section-line"><span>EXPLORACIÓN CULTURAL · CLEVELAND MUSEUM OF ART</span><span>{externalLoading?"Buscando...":externalWorks.length+" hallazgos"}</span></div>
-    {externalError&&<p className="rl-import-status">{externalError}</p>}
-    {externalLoading?<div className="rl-loading"><Loader2 size={19} className="rl-rotate"/> Consultando obras reales...</div>:externalWorks.length>0?
-      <div className="rl-discovery-grid">{externalWorks.filter(w=>!data.items.some(i=>i.url===w.url)).map(work=><article className="rl-discovery-card" key={work.id}><DiscoveryImage work={work}/><div className="rl-discovery-copy"><h3>{work.title}</h3><p>{work.artist} {work.date?"· "+work.date:""}</p><div><button disabled={savingExternal===work.id} onClick={()=>saveDiscovered(work)}>{savingExternal===work.id?<Loader2 size={15}/>:<Plus size={15}/>} Guardar</button><a href={work.url} target="_blank" rel="noopener noreferrer" title="Ficha de la obra"><ArrowUpRight size={16}/></a></div></div></article>)}</div>
-      :<div className="rl-muted-empty">Sin resultados públicos para esta búsqueda. Prueba con un concepto distinto.</div>}
-    <div className="rl-section-line"><span>AMPLIAR LA BÚSQUEDA EN OTRAS FUENTES</span></div>
-    <div className="rl-source-grid">{external.map(e=><a key={e.label} href={e.href} target="_blank" rel="noopener noreferrer"><span><ExternalLink size={20}/></span><h3>{e.label}</h3><p>{e.sub}</p><ArrowUpRight size={17} className="rl-source-arrow"/></a>)}</div>
-    <div className="rl-roadmap"><WandSparkles size={18}/><div><strong>En preparación: recomendaciones automáticas</strong><p>Análisis multimodal, relaciones semánticas y propuestas de referencias externas verificadas. Sin recomendaciones inventadas ni etiquetas obligatorias.</p></div></div>
+   {tab==="discover"&&<div className="rl-discover-view rl-ad-discover">
+    <div className="rl-ad-heading">
+     <div><span className="rl-eyebrow">REF LIB / DESCUBRIR</span><h2>Ideas que merecen guardarse.</h2><p>Spots, campañas y dirección creativa. Piezas reales, en su fuente original.</p></div>
+     <span className="rl-ad-result-count">{externalLoading?"Actualizando...":discoveryVisible.length+" referencias"}</span>
+    </div>
+    <div className="rl-ad-filters" role="group" aria-label="Filtrar por fuente">
+     <button className={discoverySource==="all"?"active":""} onClick={()=>setDiscoverySource("all")}>Todo <span>{sourceCount("all")}</span></button>
+     {discoveryLinks.map(source=><button key={source.id} className={discoverySource===source.id?"active":""} onClick={()=>setDiscoverySource(source.id)}>{source.label} <span>{sourceCount(source.id)}</span></button>)}
+     <details className="rl-ad-ai-toggle"><summary><Sparkles size={14}/> IA local <ChevronDown size={13}/></summary><div className="rl-ad-ai-body"><LocalDiscovery items={data.items} onSelect={value=>{setExternalTerm(value);setDiscoverySource("all")}}/></div></details>
+    </div>
+    {externalError&&<p className="rl-ad-error" role="status">{externalError}</p>}
+    {externalLoading&&externalWorks.length===0?<div className="rl-loading"><Loader2 size={18} className="rl-rotate"/> Buscando campañas...</div>:
+     discoveryVisible.length>0?<div className="rl-discovery-grid">
+      {discoveryVisible.map(work=>{
+       const saved=data.items.some(i=>i.url===work.url);
+       return <article className="rl-discovery-card" key={work.id}>
+        <DiscoveryImage work={work}/>
+        <div className="rl-discovery-copy">
+         <div className="rl-ad-card-meta"><span>{work.site}</span>{work.mode==="selection"&&<small>Selección verificada</small>}</div>
+         <h3>{work.title}</h3>
+         {work.description&&<p>{work.description}</p>}
+         <div className="rl-ad-card-actions">
+          <button disabled={saved||savingExternal===work.id} onClick={()=>saveDiscovered(work)}>{saved?<Check size={15}/>:savingExternal===work.id?<Loader2 size={15} className="rl-rotate"/>:<Plus size={15}/>} {saved?"Guardada":"Guardar"}</button>
+          <a href={work.url} target="_blank" rel="noopener noreferrer" title={"Abrir "+work.site} aria-label={"Abrir "+work.title+" en "+work.site}><ArrowUpRight size={16}/></a>
+         </div>
+        </div>
+       </article>;
+      })}
+     </div>:!externalLoading?<div className="rl-ad-no-results"><Search size={23}/><strong>No hay campañas con ese filtro.</strong><p>La búsqueda filtra las últimas piezas recuperadas, no el archivo completo de cada medio. Puedes seguir buscando en las fuentes.</p></div>:<div className="rl-loading"><Loader2 size={18} className="rl-rotate"/> Actualizando campañas...</div>}
+    <div className="rl-ad-source-footer"><span>FUENTES EDITORIALES</span>{discoveryLinks.map(source=><a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer">{source.label}<ArrowUpRight size={13}/></a>)}</div>
    </div>}
   </section>
   {selected&&<><button aria-label="Cerrar referencia" className="rl-inspector-shade" onClick={()=>setActiveId(null)}/><aside className="rl-inspector">

@@ -76,7 +76,7 @@ export function LocalDiscovery({items,onSelect}:{items:LocalReference[];onSelect
         const quality=nearest.score*.55+novelty*.45;
         return {...c,strength:quality,reason:"A partir de «"+nearest.ref.title+"», esta ruta propone explorar "+c.description.toLowerCase()+"."};
        }).filter((x):x is Direction=>!!x).sort((a,b)=>b.strength-a.strength).slice(0,3);
-       if(turn===generation.current){setResults(discoveries);setStatus(discoveries.length?"Tres territorios para salir de tu biblioteca. Selecciona uno para buscar obras reales.":"No se han encontrado direcciones relacionadas.");}
+       if(turn===generation.current){setResults(discoveries);setStatus(discoveries.length?"Tres territorios posibles desde tu archivo. Selecciona uno para buscarlo entre las campañas disponibles.":"No se han encontrado direcciones relacionadas.");}
        resolve();
       }catch(err){reject(err)}
      }
@@ -88,11 +88,11 @@ export function LocalDiscovery({items,onSelect}:{items:LocalReference[];onSelect
   finally{if(turn===generation.current){setBusy(false);worker.current?.terminate();worker.current=null}}
  };
  return <section className="rl-ai-discovery rl-local-discovery">
-  <div className="rl-ai-discovery-heading"><div><BrainCircuit size={17}/><strong>Explora con IA local</strong><p>Busca territorios nuevos a partir de tus referencias, sin consumir créditos de IA. La búsqueda final consulta obras reales del museo.</p></div>
+  <div className="rl-ai-discovery-heading"><div><BrainCircuit size={17}/><strong>Explora con IA local</strong><p>Busca territorios nuevos a partir de tus referencias, sin consumir créditos de IA. La búsqueda después se realiza sobre campañas y piezas de las fuentes conectadas.</p></div>
   {busy?<button onClick={cancel} type="button"><X size={15}/> Cancelar</button>:<button onClick={explore} type="button"><Sparkles size={15}/> Sugerirme rutas gratis</button>}</div>
   {!!status&&<p className="rl-local-status" role="status">{busy&&<Loader2 size={14} className="rl-rotate"/>}{status}</p>}
   {!!error&&<p className="rl-ai-discovery-error" role="alert">{error}</p>}
-  {!!results.length&&<div className="rl-ai-directions">{results.map(item=><button key={item.query} type="button" onClick={()=>onSelect(item.query)}><span>{item.name}</span><p>{item.reason}</p><small>Explorar: {item.query} ↗</small></button>)}</div>}
+  {!!results.length&&<div className="rl-ai-directions">{results.map(item=><button key={item.query} type="button" onClick={()=>onSelect(item.query)}><span>{item.name}</span><p>{item.reason}</p><small>Buscar campañas: {item.query} ↗</small></button>)}</div>}
   <small className="rl-local-footnote">Las asociaciones se calculan solo en tu navegador. La primera descarga del modelo puede superar los 100 MB. No se han analizado las imágenes ni el contenido de los vídeos.</small>
  </section>
 }
