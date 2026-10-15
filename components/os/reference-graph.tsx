@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowLeft, ArrowUpRight, Check, GitBranch, Layers3, Maximize2, Minus, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import "./reference-graph.css";
 
@@ -116,15 +116,18 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
  const [actionError,setActionError]=useState("");
  const [linkDrag,setLinkDrag]=useState<{source:string;x:number;y:number}|null>(null);
  const [camera,setCamera]=useState<Camera>({x:500,y:360,zoom:1});
- const [frame,setFrame]=useState(0);
  const [dims,setDims]=useState({width:1000,height:660});
  const canvas=useRef<HTMLDivElement>(null);
  const positions=useRef<Map<string,Point>>(new Map());
  const pan=useRef<{id:number;x:number;y:number;camX:number;camY:number}|null>(null);
- const drag=useRef<{id:number;node:string;offsetX:number;offsetY:number;startX:number;startY:number;moved:boolean}|null>(null);
+ const drag=useRef<{id:number;node:string;element:HTMLButtonElement;offsetX:number;offsetY:number;startX:number;startY:number;moved:boolean}|null>(null);
  const linkPointer=useRef<{id:number;source:string}|null>(null);
  const suppressClick=useRef(false);
  const dragPaint=useRef<number|null>(null);
+ const nodeEls=useRef<Map<string,HTMLButtonElement>>(new Map());
+ const lineEls=useRef<Map<string,SVGPathElement>>(new Map());
+ const lineHitEls=useRef<Map<string,SVGPathElement>>(new Map());
+ const paintPositions=useRef<()=>void>(()=>{});
  const cameraRef=useRef(camera);
  cameraRef.current=camera;
  const graph=useMemo(()=>makeGraph(items,collections,connections,scope,query,page,suggestions),[items,collections,connections,scope,query,page,suggestions]);
@@ -134,6 +137,22 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
  const neighbors=new Set(focus?[focus,...edges.filter(e=>e.source===focus||e.target===focus).flatMap(e=>[e.source,e.target])]:[]);
  const groupTitle=collections.find(c=>c.id===scope)?.name||(scope==="__unfiled"?"Sin clasificar":null);
  const shownCount=graph.nodes.reduce((sum,node)=>sum+node.count,0);
+ // Keep layout motion out of React's render cycle. Updating 19+ images and SVG lines
+ // through React on every pointer frame caused the visible Safari stutter.
+ paintPositions.current=()=>{
+  const points=positions.current;
+  for(const [id,element] of nodeEls.current){
+   const p=points.get(id);if(!p)continue;
+   element.style.transform="translate3d("+p.x+"px,"+p.y+"px,0)";
+  }
+  for(const edge of edges){
+   const a=points.get(edge.source),b=points.get(edge.target);
+   if(!a||!b)continue;
+   const d="M "+a.x+" "+a.y+" L "+b.x+" "+b.y;
+   lineEls.current.get(edge.id)?.setAttribute("d",d);
+   lineHitEls.current.get(edge.id)?.setAttribute("d",d);
+  }
+ };
 
  useEffect(()=>{
   const element=canvas.current;if(!element)return;
@@ -153,16 +172,16 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
   return()=>el.removeEventListener("wheel",handler);
  },[]);
  useEffect(()=>{setPage(0);setScope(null);setFocus(null);setActiveEdge(null);setConnectSource(null);setDraft(null);},[query]);
- useEffect(()=>{
+ useLayoutEffect(()=>{
   const old=positions.current;
   const next=new Map<string,Point>();
   graph.nodes.forEach((node,i)=>next.set(node.id,old.get(node.id)||initialPoint(node,i,graph.nodes.length)));
   positions.current=next;
-  setFrame(x=>x+1);
+  paintPositions.current();
  },[graph.nodes]);
  useEffect(()=>{
   if(graph.nodes.length<2||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
-  let raf=0,step=0;
+  let raf=0;
   const animate=()=>{
    // While a node is in hand, the simulation must not move *any* node.
    // Let the pointer own every position update until release.
@@ -200,7 +219,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
     p.x=Math.max(-WIDTH/2,Math.min(WIDTH/2,p.x+p.vx));
     p.y=Math.max(-HEIGHT/2,Math.min(HEIGHT/2,p.y+p.vy));
    }
-   if(++step%2===0)setFrame(v=>v+1);
+   paintPositions.current();
    raf=requestAnimationFrame(animate);
   };
   raf=requestAnimationFrame(animate);
@@ -274,7 +293,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
  useEffect(()=>{
   const paint=()=>{
    if(dragPaint.current!==null)return;
-   dragPaint.current=requestAnimationFrame(()=>{dragPaint.current=null;setFrame(v=>v+1);});
+   dragPaint.current=requestAnimationFrame(()=>{dragPaint.current=null;paintPositions.current();});
   };
   const move=(event:PointerEvent)=>{
    const d=drag.current;if(!d||d.id!==event.pointerId)return;
@@ -295,6 +314,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
    const d=drag.current;if(!d||d.id!==event.pointerId)return;
    const p=positions.current.get(d.node);
    if(p){p.dragging=false;p.vx=0;p.vy=0;p.pinnedUntil=performance.now()+900;}
+   d.element.classList.remove("is-dragging");
    drag.current=null;
    suppressClick.current=d.moved;
    // Browser click (if any) is dispatched after pointerup; do not suppress a future click.
@@ -317,7 +337,8 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
   event.stopPropagation();
   const point=worldAt(event.clientX,event.clientY);
   const p=positions.current.get(id);if(!p)return;
-  drag.current={id:event.pointerId,node:id,offsetX:point.x-p.x,offsetY:point.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
+  drag.current={id:event.pointerId,node:id,element:event.currentTarget,offsetX:point.x-p.x,offsetY:point.y-p.y,startX:event.clientX,startY:event.clientY,moved:false};
+  event.currentTarget.classList.add("is-dragging");
   p.dragging=true;p.vx=0;p.vy=0;
  };
  const linkStart=(event:ReactPointerEvent<HTMLSpanElement>,source:string)=>{
@@ -355,7 +376,6 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
   setFocus(node.id);setActiveEdge(null);
  };
  const pos=(id:string)=>positions.current.get(id)||{x:0,y:0};
- void frame;
  return <div className="rlg">
   <div className="rlg-canvas" ref={canvas} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-label="Mapa interactivo de referencias">
    <div className="rlg-grid"/>
@@ -376,15 +396,15 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
       const chosen=activeEdge===e.id;
       const d="M "+a.x+" "+a.y+" L "+b.x+" "+b.y;
       return <g key={e.id} className={"rlg-wire "+(e.saved?"is-saved":"is-proposed")+(emphasized?" is-visible":" is-muted")+(chosen?" is-chosen":"")}>
-       <path className="rlg-line" d={d}/>
-       <path className="rlg-line-hit" d={d} onPointerDown={event=>event.stopPropagation()} onClick={()=>openEdge(e)}><title>{e.relation}</title></path>
+       <path ref={el=>{if(el)lineEls.current.set(e.id,el);else lineEls.current.delete(e.id);}} className="rlg-line" d={d}/>
+       <path ref={el=>{if(el)lineHitEls.current.set(e.id,el);else lineHitEls.current.delete(e.id);}} className="rlg-line-hit" d={d} onPointerDown={event=>event.stopPropagation()} onClick={()=>openEdge(e)}><title>{e.relation}</title></path>
       </g>;
      })}
      {linkDrag&&<path className="rlg-draft-line" d={"M "+pos(linkDrag.source).x+" "+pos(linkDrag.source).y+" L "+linkDrag.x+" "+linkDrag.y}/>}
     </svg>
     {graph.nodes.map(node=>{
-     const p=pos(node.id),selected=focus===node.id||connectSource===node.id,muted=Boolean(focus&&!neighbors.has(node.id)),dragging=drag.current?.node===node.id;
-     return <button key={node.id} type="button" data-graph-node={node.id} className={"rlg-node "+(node.cluster?"is-cluster ":"")+(selected?"is-selected ":"")+(muted?"is-dimmed":"")+(dragging?" is-dragging":"")} style={{transform:"translate("+p.x+"px,"+p.y+"px)"}} onPointerDown={e=>nodeDown(e,node.id)} onClick={()=>choose(node)} onDoubleClick={()=>{if(!node.cluster)onOpen(node.id);}} aria-label={(node.cluster?"Abrir colección ":"Seleccionar referencia ")+node.title}>
+     const p=pos(node.id),selected=focus===node.id||connectSource===node.id,muted=Boolean(focus&&!neighbors.has(node.id));
+     return <button key={node.id} ref={el=>{if(el)nodeEls.current.set(node.id,el);else nodeEls.current.delete(node.id);}} type="button" data-graph-node={node.id} className={"rlg-node "+(node.cluster?"is-cluster ":"")+(selected?"is-selected ":"")+(muted?"is-dimmed":"")} style={{transform:"translate3d("+p.x+"px,"+p.y+"px,0)"}} onPointerDown={e=>nodeDown(e,node.id)} onClick={()=>choose(node)} onDoubleClick={()=>{if(!node.cluster)onOpen(node.id);}} aria-label={(node.cluster?"Abrir colección ":"Seleccionar referencia ")+node.title}>
       <span className="rlg-orb">{node.cluster?<><Layers3 size={23}/><span className="rlg-count">{node.count}</span></>:node.image?<img draggable={false} src={node.image} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/>:<span className="rlg-placeholder"><GitBranch size={22}/></span>}</span>
       {!node.cluster&&(selected||connectMode)&&<span className="rlg-node-handle" title="Arrastra hasta otra referencia para conectarlas" onPointerDown={event=>linkStart(event,node.id)} onPointerMove={linkMove} onPointerUp={linkEnd} onPointerCancel={linkEnd} onClick={event=>event.stopPropagation()}><Plus size={15}/></span>}
       <span className="rlg-node-name">{node.title}</span>
