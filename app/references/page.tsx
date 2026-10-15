@@ -7,6 +7,7 @@ import { ReferenceIntelligence } from "@/components/os/reference-intelligence";
 import { ReferenceVisualAnalysis } from "@/components/os/reference-visual-analysis";
 import { VISUAL_LABELS } from "@/app/lib/reference-visual-vocabulary";
 import { LocalDiscovery } from "@/components/os/reference-local-discovery";
+import { ReferenceGraph } from "@/components/os/reference-graph";
 import "@/components/os/reference-intelligence.css";
 import "@/components/os/reference-visual-analysis.css";
 import "./references.css";
@@ -204,7 +205,7 @@ export default function ReferencesPage(){
     <button className="rl-add" onClick={()=>setCapture(true)}><Plus size={17}/> Añadir referencia</button>
    </header>
    <div className="rl-toolbar">
-    <div className="rl-search"><Search size={18}/><input aria-label="Buscar referencias" placeholder="Buscar una idea, un autor, un concepto..." value={query} onChange={e=>{setQuery(e.target.value);if(tab!=="all")setTab("all")}}/><kbd>⌘ K</kbd></div>
+    <div className="rl-search"><Search size={18}/><input aria-label="Buscar referencias" placeholder="Buscar una idea, un autor, un concepto..." value={query} onChange={e=>{setQuery(e.target.value);if(tab==="discover")setTab("all")}}/><kbd>⌘ K</kbd></div>
     <div className="rl-tabs"><button className={tab==="all"?"active":""} onClick={()=>setTab("all")}>Galería</button><button className={tab==="connections"?"active":""} onClick={()=>setTab("connections")}>Conexiones</button><button className={tab==="discover"?"active":""} onClick={()=>setTab("discover")}>Explorar</button></div>
    </div>
    {error&&<div className="rl-error" role="alert">{error}<button onClick={()=>setError("")}>×</button></div>}
@@ -215,13 +216,7 @@ export default function ReferencesPage(){
     {data.items.length>0&&<div className="rl-import-footer"><button disabled={busy} onClick={importCreative}><Upload size={15}/> Importar referencias de Creative Lab</button>{importStatus&&<span>{importStatus}</span>}</div>}
     {data.items.length===0&&importStatus&&<p className="rl-import-status">{importStatus}</p>}
    </div>}
-   {tab==="connections"&&<div className="rl-connections-view">
-    <div className="rl-feature"><div className="rl-feature-icon"><GitBranch size={26}/></div><span className="rl-eyebrow">RED DE REFERENCIAS</span><h2>Una conexión cada vez.</h2><p>No hace falta ver doscientos cables cruzados. Selecciona una referencia para descubrir afinidades y crear conexiones que puedas explicar.</p></div>
-    <div className="rl-section-line"><span>CONEXIONES GUARDADAS</span><span>{data.connections.length}</span></div>
-    {data.connections.length?<div className="rl-link-list">{data.connections.map(c=>{const a=data.items.find(x=>x.id===c.source_id),b=data.items.find(x=>x.id===c.target_id);return a&&b?<button key={c.id} className="rl-link-row" onClick={()=>setActiveId(a.id)}><span>{a.title}</span><span className="rl-link-relation"><GitBranch size={13}/>{c.relation}</span><span>{b.title}</span><ArrowUpRight size={15}/></button>:null})}</div>:<div className="rl-muted-empty">Cuando conectes dos referencias aparecerán aquí.</div>}
-    <div className="rl-section-line"><span>EXPLORAR RELACIONES</span></div>
-    <div className="rl-mini-grid">{data.items.slice(0,10).map(item=><button key={item.id} onClick={()=>setActiveId(item.id)}><ItemMedia item={item}/><span>{item.title}</span></button>)}</div>
-   </div>}
+   {tab==="connections"&&(loading?<div className="rl-loading"><Loader2 size={22} className="rl-rotate"/> Construyendo el mapa...</div>:<ReferenceGraph items={data.items} collections={data.collections} connections={data.connections} query={query} onOpen={setActiveId}/>)}
    {tab==="discover"&&<div className="rl-discover-view">
     <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Explora obras reales de colecciones abiertas. Es una búsqueda cultural, todavía no el feed personalizado que estamos preparando.</p></div>
 
