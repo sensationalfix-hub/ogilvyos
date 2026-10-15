@@ -44,6 +44,13 @@ export async function POST(request:Request){const session=await lifeSession(requ
 export async function PATCH(request:Request){const session=await lifeSession(request);if(!session)return reply("Sin autorización",401);
  const b=await request.json().catch(()=>({}));if(!uuid(b.id))return reply("ID incorrecto",400);try{
  if(b.action==="collection"){const name=trim(b.name,110);if(!name)return reply("Nombre vacío",400);return NextResponse.json({collection:await restPatch(session.accessToken,"reference_collections",b.id,{name})})}
+ if(b.action==="connection"){
+  const relation=trim(b.relation,90)||"conecta con";
+  const explanation=trim(b.explanation,500);
+  const updated=await restPatch(session.accessToken,"reference_connections",b.id,{relation,explanation});
+  if(!updated)return reply("Conexión no encontrada",404);
+  return NextResponse.json({connection:updated});
+ }
  const needsCurrent="visual_labels" in b || "title" in b || "notes" in b;
  const previous=needsCurrent ? (await lifeSelect<Pick<RefItem,"id"|"title"|"notes"|"auto_tags">>(session.accessToken,"reference_items","select=id,title,notes,auto_tags&id=eq."+b.id+"&limit=1"))[0] : null;
  if(needsCurrent&&!previous)return reply("Referencia no encontrada",404);
