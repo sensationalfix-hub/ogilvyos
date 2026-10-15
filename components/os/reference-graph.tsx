@@ -246,7 +246,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
   <div className="rlg-canvas" ref={canvas} onWheel={wheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-label="Mapa interactivo de referencias">
    <div className="rlg-grid"/>
    <div className="rlg-stage" style={{transform:"translate("+camera.x+"px,"+camera.y+"px) scale("+camera.zoom+")"}}>
-    <svg className="rlg-wires" width="1" height="1" aria-hidden="true" style={{overflow:"visible"}}>
+    <svg className="rlg-wires" width={WIDTH} height={HEIGHT} viewBox={"-"+WIDTH/2+" -"+HEIGHT/2+" "+WIDTH+" "+HEIGHT} aria-hidden="true">
      {edges.map(e=>{
       const a=pos(e.source),b=pos(e.target);
       const emphasized=focus?e.source===focus||e.target===focus:true;
