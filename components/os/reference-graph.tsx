@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowLeft, ArrowUpRight, Check, GitBranch, Layers3, Maximize2, Minus, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
+import { referenceAffinity, affinityDistance, affinityLevel, type AffinityRef } from "@/app/lib/reference-graph-affinity";
 import "./reference-graph.css";
 
 type Item = { id:string; title:string; url:string|null; image_url:string|null; media_path:string|null; kind:string; site:string|null; notes:string; auto_tags:string[]; collection_id:string|null };
@@ -11,6 +12,8 @@ type Node = { id:string; title:string; image:string|null; kind:string; collectio
 type Edge = { id:string; source:string; target:string; saved:boolean; relation:string; explanation:string; strength:number };
 type Point = { x:number;y:number;vx:number;vy:number;dragging?:boolean;pinnedUntil?:number };
 type Camera = { x:number;y:number;zoom:number };
+type LayoutMode = "free"|"affinity"|"collection";
+type WeightedPair = { a:string;b:string;weight:number;saved:boolean;sameCollection:boolean };
 
 const WIDTH = 1120;
 const HEIGHT = 720;
@@ -105,6 +108,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
  const [scope,setScope]=useState<string|null>(null);
  const [page,setPage]=useState(0);
  const [suggestions,setSuggestions]=useState(true);
+ const [layoutMode,setLayoutMode]=useState<LayoutMode>("affinity");
  const [focus,setFocus]=useState<string|null>(null);
  const [activeEdge,setActiveEdge]=useState<string|null>(null);
  const [connectMode,setConnectMode]=useState(false);
@@ -137,6 +141,57 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
  const neighbors=new Set(focus?[focus,...edges.filter(e=>e.source===focus||e.target===focus).flatMap(e=>[e.source,e.target])]:[]);
  const groupTitle=collections.find(c=>c.id===scope)?.name||(scope==="__unfiled"?"Sin clasificar":null);
  const shownCount=graph.nodes.reduce((sum,node)=>sum+node.count,0);
+ // All pair scores are prepared once per graph change, not inside animation frames.
+ // Hidden similarities can affect layout without becoming saved or drawn connections.
+ const pairs=useMemo<WeightedPair[]>(()=>{
+  const byId=new Map(items.map(item=>[item.id,item]));
+  const byGroup=new Map<string,Item[]>();
+  for(const item of items){const key=groupId(item);const bucket=byGroup.get(key)||[];bucket.push(item);byGroup.set(key,bucket);}
+  const features=new Map<string,AffinityRef>();
+  for(const node of graph.nodes){
+   if(!node.cluster){
+    const item=byId.get(node.id);
+    features.set(node.id,{auto_tags:item?.auto_tags||[],collection_id:item?.collection_id||null});
+   }else{
+    const members=byGroup.get(node.group)||[];
+    const frequencies=new Map<string,number>();
+    for(const member of members)for(const tag of member.auto_tags||[])frequencies.set(tag,(frequencies.get(tag)||0)+1);
+    const common=[...frequencies].sort((a,b)=>b[1]-a[1]).slice(0,12).map(([tag])=>tag);
+    features.set(node.id,{auto_tags:common,collection_id:node.group==="__unfiled"?null:node.group});
+   }
+  }
+  const keyOf=(a:string,b:string)=>a<b?a+"|"+b:b+"|"+a;
+  const confirmed=new Map(graph.edges.filter(e=>e.saved).map(e=>[keyOf(e.source,e.target),e.strength]));
+  const result:WeightedPair[]=[];
+  for(let i=0;i<graph.nodes.length;i++)for(let j=i+1;j<graph.nodes.length;j++){
+   const a=graph.nodes[i],b=graph.nodes[j];
+   const saves=confirmed.get(keyOf(a.id,b.id))||0;
+   const similarity=referenceAffinity(features.get(a.id)!,features.get(b.id)!,saves>0);
+   const weight=saves?Math.min(1,similarity+(Math.min(saves,3)-1)*.015):similarity;
+   result.push({a:a.id,b:b.id,weight,saved:saves>0,sameCollection:a.group===b.group});
+  }
+  return result;
+ },[items,graph.nodes,graph.edges]);
+ const pairLookup=useMemo(()=>{
+  const key=(a:string,b:string)=>a<b?a+"|"+b:b+"|"+a;
+  return new Map(pairs.map(pair=>[key(pair.a,pair.b),pair.weight]));
+ },[pairs]);
+ const focusedNeighbors=new Set<string>(focus?[focus]:[]);
+ if(focus)for(const pair of pairs)if(pair.weight>=.23&&(pair.a===focus||pair.b===focus)){
+  focusedNeighbors.add(pair.a===focus?pair.b:pair.a);
+ }
+ const focusNearby=focus?graph.nodes.filter(n=>!n.cluster&&n.id!==focus).map(n=>{
+  const key=focus<n.id?focus+"|"+n.id:n.id+"|"+focus;
+  return {node:n,score:pairLookup.get(key)||0};
+ }).filter(row=>row.score>=.15).sort((a,b)=>b.score-a.score).slice(0,4):[];
+ const groupCenters=useMemo(()=>{
+  const groups=[...new Set(graph.nodes.map(n=>n.group))].sort();
+  const radius=groups.length<=1?0:Math.min(350,185+groups.length*19);
+  return new Map(groups.map((group,index)=>{
+   const theta=(index/groups.length)*Math.PI*2-Math.PI/2;
+   return [group,{x:Math.cos(theta)*radius,y:Math.sin(theta)*radius*.76}];
+  }));
+ },[graph.nodes]);
  // Keep layout motion out of React's render cycle. Updating 19+ images and SVG lines
  // through React on every pointer frame caused the visible Safari stutter.
  paintPositions.current=()=>{
@@ -182,49 +237,84 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
  useEffect(()=>{
   if(graph.nodes.length<2||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
   let raf=0;
+  const ids=graph.nodes.map(n=>n.id);
+  const groups=new Map(graph.nodes.map(n=>[n.id,n.group]));
+  const nodeCount=ids.length;
+  const boundaryX=Math.max(WIDTH/2,Math.ceil(Math.sqrt(nodeCount))*102);
+  const boundaryY=Math.max(HEIGHT/2,Math.ceil(Math.sqrt(nodeCount))*76);
   const animate=()=>{
-   // While a node is in hand, the simulation must not move *any* node.
-   // Let the pointer own every position update until release.
    if(drag.current){raf=requestAnimationFrame(animate);return;}
    const coords=positions.current;
-   const ids=graph.nodes.map(n=>n.id);
    const forces=new Map<string,{x:number;y:number}>();
-   for(const id of ids)forces.set(id,{x:0,y:0});
-   for(let i=0;i<ids.length;i++){
-    const a=coords.get(ids[i]);if(!a)continue;
-    const fa=forces.get(ids[i])!;
-    fa.x+=-a.x*.0011;fa.y+=-a.y*.0011;
-    for(let j=i+1;j<ids.length;j++){
-     const b=coords.get(ids[j]);if(!b)continue;
-     const dx=a.x-b.x,dy=a.y-b.y,dd=dx*dx+dy*dy+80;
-     const repulse=Math.min(8,5200/dd);
-     const fx=dx*repulse/Math.sqrt(dd),fy=dy*repulse/Math.sqrt(dd);
-     fa.x+=fx;fa.y+=fy;
-     const fb=forces.get(ids[j])!;fb.x-=fx;fb.y-=fy;
+   const gravity=layoutMode==="free"?.0011:layoutMode==="collection"?.00045:.00052;
+   for(const id of ids){
+    const p=coords.get(id);if(!p)continue;
+    const force={x:-p.x*gravity,y:-p.y*gravity};
+    if(layoutMode==="collection"){
+     const target=groupCenters.get(groups.get(id)||"");
+     if(target){force.x+=(target.x-p.x)*.0019;force.y+=(target.y-p.y)*.0019;}
+    }
+    forces.set(id,force);
+   }
+   for(const pair of pairs){
+    const a=coords.get(pair.a),b=coords.get(pair.b);
+    const fa=forces.get(pair.a),fb=forces.get(pair.b);
+    if(!a||!b||!fa||!fb)continue;
+    const dx=b.x-a.x,dy=b.y-a.y;
+    const d2=dx*dx+dy*dy+120;
+    const d=Math.sqrt(d2);
+    // Unrelated ideas repel harder, while strongly related nodes tolerate proximity.
+    const weight=layoutMode==="affinity"?pair.weight:layoutMode==="collection"?(pair.saved?.9:pair.sameCollection?.72:0):(pair.saved?.76:0);
+    const repulsion=layoutMode==="free"?1.05:1.6-1.12*weight;
+    const repel=Math.min(8,(6200/d2)*repulsion);
+    const ux=dx/d,uy=dy/d;
+    // The repulsive force always pushes the two endpoints away from each other.
+    fa.x-=ux*repel;fa.y-=uy*repel;
+    fb.x+=ux*repel;fb.y+=uy*repel;
+    let desired=0,stiffness=0;
+    if(layoutMode==="free"&&pair.saved){
+     desired=220;stiffness=.0038;
+    }else if(layoutMode==="affinity"&&(pair.saved||weight>=.20)){
+     desired=affinityDistance(weight);
+     stiffness=.00065+.0048*weight;
+    }else if(layoutMode==="collection"){
+     if(pair.sameCollection){
+      desired=pair.saved?155:pair.a===pair.b?180:205;
+      stiffness=pair.saved?.006:.0027;
+     }else if(pair.saved){
+      desired=290;stiffness=.0017;
+     }
+    }
+    if(focus&&(pair.a===focus||pair.b===focus)&&layoutMode!=="free"){
+     if(pair.weight>=.15){
+      desired=Math.max(142,330-pair.weight*200);
+      stiffness=Math.max(stiffness,.0025+.005*pair.weight);
+     }else{
+      // Open breathing room around the chosen reference.
+      desired=Math.max(desired,390);
+      stiffness=Math.max(stiffness,.0013);
+     }
+    }
+    if(stiffness>0){
+     const tension=Math.max(-8,Math.min(8,(d-desired)*stiffness));
+     fa.x+=ux*tension;fa.y+=uy*tension;
+     fb.x-=ux*tension;fb.y-=uy*tension;
     }
    }
-   for(const edge of edges){
-    const a=coords.get(edge.source),b=coords.get(edge.target);if(!a||!b)continue;
-    const dx=b.x-a.x,dy=b.y-a.y;
-    const d=Math.max(1,Math.hypot(dx,dy));
-    const desired=edge.saved?185:230;
-    const spring=(d-desired)*(edge.saved?.0037:.0016);
-    const fx=dx/d*spring,fy=dy/d*spring;
-    const fa=forces.get(edge.source)!,fb=forces.get(edge.target)!;
-    fa.x+=fx;fa.y+=fy;fb.x-=fx;fb.y-=fy;
-   }
    for(const id of ids){
-    const p=coords.get(id),f=forces.get(id);if(!p||!f||p.dragging||(p.pinnedUntil&&performance.now()<p.pinnedUntil))continue;
-    p.vx=Math.max(-3,Math.min(3,(p.vx+f.x)*.82));p.vy=Math.max(-3,Math.min(3,(p.vy+f.y)*.82));
-    p.x=Math.max(-WIDTH/2,Math.min(WIDTH/2,p.x+p.vx));
-    p.y=Math.max(-HEIGHT/2,Math.min(HEIGHT/2,p.y+p.vy));
+    const p=coords.get(id),f=forces.get(id);
+    if(!p||!f||p.dragging||id===focus||(p.pinnedUntil&&performance.now()<p.pinnedUntil))continue;
+    p.vx=Math.max(-4,Math.min(4,(p.vx+f.x)*.82));
+    p.vy=Math.max(-4,Math.min(4,(p.vy+f.y)*.82));
+    p.x=Math.max(-boundaryX,Math.min(boundaryX,p.x+p.vx));
+    p.y=Math.max(-boundaryY,Math.min(boundaryY,p.y+p.vy));
    }
    paintPositions.current();
    raf=requestAnimationFrame(animate);
   };
   raf=requestAnimationFrame(animate);
   return()=>cancelAnimationFrame(raf);
- },[graph.nodes,edges]);
+ },[graph.nodes,pairs,layoutMode,focus,groupCenters]);
  useEffect(()=>{if(focus&&!graph.nodes.some(n=>n.id===focus))setFocus(null);if(activeEdge&&!edges.some(e=>e.id===activeEdge))setActiveEdge(null);},[graph.nodes,edges,focus,activeEdge]);
  const reset=()=>{setCamera({x:dims.width/2,y:dims.height/2,zoom:1});setFocus(null);setActiveEdge(null);};
  const worldAt=(clientX:number,clientY:number)=>{
@@ -384,6 +474,11 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
     <div className="rlg-actions">
      {scope&&<button onClick={()=>{setScope(null);setPage(0);reset();}}><ArrowLeft size={14}/> Todos los grupos</button>}
      <button className={connectMode?"rlg-toggled rlg-connect-active":"rlg-connect-button"} onClick={()=>{setConnectMode(v=>!v);setConnectSource(null);setActiveEdge(null);setDraft(null);setFocus(null);}}><GitBranch size={14}/> {connectMode?"Selecciona origen":"Conectar nodos"}</button>
+     <div className="rlg-layout-switch" role="group" aria-label="Distribución del mapa">
+      <button className={layoutMode==="free"?"is-active":""} title="Distribución libre con conexiones guardadas" onClick={()=>setLayoutMode("free")}>Libre</button>
+      <button className={layoutMode==="affinity"?"is-active":""} title="Acerca las referencias según etiquetas y conexiones guardadas" onClick={()=>setLayoutMode("affinity")}>Afinidad</button>
+      <button className={layoutMode==="collection"?"is-active":""} title="Reorganiza en grupos por colección" onClick={()=>setLayoutMode("collection")}>Colección</button>
+     </div>
      <button className={suggestions?"rlg-toggled":""} onClick={()=>setSuggestions(v=>!v)} title="Mostrar u ocultar afinidades calculadas con etiquetas"><Sparkles size={14}/> Afinidades {suggestions?"ON":"OFF"}</button>
     </div>
    </div>
@@ -403,7 +498,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
      {linkDrag&&<path className="rlg-draft-line" d={"M "+pos(linkDrag.source).x+" "+pos(linkDrag.source).y+" L "+linkDrag.x+" "+linkDrag.y}/>}
     </svg>
     {graph.nodes.map(node=>{
-     const p=pos(node.id),selected=focus===node.id||connectSource===node.id,muted=Boolean(focus&&!neighbors.has(node.id));
+     const p=pos(node.id),selected=focus===node.id||connectSource===node.id,muted=Boolean(focus&&!neighbors.has(node.id)&&!focusedNeighbors.has(node.id));
      return <button key={node.id} ref={el=>{if(el)nodeEls.current.set(node.id,el);else nodeEls.current.delete(node.id);}} type="button" data-graph-node={node.id} className={"rlg-node "+(node.cluster?"is-cluster ":"")+(selected?"is-selected ":"")+(muted?"is-dimmed":"")} style={{transform:"translate3d("+p.x+"px,"+p.y+"px,0)"}} onPointerDown={e=>nodeDown(e,node.id)} onClick={()=>choose(node)} onDoubleClick={()=>{if(!node.cluster)onOpen(node.id);}} aria-label={(node.cluster?"Abrir colección ":"Seleccionar referencia ")+node.title}>
       <span className="rlg-orb">{node.cluster?<><Layers3 size={23}/><span className="rlg-count">{node.count}</span></>:node.image?<img draggable={false} src={node.image} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/>:<span className="rlg-placeholder"><GitBranch size={22}/></span>}</span>
       {!node.cluster&&(selected||connectMode)&&<span className="rlg-node-handle" title="Arrastra hasta otra referencia para conectarlas" onPointerDown={event=>linkStart(event,node.id)} onPointerMove={linkMove} onPointerUp={linkEnd} onPointerCancel={linkEnd} onClick={event=>event.stopPropagation()}><Plus size={15}/></span>}
@@ -430,6 +525,10 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
      })}
      {!edges.some(e=>e.source===focus||e.target===focus)&&<p>Sin relaciones visibles. Puedes crearlas desde el detalle.</p>}
     </div>
+    {layoutMode!=="free"&&focusNearby.length>0&&<div className="rlg-nearby">
+     <span className="rlg-panel-eyebrow">CERCANÍA ESTIMADA · ETIQUETAS</span>
+     {focusNearby.map(({node,score})=><button key={node.id} onClick={()=>{setFocus(node.id);setActiveEdge(null);}}><span>{node.title}</span><small>{affinityLevel(score)}</small></button>)}
+    </div>}
     <button className="rlg-secondary" onClick={()=>{setConnectMode(true);setConnectSource(focusNode.id);}}>Conectar con otra referencia <GitBranch size={14}/></button>
     <button className="rlg-primary" onClick={()=>onOpen(focusNode.id)}>Abrir referencia <ArrowUpRight size={15}/></button>
    </aside>}
@@ -456,7 +555,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
    <div className="rlg-hint"><span className="rlg-line-legend"/> Guardada <span className="rlg-line-legend proposed"/> Afinidad sugerida <span className="rlg-hint-desktop"> · Arrastra para mover · Usa el + para enlazar · Doble clic para abrir</span></div>
   </div>
   <div className="rlg-bottom">
-   <span>{graph.collapsing?"Vista agrupada para evitar saturación. Haz clic en un grupo para explorarlo.":query?"Resultados filtrados en tu biblioteca.":"Las líneas discontinuas son sugerencias, no se guardan automáticamente."}</span>
+   <span>{graph.collapsing?"Vista agrupada para evitar saturación. Haz clic en un grupo para explorarlo.":query?"Resultados filtrados en tu biblioteca.":layoutMode==="affinity"?"Distancias basadas en afinidad estimada por etiquetas y conexiones confirmadas.":layoutMode==="collection"?"Las referencias se agrupan por colección, conservando sus enlaces.":"Distribución libre, con vínculos manuales y repulsión natural."}</span>
    {graph.total>PAGE_SIZE&&!graph.collapsing&&<div className="rlg-pagination"><button disabled={page===0} onClick={()=>{setPage(p=>Math.max(0,p-1));setFocus(null);reset();}}><ArrowLeft size={14}/></button><span>{page*PAGE_SIZE+1}–{Math.min(graph.total,(page+1)*PAGE_SIZE)} de {graph.total}</span><button disabled={(page+1)*PAGE_SIZE>=graph.total} onClick={()=>{setPage(p=>p+1);setFocus(null);reset();}}>Siguiente <ArrowUpRight size={14}/></button></div>}
    <span className="rlg-bottom-icon"><RotateCcw size={13}/> Física local · Sin costes de IA</span>
   </div>
