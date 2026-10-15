@@ -123,3 +123,9 @@
  transition:none!important;
  box-shadow:0 7px 18px #3143231e,0 0 0 2px #a0d85c;
 }
+
+/* A single 3D transform owns node coordinates. Using CSS 'translate' in
+   combination with a JS transform could wobble at subpixel zoom on Safari. */
+.rlg-node{left:-66px;top:-36.5px;translate:none;will-change:transform;backface-visibility:hidden}
+.rlg-node.is-cluster{top:-45.5px}
+.rlg-node .rlg-orb{backface-visibility:hidden}
