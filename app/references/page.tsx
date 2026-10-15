@@ -186,7 +186,7 @@ export default function ReferencesPage(){
 
  const searchWord=externalTerm.trim()||(selected?[selected.title,...selected.auto_tags.slice(0,2)].join(" "):query.trim())||"creative art direction";
  const external=[{label:"YouTube",sub:"Spots y piezas audiovisuales",href:"https://www.youtube.com/results?search_query="+encodeURIComponent(searchWord)},{label:"Vimeo",sub:"Cine y dirección creativa",href:"https://vimeo.com/search?q="+encodeURIComponent(searchWord)},{label:"Behance",sub:"Diseño y proyectos visuales",href:"https://www.behance.net/search/projects?search="+encodeURIComponent(searchWord)},{label:"Google Arts & Culture",sub:"Arte y cultura",href:"https://artsandculture.google.com/search?q="+encodeURIComponent(searchWord)}];
- return <main className="rl-shell">
+ return <main className={"rl-shell"+(tab==="connections"?" rl-immersive":"")}>
   <aside className="rl-sidebar">
    <Link href="/" className="rl-brand"><span className="rl-logo"><LibraryBig size={22}/></span><span>REF<span>LIB</span><small>OS</small></span></Link>
    <div className="rl-sideheading">BIBLIOTECA</div>
@@ -200,13 +200,14 @@ export default function ReferencesPage(){
    <div className="rl-sidebar-bottom"><span className="rl-status-dot"/> Tu archivo creativo <small>{data.items.length} referencias guardadas</small></div>
   </aside>
   <section className="rl-content">
-   <header className="rl-header">
+   {tab!=="connections"&&<header className="rl-header">
     <div className="rl-title-block"><span className="rl-eyebrow">ARCHIVO / IDEAS / REFERENCIAS</span><h1>{tab==="all"?"Tu universo visual.":tab==="connections"?"Conecta las ideas.":"Encuentra lo inesperado."}</h1><p>{tab==="all"?"Todo lo que te inspira, en un solo lugar.":tab==="connections"?"Las relaciones existen. Solo hay que saber encontrarlas.":"De tu biblioteca hacia nuevas referencias."}</p></div>
     <button className="rl-add" onClick={()=>setCapture(true)}><Plus size={17}/> Añadir referencia</button>
-   </header>
-   <div className="rl-toolbar">
+   </header>}
+   <div className={"rl-toolbar"+(tab==="connections"?" rl-graph-toolbar":"")}>
     <div className="rl-search"><Search size={18}/><input aria-label="Buscar referencias" placeholder="Buscar una idea, un autor, un concepto..." value={query} onChange={e=>{setQuery(e.target.value);if(tab==="discover")setTab("all")}}/><kbd>⌘ K</kbd></div>
     <div className="rl-tabs"><button className={tab==="all"?"active":""} onClick={()=>setTab("all")}>Galería</button><button className={tab==="connections"?"active":""} onClick={()=>setTab("connections")}>Conexiones</button><button className={tab==="discover"?"active":""} onClick={()=>setTab("discover")}>Explorar</button></div>
+    {tab==="connections"&&<button className="rl-add rl-graph-add" onClick={()=>setCapture(true)}><Plus size={16}/> Añadir referencia</button>}
    </div>
    {error&&<div className="rl-error" role="alert">{error}<button onClick={()=>setError("")}>×</button></div>}
    {tab==="all"&&<div className="rl-gallery-view">
@@ -216,7 +217,7 @@ export default function ReferencesPage(){
     {data.items.length>0&&<div className="rl-import-footer"><button disabled={busy} onClick={importCreative}><Upload size={15}/> Importar referencias de Creative Lab</button>{importStatus&&<span>{importStatus}</span>}</div>}
     {data.items.length===0&&importStatus&&<p className="rl-import-status">{importStatus}</p>}
    </div>}
-   {tab==="connections"&&(loading?<div className="rl-loading"><Loader2 size={22} className="rl-rotate"/> Construyendo el mapa...</div>:<ReferenceGraph items={data.items} collections={data.collections} connections={data.connections} query={query} onOpen={setActiveId}/>)}
+   {tab==="connections"&&(loading?<div className="rl-loading"><Loader2 size={22} className="rl-rotate"/> Construyendo el mapa...</div>:<ReferenceGraph items={data.items} collections={data.collections} connections={data.connections} query={query} onOpen={setActiveId} onRefresh={load}/>)}
    {tab==="discover"&&<div className="rl-discover-view">
     <div className="rl-feature rl-discover-feature"><div className="rl-feature-icon"><Compass size={27}/></div><span className="rl-eyebrow">DESCUBRIMIENTO EXTERNO</span><h2>Más allá de lo que ya conoces.</h2><p>Explora obras reales de colecciones abiertas. Es una búsqueda cultural, todavía no el feed personalizado que estamos preparando.</p></div>
 
