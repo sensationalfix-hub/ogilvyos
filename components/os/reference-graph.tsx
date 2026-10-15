@@ -133,6 +133,15 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
   setCamera({x:rect.width/2,y:rect.height/2,zoom:1});
   return()=>observer.disconnect();
  },[]);
+ useEffect(()=>{
+  const el=canvas.current;if(!el)return;
+  const handler=(event:WheelEvent)=>{
+   event.preventDefault();const rect=el.getBoundingClientRect();const px=event.clientX-rect.left,py=event.clientY-rect.top;
+   setCamera(old=>{const next=Math.max(.42,Math.min(2.1,old.zoom*Math.exp(-event.deltaY*.001)));const scale=next/old.zoom;return {x:px-(px-old.x)*scale,y:py-(py-old.y)*scale,zoom:next};});
+  };
+  el.addEventListener("wheel",handler,{passive:false});
+  return()=>el.removeEventListener("wheel",handler);
+ },[]);
  useEffect(()=>{setPage(0);setScope(null);setFocus(null);setActiveEdge(null);},[query]);
  useEffect(()=>{
   const old=positions.current;
@@ -189,10 +198,6 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
  const zoom=(factor:number,px=dims.width/2,py=dims.height/2)=>{
   setCamera(old=>{const next=Math.max(.42,Math.min(2.1,old.zoom*factor));const scale=next/old.zoom;return {x:px-(px-old.x)*scale,y:py-(py-old.y)*scale,zoom:next};});
  };
- const wheel=(event:React.WheelEvent<HTMLDivElement>)=>{
-  event.preventDefault();const rect=event.currentTarget.getBoundingClientRect();
-  zoom(Math.exp(-event.deltaY*.001),event.clientX-rect.left,event.clientY-rect.top);
- };
  const onDown=(event:ReactPointerEvent<HTMLDivElement>)=>{
   if(event.button!==0||(event.target instanceof Element&&event.target.closest(".rlg-node,.rlg-line-hit,.rlg-panel,.rlg-controls,.rlg-top")))return;
   pan.current={id:event.pointerId,x:event.clientX,y:event.clientY,camX:cameraRef.current.x,camY:cameraRef.current.y};
@@ -243,7 +248,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen}:{ite
     <button className={suggestions?"rlg-toggled":""} onClick={()=>setSuggestions(v=>!v)} title="Mostrar u ocultar afinidades calculadas con etiquetas"><Sparkles size={14}/> Afinidades {suggestions?"ON":"OFF"}</button>
    </div>
   </div>
-  <div className="rlg-canvas" ref={canvas} onWheel={wheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-label="Mapa interactivo de referencias">
+  <div className="rlg-canvas" ref={canvas} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-label="Mapa interactivo de referencias">
    <div className="rlg-grid"/>
    <div className="rlg-stage" style={{transform:"translate("+camera.x+"px,"+camera.y+"px) scale("+camera.zoom+")"}}>
     <svg className="rlg-wires" width={WIDTH} height={HEIGHT} viewBox={"-"+WIDTH/2+" -"+HEIGHT/2+" "+WIDTH+" "+HEIGHT} aria-hidden="true">
