@@ -388,7 +388,7 @@ export function ReferenceGraph({items,collections,connections,query,onOpen,onRef
     </div>
    </div>
    {connectMode&&<div className="rlg-mode-note">{connectSource?"Ahora selecciona la referencia de destino.":"Selecciona el primer nodo para conectarlo con otro."}<button onClick={()=>{setConnectMode(false);setConnectSource(null);setFocus(null);}}>Cancelar</button></div>}
-   <div className="rlg-stage" style={{transform:"translate("+camera.x+"px,"+camera.y+"px) scale("+camera.zoom+")"}}>
+   <div className="rlg-stage" style={{transform:"translate3d("+camera.x+"px,"+camera.y+"px,0) scale("+camera.zoom+")"}}>
     <svg className="rlg-wires" width={WIDTH} height={HEIGHT} viewBox={"-"+WIDTH/2+" -"+HEIGHT/2+" "+WIDTH+" "+HEIGHT} aria-hidden="true">
      {edges.map(e=>{
       const a=pos(e.source),b=pos(e.target);
