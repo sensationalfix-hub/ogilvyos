@@ -5,13 +5,27 @@
 */
 html[data-os-theme="dark"]{
  color-scheme:dark;
- --background:#0c0c0e;--foreground:#353538;--card:#121214;--card-foreground:#353538;
- --popover:#121214;--popover-foreground:#353538;--secondary:#19191b;
- --secondary-foreground:#353538;--muted:#19191b;--muted-foreground:#353538;
- --accent:#202023;--accent-foreground:#353538;--border:#3b3b40;--input:#202023;
- --ogilvy-paper:#0c0c0e;--ogilvy-ink:#353538;
+ --background:#0c0c0e;
+ --foreground:#ededf0;
+ --card:#19191b;
+ --card-foreground:#ededf0;
+ --popover:#19191b;
+ --popover-foreground:#ededf0;
+ --primary:#b7ff4a;
+ --primary-foreground:#111113;
+ --secondary:#262629;
+ --secondary-foreground:#ededf0;
+ --muted:#262629;
+ --muted-foreground:#a6a6ac;
+ --accent:#303034;
+ --accent-foreground:#ededf0;
+ --border:#343438;
+ --input:#343438;
+ --ring:#b7ff4a;
+ --ogilvy-paper:#0c0c0e;
+ --ogilvy-ink:#ededf0;
 }
-html[data-os-theme="dark"],html[data-os-theme="dark"] body{background:#121214;color:#eeeeef}
+html[data-os-theme="dark"],html[data-os-theme="dark"] body{background:#0c0c0e;color:#eeeeef}
 html[data-os-theme="dark"] *{scrollbar-color:#262629 transparent}
 html[data-os-theme="dark"] input,
 html[data-os-theme="dark"] select,
@@ -115,7 +129,7 @@ html[data-os-theme="dark"] :is(.cl-lib-results,.cl-lib-tools){border-color:#3b3b
 html[data-os-theme="dark"] .cl-lib-item:hover{background:#202023!important}
 
 /* Reference Lib, including immersive connections view. */
-html[data-os-theme="dark"] .rl-shell{--rl-border:#3b3b40;--rl-text:#353538;background:#121214!important;color:#eeeeef!important}
+html[data-os-theme="dark"] .rl-shell{--rl-border:#3b3b40;--rl-text:#ededf0;background:#121214!important;color:#eeeeef!important}
 html[data-os-theme="dark"] .rl-sidebar{background:#19191b!important;border-color:#3b3b40!important}
 html[data-os-theme="dark"] .rl-brand{color:#eeeeef}
 html[data-os-theme="dark"] .rl-sideheading,
