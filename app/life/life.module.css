@@ -311,13 +311,13 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 @media(max-width:650px){.cultureItem{min-height:205px}.cultureItemInfo{padding:0 11px 12px;gap:7px}.cultureItemInfo>strong{font-size:15px}.cultureStatus{top:8px;left:8px;font-size:8px;min-height:23px}.cultureRating{top:8px;right:8px;min-width:28px;height:25px;font-size:10px}.cultureSummary>span{min-height:55px}.cultureSummary b{font-size:21px}.cultureEmpty{min-height:330px}.cultureEmpty>h2{font-size:20px}}
 
 /* OS-wide theme: dark LifeOS surfaces, preserving personal-area accent colours and media art. */
-:global(html[data-os-theme="dark"]) .shell{background:#121214;color:#eeeeef}
+:global(html[data-os-theme="dark"]) .shell{background:#0b0b0d;color:#eeeeef}
 :global(html[data-os-theme="dark"]) .main{
- background:#0c0c0e;
+ background:#050506;
  color:#eeeeef
 }
 :global(html[data-os-theme="dark"]) .sidebar{
- background:#19191b;border-color:#3b3b40;color:#eeeeef
+ background:#101012;border-color:#29292e;color:#eeeeef
 }
 :global(html[data-os-theme="dark"]) .logoWrap :global(.brand-app-artwork){filter:invert(1) hue-rotate(180deg)}
 :global(html[data-os-theme="dark"]) .navLabel,
@@ -325,21 +325,21 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .dateBlock small,
 :global(html[data-os-theme="dark"]) .todayHint{color:#b9b9be}
 :global(html[data-os-theme="dark"]) .navHome{
- background:#262629;color:#eeeeef;border-color:#3b3b40
+ background:#1a1a1d;color:#eeeeef;border-color:#29292e
 }
 :global(html[data-os-theme="dark"]) .nav button{color:#eeeeef}
-:global(html[data-os-theme="dark"]) .nav button:hover{background:#262629;color:#eeeeef}
+:global(html[data-os-theme="dark"]) .nav button:hover{background:#1a1a1d;color:#eeeeef}
 :global(html[data-os-theme="dark"]) .nav button.navActive{background:#b7ff4a;border-color:#b7ff4a;color:#18181a}
 :global(html[data-os-theme="dark"]) .source,
-:global(html[data-os-theme="dark"]) .capture{background:#202023;border-color:#3b3b40;box-shadow:0 5px 15px #0001;color:#eeeeef}
+:global(html[data-os-theme="dark"]) .capture{background:#151518;border-color:#29292e;box-shadow:0 5px 15px #0001;color:#eeeeef}
 :global(html[data-os-theme="dark"]) .source strong,
 :global(html[data-os-theme="dark"]) .breadcrumb strong{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .capture input{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .capture input::placeholder{color:#8a8a91}
 :global(html[data-os-theme="dark"]) .capture button{background:#b7ff4a;color:#18181a}
-:global(html[data-os-theme="dark"]) .header{border-color:#3b3b40}
+:global(html[data-os-theme="dark"]) .header{border-color:#29292e}
 :global(html[data-os-theme="dark"]) .card{
- background:#19191b;border-color:#3b3b40;box-shadow:0 8px 25px #0002;color:#eeeeef
+ background:#101012;border-color:#29292e;box-shadow:0 8px 25px #0002;color:#eeeeef
 }
 :global(html[data-os-theme="dark"]) .card:before{opacity:0}
 :global(html[data-os-theme="dark"]) :is(.panelHead,.sectionActions) h1,
@@ -348,7 +348,7 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .calendarFoot,
 :global(html[data-os-theme="dark"]) .placeholder{color:#b9b9be}
 :global(html[data-os-theme="dark"]) :is(.weekStrip button,.calendarGrid button,.moneyColumns>div,.forecastColumn,.filterRow button,.actionRow button,.softAction,.addBig,.journalExcerpt,.mediaIcon){
- background:#262629;border-color:#3b3b40;color:#eeeeef
+ background:#1a1a1d;border-color:#29292e;color:#eeeeef
 }
 :global(html[data-os-theme="dark"]) .weekStrip button.dayCurrent,
 :global(html[data-os-theme="dark"]) .calendarGrid button.selectedDate,
@@ -356,58 +356,58 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .weekStrip button span,
 :global(html[data-os-theme="dark"]) .calendarGrid button i,
 :global(html[data-os-theme="dark"]) .moneyColumns span{color:#eeeeef}
-:global(html[data-os-theme="dark"]) :is(.weekStrip button,.calendarGrid button,.softAction,.actionRow button):hover{background:#2d2d30}
+:global(html[data-os-theme="dark"]) :is(.weekStrip button,.calendarGrid button,.softAction,.actionRow button):hover{background:#202024}
 :global(html[data-os-theme="dark"]) .bigMoney,
 :global(html[data-os-theme="dark"]) .bigDate,
 :global(html[data-os-theme="dark"]) .cardCounter,
 :global(html[data-os-theme="dark"]) .card strong{color:#eeeeef}
 :global(html[data-os-theme="dark"]) :is(.nextBilling,.miniStack>button,.taskMini,.entryRow,.subscriptionRow,.recurringRow,.forecastMath>div,.planList>button,.taskListRow){
- border-color:#3b3b40;color:#eeeeef
+ border-color:#29292e;color:#eeeeef
 }
-:global(html[data-os-theme="dark"]) :is(.miniStack>button,.entryRow,.subscriptionRow,.recurringRow):hover{background:#262629}
-:global(html[data-os-theme="dark"]) .moneyKpi{background:#202023;border-color:#3b3b40}
+:global(html[data-os-theme="dark"]) :is(.miniStack>button,.entryRow,.subscriptionRow,.recurringRow):hover{background:#1a1a1d}
+:global(html[data-os-theme="dark"]) .moneyKpi{background:#151518;border-color:#29292e}
 :global(html[data-os-theme="dark"]) .moneyKpiHero{
- background:linear-gradient(130deg,#2d2d30,#202023);border-color:#3b3b40
+ background:linear-gradient(130deg,#202024,#151518);border-color:#29292e
 }
 :global(html[data-os-theme="dark"]) .moneyKpiHero>span,
 :global(html[data-os-theme="dark"]) .moneyKpiHero>strong{color:#eeeeef}
 :global(html[data-os-theme="dark"]) :is(.subscriptionTotal,.forecastDetail,.panelMiniTotal,.moneyPanelBottom,.moneyPanelTop,.forecastBarTrack,.templatePills>button,.catalogPrompt,.catalogSelected,.cultureSummary>span,.cultureTypes button){
- background:#202023;border-color:#3b3b40;color:#eeeeef
+ background:#151518;border-color:#29292e;color:#eeeeef
 }
-:global(html[data-os-theme="dark"]) .forecastColumn.forecastSelected{background:#353538;border-color:#3b3b40;box-shadow:inset 0 0 0 1px #89af6e}
+:global(html[data-os-theme="dark"]) .forecastColumn.forecastSelected{background:#29292d;border-color:#29292e;box-shadow:inset 0 0 0 1px #89af6e}
 :global(html[data-os-theme="dark"]) .forecastMonth,
 :global(html[data-os-theme="dark"]) .forecastNumber>small{color:#eeeeef}
-:global(html[data-os-theme="dark"]) .moneyPanelTop{background:#19191b}
-:global(html[data-os-theme="dark"]) .moneyPanelBottom{background:#202023;border-color:#3b3b40}
-:global(html[data-os-theme="dark"]) .moneyPanelScroll{scrollbar-color:#262629 transparent}
+:global(html[data-os-theme="dark"]) .moneyPanelTop{background:#101012}
+:global(html[data-os-theme="dark"]) .moneyPanelBottom{background:#151518;border-color:#29292e}
+:global(html[data-os-theme="dark"]) .moneyPanelScroll{scrollbar-color:#1a1a1d transparent}
 :global(html[data-os-theme="dark"]) .moneyKpi>span,
 :global(html[data-os-theme="dark"]) .moneyEyebrow,
 :global(html[data-os-theme="dark"]) .panelMiniTotal>span,
 :global(html[data-os-theme="dark"]) .forecastDisclaimer{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .ratioTrack,
 :global(html[data-os-theme="dark"]) .categoryTrack,
-:global(html[data-os-theme="dark"]) .stackBar{background:#2d2d30}
+:global(html[data-os-theme="dark"]) .stackBar{background:#202024}
 :global(html[data-os-theme="dark"]) .ratioTrack i{background:#b7ff4a}
 :global(html[data-os-theme="dark"]) .editor{
- background:#202023;border-color:#3b3b40;color:#eeeeef
+ background:#151518;border-color:#29292e;color:#eeeeef
 }
 :global(html[data-os-theme="dark"]) .editorHead,
-:global(html[data-os-theme="dark"]) .editorFooter{border-color:#3b3b40}
+:global(html[data-os-theme="dark"]) .editorFooter{border-color:#29292e}
 :global(html[data-os-theme="dark"]) .editorHead h2{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .editorHead>button,
 :global(html[data-os-theme="dark"]) .editorFooter>button:not(.primary),
 :global(html[data-os-theme="dark"]) .editorBody input,
 :global(html[data-os-theme="dark"]) .editorBody select,
 :global(html[data-os-theme="dark"]) .editorBody textarea{
- background:#262629;color:#eeeeef;border-color:#3b3b40
+ background:#1a1a1d;color:#eeeeef;border-color:#29292e
 }
 :global(html[data-os-theme="dark"]) .editorBody label{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .editorFooter>button.primary{background:#b7ff4a;color:#18181a}
-:global(html[data-os-theme="dark"]) .editorFooter>.deleteButton{background:#262629;color:#f5b2b8;border-color:#3b3b40}
+:global(html[data-os-theme="dark"]) .editorFooter>.deleteButton{background:#1a1a1d;color:#f5b2b8;border-color:#29292e}
 :global(html[data-os-theme="dark"]) .selectedJournal>p{color:#eeeeef}
-:global(html[data-os-theme="dark"]) .moodTag{background:#2d2d30;color:#eeeeef}
+:global(html[data-os-theme="dark"]) .moodTag{background:#202024;color:#eeeeef}
 :global(html[data-os-theme="dark"]) .cultureEmpty{
- background:linear-gradient(145deg,#19191b,#262629);border-color:#3b3b40
+ background:linear-gradient(145deg,#101012,#1a1a1d);border-color:#29292e
 }
 :global(html[data-os-theme="dark"]) .cultureEmpty>h2{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .cultureTypes button.cultureTypeActive{background:#b7ff4a;color:#18181a}
@@ -415,12 +415,12 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .cultureSummary b{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .catalogSelected a{color:#b7ff4a}
 :global(html[data-os-theme="dark"]) .catalogSelected button,
-:global(html[data-os-theme="dark"]) .catalogPrompt button{background:#2d2d30;color:#b7ff4a;border-color:#3b3b40}
-:global(html[data-os-theme="dark"]) .cultureItem{border-color:#3b3b40}
-:global(html[data-os-theme="dark"]) .cultureCoverShade{background:linear-gradient(to bottom,transparent,#12121490 28%,#0d0d0fe5)}
+:global(html[data-os-theme="dark"]) .catalogPrompt button{background:#202024;color:#b7ff4a;border-color:#29292e}
+:global(html[data-os-theme="dark"]) .cultureItem{border-color:#29292e}
+:global(html[data-os-theme="dark"]) .cultureCoverShade{background:linear-gradient(to bottom,transparent,#0b0b0d90 28%,#0d0d0fe5)}
 :global(html[data-os-theme="dark"]) .cultureItemInfo>strong,
 :global(html[data-os-theme="dark"]) .cultureItemInfo>small{color:#fff}
-:global(html[data-os-theme="dark"]) .cultureStatus{background:#121214df}
+:global(html[data-os-theme="dark"]) .cultureStatus{background:#0b0b0ddf}
 :global(html[data-os-theme="dark"]) .cultureRating{background:#b7ff4a;color:#18181a}
 :global(html[data-os-theme="dark"]) .softAction,
 :global(html[data-os-theme="dark"]) .filterActive,
@@ -429,7 +429,7 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .positive{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .negative{color:#f1a8b1}
 @media(max-width:650px){
- :global(html[data-os-theme="dark"]) .sidebar{background:#19191b;border-color:#3b3b40}
+ :global(html[data-os-theme="dark"]) .sidebar{background:#101012;border-color:#29292e}
 }
 
 /* Stronger neutral contrast inside the home dashboard. */
@@ -441,7 +441,7 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .nextBilling strong,
 :global(html[data-os-theme="dark"]) .moneyColumns strong{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .journalExcerpt:hover,
-:global(html[data-os-theme="dark"]) .softAction:hover{background:#262629}
+:global(html[data-os-theme="dark"]) .softAction:hover{background:#1a1a1d}
 
 /* The chart's coloured bar meanings remain visible, but chrome is monochrome. */
 :global(html[data-os-theme="dark"]) .moneyKpi:before{background:#6d6d72;opacity:.24}
