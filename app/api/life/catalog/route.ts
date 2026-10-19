@@ -19,7 +19,7 @@ const safeUrl=(v:unknown):string|null=>{
  if(typeof v!=="string")return null;
  try{const url=new URL(v);if(url.protocol!=="https:")return null;
   const host=url.hostname.toLowerCase();
-  if(["upload.wikimedia.org","images.weserv.nl","image.tmdb.org","static.tvmaze.com","api.tvmaze.com","media.rawg.io","shared.fastly.steamstatic.com","cdn.cloudflare.steamstatic.com","steamcdn-a.akamaihd.net","steamcommunity.com"].some(allowed=>host===allowed))return url.href;
+  if(["upload.wikimedia.org","images.weserv.nl","image.tmdb.org","static.tvmaze.com","api.tvmaze.com","media.rawg.io","shared.fastly.steamstatic.com","cdn.cloudflare.steamstatic.com","steamcdn-a.akamaihd.net","steamcommunity.com"].some(allowed=>host===allowed)||/^is\d+(?:-ssl)?\.mzstatic\.com$/.test(host))return url.href;
  }catch{}
  return null;
 };
@@ -150,6 +150,71 @@ function dedupe(all:MediaResult[]){
   if(used.has(key))return false;used.add(key);return true;
  });
 }
+const normal=(s:string)=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s*\([^)]*\)/g,"").replace(/[^a-z0-9]+/g," ").trim();
+const biggerAppleArt=(v:unknown):string|null=>{
+ const original=safeUrl(v);
+ if(!original)return null;
+ try{
+  const url=new URL(original);
+  const resized=url.pathname.replace(/\/\d+x\d+(?:bb|sr)(?=\.)/i,"/600x900bb");
+  const result=new URL(resized,url.origin);
+  return safeUrl(result.href)||original;
+ }catch{return original;}
+};
+async function itunesMovies(q:string):Promise<MediaResult[]>{
+ const d=await get("https://itunes.apple.com/search?term="+encodeURIComponent(q)+"&media=movie&entity=movie&country=us&limit=20");
+ return array(d.results).map(v=>{
+  const e=record(v),name=string(e.trackName),id=Number(e.trackId);
+  if(!name||!Number.isFinite(id))return null;
+  const image=biggerAppleArt(e.artworkUrl100);
+  const year=yearOf(e.releaseDate);
+  const genres=string(e.primaryGenreName)?[string(e.primaryGenreName)]:[];
+  return {id:"itunes:movie:"+id,type:"película" as const,title:name,year,image,
+    fallbackImage:safeUrl(e.artworkUrl100),description:strip(string(e.longDescription)||string(e.shortDescription)),
+    genres,platforms:[],rating:null,ratingLabel:null,source:"Apple TV / iTunes",
+    sourceUrl:string(e.trackViewUrl)||"https://itunes.apple.com/search?term="+encodeURIComponent(name)} as MediaResult;
+ }).filter((v):v is MediaResult=>Boolean(v)&&Boolean(v.image));
+}
+async function wikiPagePoster(page:string):Promise<{image:string|null;fallbackImage:string|null}>{
+ if(!/^[^\r\n?#]{1,140}$/.test(page))return {image:null,fallbackImage:null};
+ const title=page.replace(/ /g,"_");
+ const summary=await get("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(title));
+ const sthumb=record(summary.thumbnail),soriginal=record(summary.originalimage);
+ let image=safeUrl(soriginal.source)||safeUrl(sthumb.source);
+ let fallbackImage=safeUrl(sthumb.source);
+ if(!image){
+  const d=await get("https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageimages&piprop=thumbnail%7Coriginal&pithumbsize=800&titles="+encodeURIComponent(title));
+  const pages=array(record(d.query).pages);
+  const pageInfo=record(pages[0]);
+  image=safeUrl(record(pageInfo.original).source)||safeUrl(record(pageInfo.thumbnail).source);
+  fallbackImage=safeUrl(record(pageInfo.thumbnail).source);
+ }
+ return {image,fallbackImage};
+}
+async function repairPoster(sourceId:string,title:string,mediaType:MediaType,year:string){
+ if(sourceId.startsWith("wiki:")){
+  const wiki=await wikiPagePoster(sourceId.slice(5));
+  if(wiki.image)return {...wiki,posterSource:"Wikipedia"};
+ }
+ if(mediaType==="película"){
+  const results=await itunesMovies(title);
+  const exact=results.filter(e=>normal(e.title)===normal(title));
+  const match=exact.find(e=>e.year===year)||exact[0];
+  if(match)return {image:match.image,fallbackImage:match.fallbackImage,posterSource:"Apple TV / iTunes"};
+ }
+ if(mediaType==="serie"){
+  const matches=await tvMazeSearch(title);
+  const exact=matches.filter(e=>normal(e.title)===normal(title));
+  const match=exact.find(e=>e.year===year)||exact[0];
+  if(match?.image)return {image:match.image,fallbackImage:match.fallbackImage,posterSource:"TVmaze"};
+ }
+ if(mediaType==="videojuego"){
+  const matches=await steamSearch(title);
+  const match=matches.find(e=>normal(e.title)===normal(title));
+  if(match?.image)return {image:match.image,fallbackImage:match.fallbackImage,posterSource:"Steam"};
+ }
+ return {image:null,fallbackImage:null,posterSource:null};
+}
 async function steamDetail(id:string){
  const data=await get("https://store.steampowered.com/api/appdetails?appids="+id+"&l=spanish&cc=ES");
  const item=record(data[id]);
@@ -167,6 +232,15 @@ export async function GET(request:Request){
  if(!session)return NextResponse.json({error:"No autorizado"},{status:401});
  const params=new URL(request.url).searchParams;
  const detail=params.get("detail")||"";
+ if(detail.startsWith("wiki:") || detail.startsWith("itunes:") || detail.startsWith("tvmaze:") || detail.startsWith("steam:")){
+  const type=params.get("type") as MediaType;
+  const title=(params.get("title")||"").trim().slice(0,120);
+  const year=(params.get("year")||"").trim().slice(0,4);
+  if(title.length>1&&["videojuego","película","serie"].includes(type)){
+   const details=await repairPoster(detail,title,type,year);
+   return NextResponse.json({details},{headers:{"Cache-Control":"private, max-age=0"}});
+  }
+ }
  if(/^steam:[0-9]{1,12}$/.test(detail)){
   const details=await steamDetail(detail.slice(6));
   return NextResponse.json({details},{headers:{"Cache-Control":"private, max-age=0"}});
@@ -177,7 +251,7 @@ export async function GET(request:Request){
  if(q.length<2)return NextResponse.json({results:[]});
  const promises=type==="videojuego"?[rawgSearch(q),steamSearch(q),wikiSearch(q,type)]:
   type==="serie"?[tmdbSearch(q,type),tvMazeSearch(q),wikiSearch(q,type)]:
-  [tmdbSearch(q,type),wikiSearch(q,type)];
+  [tmdbSearch(q,type),itunesMovies(q),wikiSearch(q,type)];
  const results=await Promise.allSettled(promises);
  const matches=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
  const sorted=dedupe(sortByName(matches,q)).slice(0,24);
