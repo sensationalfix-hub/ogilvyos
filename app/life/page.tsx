@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import {
   Activity, ArrowDownLeft, ArrowRight, ArrowUpRight, BookOpen, CalendarDays, Check,
   ChevronLeft, ChevronRight, CircleDollarSign, Clapperboard, Dumbbell, FolderKanban,
@@ -101,6 +101,7 @@ export default function LifePage(){
  const [filter,setFilter]=useState("all");
  const [forecastMonth,setForecastMonth]=useState(monthKey(localDay()));
  const [catalogOpen,setCatalogOpen]=useState(false);
+ const attemptedCoverRepairs=useRef(new Set<string>());
  const [mediaTypeFilter,setMediaTypeFilter]=useState("all");
  const today=localDay();
  const thisMonth=monthKey(today);
@@ -125,6 +126,36 @@ export default function LifePage(){
    void load(true);
    return ()=>window.removeEventListener("popstate",sync);
  },[load]);
+ // Self-heal existing catalog entries saved without artwork; never change progress or notes.
+ useEffect(()=>{
+   if(loading)return;
+   const incomplete=entries.filter(e=>{
+     if(e.kind!=="media"||attemptedCoverRepairs.current.has(e.id))return false;
+     const match=readMediaMatch(e.metadata?.catalog);
+     return Boolean(match&&!match.image&&!match.fallbackImage);
+   }).slice(0,8);
+   if(!incomplete.length)return;
+   for(const entry of incomplete)attemptedCoverRepairs.current.add(entry.id);
+   void Promise.all(incomplete.map(async entry=>{
+     try{
+       const match=readMediaMatch(entry.metadata?.catalog);
+       if(!match)return;
+       const query=new URLSearchParams({detail:match.id,type:match.type,title:match.title,year:match.year||""});
+       const response=await fetch("/api/life/catalog?"+query.toString(),{cache:"no-store"});
+       if(!response.ok)return;
+       const info=await response.json() as {details?:{image?:string|null;fallbackImage?:string|null;posterSource?:string|null}};
+       const candidate=readMediaMatch({...match,...info.details});
+       if(!candidate?.image&&!candidate?.fallbackImage)return;
+       const metadata={...entry.metadata,catalog:candidate};
+       const save=await fetch("/api/life/entries",{
+        method:"PATCH",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({id:entry.id,metadata})
+       });
+       if(!save.ok)return;
+       setEntries(current=>current.map(item=>item.id===entry.id?{...item,metadata}:item));
+     }catch{ /* Missing external artwork must not block access to the library. */ }
+   }));
+ },[entries,loading]);
  useEffect(()=>{
    const current=nav.find(n=>n.id===section);
    try { window.localStorage.setItem("os.recent.life",JSON.stringify({app:"life",title:current?.label||"Hoy",subtitle:"Life · "+current?.label,href:"/life"+(section==="today"?"":"?section="+section),at:Date.now()}));}catch{}
@@ -468,6 +499,7 @@ export default function LifePage(){
             <span className={styles.cultureItemInfo}><small>{[match?.year,capital(e.category||"videojuego")].filter(Boolean).join(" · ")}</small><strong>{e.title}</strong>
               <span className={styles.cultureProgress}><i style={{width:progress+"%"}}/></span><small>{progress}% completado</small></span>
            </button>
+           {match?.posterSource&&match.posterSource!==match.source&&<span className={styles.cultureCredit}>Portada: {match.posterSource}</span>}
            {match?.sourceUrl?<a className={styles.cultureCredit} href={match.sourceUrl} target="_blank" rel="noopener noreferrer">Ficha: {match.source}<ArrowUpRight size={12}/></a>:<span className={styles.cultureCredit}>Añadido manualmente</span>}
           </article>;
         })}</div>:
