@@ -173,7 +173,7 @@ async function itunesMovies(q:string):Promise<MediaResult[]>{
     fallbackImage:safeUrl(e.artworkUrl100),description:strip(string(e.longDescription)||string(e.shortDescription)),
     genres,platforms:[],rating:null,ratingLabel:null,source:"Apple TV / iTunes",
     sourceUrl:string(e.trackViewUrl)||"https://itunes.apple.com/search?term="+encodeURIComponent(name)} as MediaResult;
- }).filter((v):v is MediaResult=>Boolean(v)&&Boolean(v.image));
+ }).filter((v):v is MediaResult=>v!==null&&v.image!==null);
 }
 async function wikiPagePoster(page:string):Promise<{image:string|null;fallbackImage:string|null}>{
  if(!/^[^\r\n?#]{1,140}$/.test(page))return {image:null,fallbackImage:null};
