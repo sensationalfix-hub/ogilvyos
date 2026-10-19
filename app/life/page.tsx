@@ -6,9 +6,10 @@ import {
   ChevronLeft, ChevronRight, CircleDollarSign, Clapperboard, Dumbbell, FolderKanban,
   Gamepad2, HeartPulse, House, LayoutDashboard, ListTodo, Pencil, Plus, Sparkles,
   Target, Trash2, WalletCards, X, User, Bike, Film, NotebookPen,
-  Landmark, ShieldCheck, TrendingUp, HomeIcon, ReceiptText, SlidersHorizontal, Info,
+  Landmark, ShieldCheck, TrendingUp, HomeIcon, ReceiptText, SlidersHorizontal, Info, Search,
 } from "lucide-react";
 import { ModeLogo } from "@/components/os/mode-logo";
+import { CultureCatalog, MediaPoster, readMediaMatch, type MediaMatch, type MediaType } from "./culture-catalog";
 import styles from "./life.module.css";
 
 type Kind = "journal" | "finance" | "subscription" | "salary" | "fixed" | "media" | "health" | "plan";
@@ -17,7 +18,7 @@ type Entry = { id:string; kind:Kind; title:string; note:string; entry_date:strin
 type Area = {id:string; name:string;slug:string;accent:string|null;icon:string|null;position:number};
 type Task = {id:string;title:string;area_id:string|null;status:string;due_date:string|null;starts_at:string|null;priority:string};
 type LifeState = {areas:Area[];tasks:Task[];goals:unknown[];projects:unknown[]};
-type Draft = {id?:string;kind:Kind;title:string;note:string;entry_date:string;amount:string;category:string;status:string;billing_day:string;progress:string;mood:string;metric:string;periodicity:string;essential:boolean};
+type Draft = {id?:string;kind:Kind;title:string;note:string;entry_date:string;amount:string;category:string;status:string;billing_day:string;progress:string;mood:string;metric:string;periodicity:string;essential:boolean;catalog:MediaMatch|null};
 const nav:{id:Section;label:string;icon:typeof LayoutDashboard}[] = [
   {id:"today",label:"Hoy",icon:LayoutDashboard},
   {id:"journal",label:"Diario",icon:BookOpen},
@@ -77,10 +78,10 @@ const monthlyEquivalent=(e:Entry)=>amountOf(e)/periods[periodOf(e)].months;
 const fixedLabel=(value:string)=>fixedCategories.find(c=>c.value===value)?.label||"Otros";
 const periodLabel=(e:Entry)=>periods[periodOf(e)].label.toLowerCase();
 function blank(kind:Kind,date=localDay()):Draft {
- return {kind,title:"",note:"",entry_date:date,amount:"",category:kind==="media"?"videojuego":kind==="health"?"entreno":kind==="fixed"?"vivienda":"general",status:kind==="media"?"now":kind==="finance"?"expense":"active",billing_day:String(new Date().getDate()),progress:"0",mood:"normal",metric:"",periodicity:"monthly",essential:true};
+ return {kind,title:"",note:"",entry_date:date,amount:"",category:kind==="media"?"videojuego":kind==="health"?"entreno":kind==="fixed"?"vivienda":"general",status:kind==="media"?"now":kind==="finance"?"expense":"active",billing_day:String(new Date().getDate()),progress:"0",mood:"normal",metric:"",periodicity:"monthly",essential:true,catalog:null};
 }
 function fromEntry(e:Entry):Draft {
- return {id:e.id,kind:e.kind,title:e.title,note:e.note,entry_date:e.entry_date,amount:e.amount===null?"":String(Math.abs(Number(e.amount))),category:e.category||"",status:e.status||(e.kind==="finance"?"expense":"active"),billing_day:e.billing_day?String(e.billing_day):"",progress:metaString(e,"progress")||"0",mood:metaString(e,"mood")||"normal",metric:metaString(e,"metric"),periodicity:metaString(e,"periodicity")||"monthly",essential:e.metadata?.essential!==false};
+ return {id:e.id,kind:e.kind,title:e.title,note:e.note,entry_date:e.entry_date,amount:e.amount===null?"":String(Math.abs(Number(e.amount))),category:e.category||"",status:e.status||(e.kind==="finance"?"expense":"active"),billing_day:e.billing_day?String(e.billing_day):"",progress:metaString(e,"progress")||"0",mood:metaString(e,"mood")||"normal",metric:metaString(e,"metric"),periodicity:metaString(e,"periodicity")||"monthly",essential:e.metadata?.essential!==false,catalog:readMediaMatch(e.metadata?.catalog)};
 }
 function PanelHead({title,action,click}:{title:string;action?:string;click?:()=>void}){
  return <div className={styles.panelHead}><h2>{title}</h2>{action&&click&&<button type="button" onClick={click}>{action}<ArrowUpRight size={16}/></button>}</div>;
@@ -99,6 +100,8 @@ export default function LifePage(){
  const [activeDate,setActiveDate]=useState(localDay());
  const [filter,setFilter]=useState("all");
  const [forecastMonth,setForecastMonth]=useState(monthKey(localDay()));
+ const [catalogOpen,setCatalogOpen]=useState(false);
+ const [mediaTypeFilter,setMediaTypeFilter]=useState("all");
  const today=localDay();
  const thisMonth=monthKey(today);
  const go=useCallback((id:Section)=>{
@@ -132,8 +135,19 @@ export default function LifePage(){
    document.addEventListener("keydown",onKey);return ()=>document.removeEventListener("keydown",onKey);
  },[draft,saving]);
  const start=(kind:Kind,entry?:Entry,date?:string)=>{setError("");setDraft(entry?fromEntry(entry):blank(kind,date));};
- const put=(field:keyof Draft,value:string)=>setDraft(d=>d?{...d,[field]:value}:d);
+ const put=(field:keyof Draft,value:string)=>setDraft(d=>d?{...d,[field]:value,...(d.kind==="media"&&field==="category"&&d.catalog?.type!==value?{catalog:null}:{})}:d);
  const fixedTemplate=(title:string,category:string)=>setDraft({...blank("fixed"),title,category,amount:"",billing_day:"1"});
+ const openCatalog=()=>{setError("");setCatalogOpen(true);};
+ const chooseCatalog=(match:MediaMatch)=>{
+   const already=entries.find(e=>e.kind==="media"&&
+      (readMediaMatch(e.metadata?.catalog)?.id===match.id||
+       (e.category===match.type&&e.title.toLocaleLowerCase("es")===match.title.toLocaleLowerCase("es"))));
+   setCatalogOpen(false);
+   if(already&&already.id!==draft?.id){start("media",already);return;}
+   setDraft(d=>d?.kind==="media"?
+    {...d,title:match.title,category:match.type,catalog:match}:
+    {...blank("media"),title:match.title,category:match.type,catalog:match});
+ };
  async function submit(e:FormEvent){
    e.preventDefault();if(!draft||saving)return;setSaving(true);setError("");
    try{
@@ -146,7 +160,7 @@ export default function LifePage(){
        amount:amt===null?null:draft.kind==="finance"&&draft.status==="expense"?-amt:amt,
        category:draft.category,status:draft.status,
        billing_day:(draft.kind==="subscription"||draft.kind==="salary"||draft.kind==="fixed")?Number(draft.billing_day)||null:null,
-       metadata:{...(draft.kind==="media"?{progress:Number(draft.progress)||0}:{}),...(draft.kind==="journal"?{mood:draft.mood}:{}),...(draft.kind==="health"?{metric:draft.metric}: {}),...(draft.kind==="fixed"?{periodicity:draft.periodicity,essential:draft.essential}: {})},
+       metadata:{...(draft.kind==="media"?{progress:Math.min(100,Math.max(0,Number(draft.progress)||0)),catalog:draft.catalog}:{}),...(draft.kind==="journal"?{mood:draft.mood}:{}),...(draft.kind==="health"?{metric:draft.metric}: {}),...(draft.kind==="fixed"?{periodicity:draft.periodicity,essential:draft.essential}: {})},
      };
      const r=await fetch("/api/life/entries",{method:draft.id?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
      const result=await r.json().catch(()=>({}));
@@ -415,10 +429,50 @@ export default function LifePage(){
          </section>
        </div>
      </div>}
-     {section==="culture"&&<div className={styles.contentLayout}>
-       <div className={styles.sectionActions}><div><small>JUEGOS · CINE · SERIES</small><h1>Cultura</h1></div><button className={styles.primary} onClick={()=>start("media")}><Plus size={16}/> Añadir título</button></div>
-       <div className={styles.filterRow}>{[{id:"all",label:"Todo"},{id:"now",label:"En curso"},{id:"backlog",label:"Backlog"},{id:"wishlist",label:"Wishlist"},{id:"completed",label:"Terminados"}].map(x=><button key={x.id} className={filter===x.id?styles.filterActive:""} onClick={()=>setFilter(x.id)}>{x.label}</button>)}</div>
-       <div className={styles.mediaGrid}>{media.filter(e=>filter==="all"||e.status===filter).map(e=><button key={e.id} className={styles.mediaCard+" "+styles.card} onClick={()=>start("media",e)} style={{"--accent":areaColors.ocio} as CSSProperties}><span className={styles.mediaIcon}>{e.category==="película"?<Film/>:e.category==="serie"?<Clapperboard/>:<Gamepad2/>}</span><small>{capital(e.category||"videojuego")} · {e.status==="now"?"En curso":e.status==="completed"?"Terminado":e.status==="wishlist"?"Wishlist":"Backlog"}</small><strong>{e.title}</strong><div className={styles.progressBar}><i style={{width:(Number(metaString(e,"progress"))||0)+"%"}}/></div><span className={styles.progressCaption}>{metaString(e,"progress")||0}% · {e.entry_date?prettyDay(e.entry_date):""}</span></button>)}{!media.filter(e=>filter==="all"||e.status===filter).length&&<div className={styles.emptySpan}><Placeholder>No hay títulos en esta categoría. Añade el primero.</Placeholder></div>}</div>
+     {section==="culture"&&<div className={styles.contentLayout+" "+styles.cultureScreen}>
+       <div className={styles.sectionActions}>
+        <div><small>TU BIBLIOTECA PERSONAL</small><h1>Cultura<span className={styles.cultureCount}>{media.length}</span></h1></div>
+        <button className={styles.primary} onClick={openCatalog}><Plus size={17}/> Buscar y añadir</button>
+       </div>
+       <div className={styles.cultureToolbar}>
+        <div className={styles.cultureTypes}>{[
+         {id:"all",label:"Todo",icon:BookOpen},
+         {id:"videojuego",label:"Juegos",icon:Gamepad2},
+         {id:"película",label:"Películas",icon:Film},
+         {id:"serie",label:"Series",icon:Clapperboard},
+        ].map(({id,label,icon:Icon})=><button type="button" key={id} onClick={()=>setMediaTypeFilter(id)} className={mediaTypeFilter===id?styles.cultureTypeActive:""}><Icon size={16}/>{label}</button>)}</div>
+        <div className={styles.filterRow}>{[
+         {id:"all",label:"Todos"},
+         {id:"now",label:"En curso"},
+         {id:"backlog",label:"Backlog"},
+         {id:"wishlist",label:"Wishlist"},
+         {id:"completed",label:"Terminados"},
+        ].map(x=><button type="button" key={x.id} className={filter===x.id?styles.filterActive:""} onClick={()=>setFilter(x.id)}>{x.label}</button>)}</div>
+       </div>
+       <div className={styles.cultureSummary}>
+        <span><b>{media.filter(x=>x.status==="now").length.toString().padStart(2,"0")}</b> EN CURSO</span>
+        <span><b>{media.filter(x=>x.status==="backlog").length.toString().padStart(2,"0")}</b> BACKLOG</span>
+        <span><b>{media.filter(x=>x.status==="completed").length.toString().padStart(2,"0")}</b> TERMINADOS</span>
+        <span><b>{media.filter(x=>x.status==="wishlist").length.toString().padStart(2,"0")}</b> WISHLIST</span>
+       </div>
+       {media.filter(x=>(filter==="all"||x.status===filter)&&(mediaTypeFilter==="all"||x.category===mediaTypeFilter)).length?
+        <div className={styles.cultureGallery}>{media.filter(x=>(filter==="all"||x.status===filter)&&(mediaTypeFilter==="all"||x.category===mediaTypeFilter)).map(e=>{
+          const match=readMediaMatch(e.metadata?.catalog);
+          const rating=match?.rating, progress=Math.min(100,Math.max(0,Number(metaString(e,"progress"))||0));
+          return <article key={e.id} className={styles.cultureTile}>
+           <button className={styles.cultureItem} type="button" onClick={()=>start("media",e)} title={"Editar "+e.title}>
+            <MediaPoster item={match} alt={"Portada de "+e.title} className={styles.culturePoster}/>
+            <span className={styles.cultureCoverShade}/>
+            <span className={styles.cultureStatus}>{e.status==="now"?"En curso":e.status==="completed"?"Terminado":e.status==="wishlist"?"Wishlist":"Backlog"}</span>
+            {rating!==null&&rating!==undefined&&<span className={styles.cultureRating}>{rating}</span>}
+            <span className={styles.cultureItemInfo}><small>{[match?.year,capital(e.category||"videojuego")].filter(Boolean).join(" · ")}</small><strong>{e.title}</strong>
+              <span className={styles.cultureProgress}><i style={{width:progress+"%"}}/></span><small>{progress}% completado</small></span>
+           </button>
+           {match?.sourceUrl?<a className={styles.cultureCredit} href={match.sourceUrl} target="_blank" rel="noopener noreferrer">Ficha: {match.source}<ArrowUpRight size={12}/></a>:<span className={styles.cultureCredit}>Añadido manualmente</span>}
+          </article>;
+        })}</div>:
+        <div className={styles.cultureEmpty}><Gamepad2 size={29}/><h2>{media.length?"No hay títulos con estos filtros":"Tu próxima gran biblioteca empieza aquí."}</h2><p>{media.length?"Cambia el filtro o añade otro título.":"Busca tus videojuegos, películas o series y guarda sus portadas, sinopsis, año y puntuación cuando esté disponible."}</p><button onClick={openCatalog}><Plus size={17}/> Explorar catálogo</button><button className={styles.cultureManual} onClick={()=>start("media")}>Añadir título manualmente</button></div>}
+       <div className={styles.cultureAttribution}>Fuentes: Steam, Wikipedia y TVmaze. Se muestra el origen de cada ficha. Las puntuaciones son de sus respectivas fuentes, no valoraciones tuyas.</div>
       </div>}
      {section==="health"&&<div className={styles.contentLayout}>
        <div className={styles.sectionActions}><div><small>CUERPO · HÁBITOS · COMIDAS</small><h1>Salud</h1></div><button className={styles.primary} onClick={()=>start("health")}><Plus size={16}/> Registrar</button></div>
@@ -436,6 +490,7 @@ export default function LifePage(){
      {section==="tasks"&&<div className={styles.contentLayout}><div className={styles.sectionActions}><div><small>CAPTURA UNIVERSAL</small><h1>Tareas personales</h1></div></div><section className={styles.card}><PanelHead title="Pendientes"/>{state.tasks.length?state.tasks.map(t=><div className={styles.taskListRow} key={t.id}><ListTodo size={18}/><strong>{t.title}</strong><span>{t.due_date?prettyDay(t.due_date):"Backlog"}</span></div>):<Placeholder>Sin tareas. Puedes añadirlas desde la captura rápida de arriba.</Placeholder>}</section></div>}
     </div>
    </main>
+   <CultureCatalog open={catalogOpen} onClose={()=>setCatalogOpen(false)} onSelect={chooseCatalog} onManual={()=>{setCatalogOpen(false);start("media");}} existing={media.map(e=>readMediaMatch(e.metadata?.catalog)).filter((x):x is MediaMatch=>Boolean(x))}/>
    {draft&&<div className={styles.overlay} onMouseDown={e=>{if(e.target===e.currentTarget&&!saving)setDraft(null);}}>
     <form className={styles.editor} onSubmit={e=>void submit(e)}>
       <div className={styles.editorHead}><div><small>{draft.id?"EDITAR":"NUEVO REGISTRO"}</small><h2>{kinds[draft.kind]}</h2></div><button type="button" onClick={()=>setDraft(null)} aria-label="Cerrar"><X size={20}/></button></div>
@@ -444,6 +499,12 @@ export default function LifePage(){
        {draft.kind==="journal"&&<label>¿Cómo fue el día?<select value={draft.mood} onChange={e=>put("mood",e.target.value)}><option value="bien">Bien</option><option value="normal">Normal</option><option value="regular">Regular</option><option value="difícil">Difícil</option><option value="increíble">Increíble</option></select></label>}
        {draft.kind==="finance"&&<label>Tipo<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="expense">Gasto</option><option value="income">Ingreso</option></select></label>}
        {(draft.kind==="subscription"||draft.kind==="salary"||draft.kind==="fixed")&&<label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="active">Activa</option><option value="paused">Pausada</option><option value="cancelled">Cancelada</option></select></label>}
+       {draft.kind==="media"&&draft.catalog&&<div className={styles.catalogSelected}>
+        <MediaPoster item={draft.catalog} className={styles.catalogSelectedPoster}/>
+        <div><strong>{draft.catalog.title}</strong><small>{[draft.catalog.year,draft.catalog.source].filter(Boolean).join(" · ")}</small><p>{draft.catalog.description||"Ficha encontrada en el catálogo."}</p>{draft.catalog.sourceUrl&&<a href={draft.catalog.sourceUrl} target="_blank" rel="noopener noreferrer">Ver fuente <ArrowUpRight size={12}/></a>}</div>
+        <button type="button" onClick={openCatalog}>Cambiar</button>
+       </div>}
+       {draft.kind==="media"&&!draft.catalog&&<div className={styles.catalogPrompt}><span>Completa la portada y los datos automáticamente.</span><button type="button" onClick={openCatalog}><Search size={14}/> Buscar ficha</button></div>}
        {draft.kind==="media"&&<><label>Medio<select value={draft.category} onChange={e=>put("category",e.target.value)}><option value="videojuego">Videojuego</option><option value="película">Película</option><option value="serie">Serie</option></select></label><label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="now">En curso</option><option value="backlog">Backlog</option><option value="wishlist">Wishlist</option><option value="completed">Terminado</option></select></label><label>Progreso (%)<input type="number" min="0" max="100" value={draft.progress} onChange={e=>put("progress",e.target.value)}/></label></>}
        {draft.kind==="health"&&<><label>Tipo<select value={draft.category} onChange={e=>put("category",e.target.value)}><option value="entreno">Entrenamiento</option><option value="comida">Comida</option><option value="peso">Peso</option><option value="otro">Otro</option></select></label>{draft.category==="peso"&&<label>Peso (kg)<input type="number" min="0" max="400" step=".1" value={draft.metric} onChange={e=>put("metric",e.target.value)}/></label>}</>}
        {draft.kind!=="journal"&&<label>Título<input required maxLength={180} placeholder={{finance:"Ej. Compra semanal",subscription:"Ej. Spotify",salary:"Ej. Nómina",fixed:"Ej. Hipoteca, comunidad, seguro…",media:"Ej. Resident Evil 4",health:"Ej. Entreno de fuerza",plan:"Ej. Cine el sábado"}[draft.kind]||"Título"} value={draft.title} onChange={e=>put("title",e.target.value)}/></label>}
