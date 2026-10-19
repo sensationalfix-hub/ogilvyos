@@ -192,15 +192,16 @@ async function wikiPagePoster(page:string):Promise<{image:string|null;fallbackIm
  return {image,fallbackImage};
 }
 async function repairPoster(sourceId:string,title:string,mediaType:MediaType,year:string){
- if(sourceId.startsWith("wiki:")){
-  const wiki=await wikiPagePoster(sourceId.slice(5));
-  if(wiki.image)return {...wiki,posterSource:"Wikipedia"};
- }
+ // Apple supplies official movie artwork even when Wikipedia's search page has no thumbnail.
  if(mediaType==="película"){
   const results=await itunesMovies(title);
   const exact=results.filter(e=>normal(e.title)===normal(title));
   const match=exact.find(e=>e.year===year)||exact[0];
   if(match)return {image:match.image,fallbackImage:match.fallbackImage,posterSource:"Apple TV / iTunes"};
+ }
+ if(sourceId.startsWith("wiki:")){
+  const wiki=await wikiPagePoster(sourceId.slice(5));
+  if(wiki.image)return {...wiki,posterSource:"Wikipedia"};
  }
  if(mediaType==="serie"){
   const matches=await tvMazeSearch(title);
