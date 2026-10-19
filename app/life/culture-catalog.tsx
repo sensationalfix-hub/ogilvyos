@@ -46,7 +46,7 @@ export function readMediaMatch(value:unknown):MediaMatch|null {
 }
 export function MediaPoster({item,className="",alt=""}:{item:MediaMatch|null;className?:string;alt?:string}){
  const [fallback,setFallback]=useState(false);
- const image=item?(fallback?item.fallbackImage:item.image):null;
+ const image=item?(fallback?item.fallbackImage:item.image||item.fallbackImage):null;
  useEffect(()=>setFallback(false),[item?.id,item?.image]);
  return <div className={styles.poster+" "+className}>
   {image?<img alt={alt||item?.title||""} loading="lazy" src={image} onError={()=>setFallback(true)}/>:<span className={styles.posterFallback}><Gamepad2 size={28}/></span>}
@@ -66,11 +66,13 @@ export function CultureCatalog({open,onClose,onSelect,onManual,existing}:Props){
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState("");
  const [searched,setSearched]=useState(false);
+ const [selecting,setSelecting]=useState("");
  useEffect(()=>{
-  if(!open){setQuery("");setResults([]);setSearched(false);setError("");setType("videojuego");}
+  if(!open){setQuery("");setResults([]);setSearched(false);setError("");setType("videojuego");setSelecting("");}
  },[open]);
  useEffect(()=>{
   if(!open||query.trim().length<2){setResults([]);setLoading(false);setSearched(false);setError("");return;}
+  setResults([]);
   const controller=new AbortController();
   const timer=setTimeout(async()=>{
    setLoading(true);setError("");setSearched(false);
@@ -91,6 +93,23 @@ export function CultureCatalog({open,onClose,onSelect,onManual,existing}:Props){
   document.addEventListener("keydown",esc);
   return ()=>document.removeEventListener("keydown",esc);
  },[open,onClose]);
+ const selectResult=async(item:MediaMatch)=>{
+  if(selecting)return;setSelecting(item.id);
+  try {
+   if(item.source==="Steam"&&item.id.startsWith("steam:")){
+    const r=await fetch("/api/life/catalog?detail="+encodeURIComponent(item.id),{cache:"no-store"});
+    if(r.ok){
+     const data=await r.json() as {details?:Partial<MediaMatch>};
+     if(data.details){
+      const enriched=readMediaMatch({...item,...data.details});
+      if(enriched){onSelect(enriched);return;}
+     }
+    }
+   }
+   onSelect(item);
+  } catch{onSelect(item);}
+  finally{setSelecting("");}
+ };
  if(!open)return null;
  return <div className={styles.backdrop} onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
   <section className={styles.dialog} role="dialog" aria-modal="true" aria-label="Buscar en el catálogo cultural">
@@ -109,13 +128,13 @@ export function CultureCatalog({open,onClose,onSelect,onManual,existing}:Props){
     searched&&!results.length?<div className={styles.blank}><BookImage size={29}/><h3>No hay coincidencias claras</h3><p>Prueba otro nombre, o añádelo manualmente.</p></div>:
     <div className={styles.results}>{results.map(item=>{
       const stored=existing.some(x=>x.id===item.id);
-      return <button type="button" className={styles.result} key={item.id} onClick={()=>onSelect(item)}>
+      return <button type="button" className={styles.result} key={item.id} onClick={()=>void selectResult(item)} disabled={Boolean(selecting)}>
        <MediaPoster item={item}/>
        <div className={styles.resultCopy}><div className={styles.resultTitle}><h3>{item.title}</h3>{stored&&<span className={styles.saved}>EN BIBLIOTECA</span>}</div>
         <span className={styles.meta}>{[item.year,item.genres.slice(0,2).join(" · "),item.platforms.slice(0,2).join(", ")].filter(Boolean).join(" · ")||"Ficha de "+item.source}</span>
         <p>{item.description||"Portada y datos del catálogo. Puedes completar tu valoración y progreso después."}</p>
         <span className={styles.source}>Fuente: {item.source}{item.rating!==null?" · "+item.rating+" "+(item.ratingLabel||""):""}</span>
-       </div><ChevronRight size={17} className={styles.chevron}/>
+       </div>{selecting===item.id?<LoaderCircle size={17} className={styles.spin}/>:<ChevronRight size={17} className={styles.chevron}/>}
       </button>;
     })}</div>}
    </div>
