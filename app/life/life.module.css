@@ -335,7 +335,7 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .source strong,
 :global(html[data-os-theme="dark"]) .breadcrumb strong{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .capture input{color:#eeeeef}
-:global(html[data-os-theme="dark"]) .capture input::placeholder{color:#353538}
+:global(html[data-os-theme="dark"]) .capture input::placeholder{color:#8a8a91}
 :global(html[data-os-theme="dark"]) .capture button{background:#b7ff4a;color:#18181a}
 :global(html[data-os-theme="dark"]) .header{border-color:#3b3b40}
 :global(html[data-os-theme="dark"]) .card{
@@ -442,3 +442,10 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 :global(html[data-os-theme="dark"]) .moneyColumns strong{color:#eeeeef}
 :global(html[data-os-theme="dark"]) .journalExcerpt:hover,
 :global(html[data-os-theme="dark"]) .softAction:hover{background:#262629}
+
+/* The chart's coloured bar meanings remain visible, but chrome is monochrome. */
+:global(html[data-os-theme="dark"]) .moneyKpi:before{background:#6d6d72;opacity:.24}
+:global(html[data-os-theme="dark"]) .moneyKpiHero:before{background:#b7ff4a;opacity:.9}
+:global(html[data-os-theme="dark"]) .metricCaption,
+:global(html[data-os-theme="dark"]) .entryCopy small,
+:global(html[data-os-theme="dark"]) .nextBilling span{color:#a0a0a5}
