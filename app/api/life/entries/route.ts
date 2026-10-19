@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { lifeInsert, lifeSelect, lifeSession } from "@/app/lib/life-store";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/app/lib/supabase-auth";
 
-const kinds = new Set(["journal", "finance", "subscription", "salary", "media", "health", "plan"]);
+const kinds = new Set(["journal", "finance", "subscription", "salary", "fixed", "media", "health", "plan"]);
 type Entry = {
   id: string; kind: string; title: string; note: string; entry_date: string;
   amount: number | null; category: string | null; status: string | null;
@@ -48,6 +48,11 @@ function normalize(input: Record<string, unknown>, partial = false) {
   if ("metadata" in input) {
     const meta = input.metadata;
     if (!meta || Array.isArray(meta) || typeof meta !== "object" || JSON.stringify(meta).length > 3000) throw new Error("Datos adicionales no válidos");
+    if ((partial ? input.kind === "fixed" : input.kind === "fixed") && meta) {
+      const m = meta as Record<string, unknown>;
+      if (!["monthly","quarterly","yearly"].includes(String(m.periodicity))) throw new Error("Periodicidad no válida");
+      if (typeof m.essential !== "boolean") throw new Error("Indica si el gasto es esencial");
+    }
     value.metadata = meta;
   }
   return value;
