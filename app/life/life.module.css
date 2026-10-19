@@ -309,3 +309,125 @@ a.cultureCredit:hover{color:#385e33;text-decoration:underline}
 @media(max-width:1100px){.cultureGallery{grid-template-columns:repeat(3,minmax(0,1fr))}.cultureItem{min-height:220px}}
 @media(max-width:760px){.cultureGallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.cultureSummary{grid-template-columns:repeat(2,1fr)}.cultureItem{min-height:215px}.cultureItemInfo>strong{font-size:17px}.cultureToolbar{gap:10px}}
 @media(max-width:650px){.cultureItem{min-height:205px}.cultureItemInfo{padding:0 11px 12px;gap:7px}.cultureItemInfo>strong{font-size:15px}.cultureStatus{top:8px;left:8px;font-size:8px;min-height:23px}.cultureRating{top:8px;right:8px;min-width:28px;height:25px;font-size:10px}.cultureSummary>span{min-height:55px}.cultureSummary b{font-size:21px}.cultureEmpty{min-height:330px}.cultureEmpty>h2{font-size:20px}}
+
+/* OS-wide theme: dark LifeOS surfaces, preserving personal-area accent colours and media art. */
+:global(html[data-os-theme="dark"]) .shell{background:#101612;color:#ebf2e7}
+:global(html[data-os-theme="dark"]) .main{
+ background:radial-gradient(circle at 93% 0%,#31472b38,transparent 28%),#101612;
+ color:#eaf2e6
+}
+:global(html[data-os-theme="dark"]) .sidebar{
+ background:#1b241c;border-color:#344336;color:#cbdac6
+}
+:global(html[data-os-theme="dark"]) .logoWrap :global(.brand-app-artwork){filter:invert(1) hue-rotate(180deg)}
+:global(html[data-os-theme="dark"]) .navLabel,
+:global(html[data-os-theme="dark"]) .breadcrumb,
+:global(html[data-os-theme="dark"]) .dateBlock small,
+:global(html[data-os-theme="dark"]) .todayHint{color:#a4b4a1}
+:global(html[data-os-theme="dark"]) .navHome{
+ background:#273728;color:#c8ddc3;border-color:#455646
+}
+:global(html[data-os-theme="dark"]) .nav button{color:#aebcad}
+:global(html[data-os-theme="dark"]) .nav button:hover{background:#2e3c2f;color:#f2f9ee}
+:global(html[data-os-theme="dark"]) .nav button.navActive{background:#b7ff4a;border-color:#b7ff4a;color:#1b2918}
+:global(html[data-os-theme="dark"]) .source,
+:global(html[data-os-theme="dark"]) .capture{background:#273228;border-color:#405041;box-shadow:0 5px 15px #0001;color:#ecf4e6}
+:global(html[data-os-theme="dark"]) .source strong,
+:global(html[data-os-theme="dark"]) .breadcrumb strong{color:#e8f2e4}
+:global(html[data-os-theme="dark"]) .capture input{color:#f0f5ec}
+:global(html[data-os-theme="dark"]) .capture input::placeholder{color:#98a797}
+:global(html[data-os-theme="dark"]) .capture button{background:#b7ff4a;color:#1e2b18}
+:global(html[data-os-theme="dark"]) .header{border-color:#344135}
+:global(html[data-os-theme="dark"]) .card{
+ background:#1d261e;border-color:#344335;box-shadow:0 8px 25px #0002;color:#eaf2e5
+}
+:global(html[data-os-theme="dark"]) .card:before{opacity:.33}
+:global(html[data-os-theme="dark"]) :is(.panelHead,.sectionActions) h1,
+:global(html[data-os-theme="dark"]) :is(.panelHead,.sectionActions) h2{color:#eff6ea}
+:global(html[data-os-theme="dark"]) .panelHead button,
+:global(html[data-os-theme="dark"]) .calendarFoot,
+:global(html[data-os-theme="dark"]) .placeholder{color:#a2b4a0}
+:global(html[data-os-theme="dark"]) :is(.weekStrip button,.calendarGrid button,.moneyColumns>div,.forecastColumn,.filterRow button,.actionRow button,.softAction,.addBig,.journalExcerpt,.mediaIcon){
+ background:#2a352b;border-color:#435242;color:#e5efe1
+}
+:global(html[data-os-theme="dark"]) .weekStrip button.dayCurrent,
+:global(html[data-os-theme="dark"]) .calendarGrid button.selectedDate,
+:global(html[data-os-theme="dark"]) .filterRow button.filterActive{background:#b7ff4a;color:#142114;border-color:#b7ff4a}
+:global(html[data-os-theme="dark"]) .weekStrip button span,
+:global(html[data-os-theme="dark"]) .calendarGrid button i,
+:global(html[data-os-theme="dark"]) .moneyColumns span{color:#aebdaa}
+:global(html[data-os-theme="dark"]) :is(.weekStrip button,.calendarGrid button,.softAction,.actionRow button):hover{background:#364738}
+:global(html[data-os-theme="dark"]) .bigMoney,
+:global(html[data-os-theme="dark"]) .bigDate,
+:global(html[data-os-theme="dark"]) .cardCounter,
+:global(html[data-os-theme="dark"]) .card strong{color:#f0f5eb}
+:global(html[data-os-theme="dark"]) :is(.nextBilling,.miniStack>button,.taskMini,.entryRow,.subscriptionRow,.recurringRow,.forecastMath>div,.planList>button,.taskListRow){
+ border-color:#364637;color:#e7efe4
+}
+:global(html[data-os-theme="dark"]) :is(.miniStack>button,.entryRow,.subscriptionRow,.recurringRow):hover{background:#2b382d}
+:global(html[data-os-theme="dark"]) .moneyKpi{background:#1e2921;border-color:#3b4b3d}
+:global(html[data-os-theme="dark"]) .moneyKpiHero{
+ background:linear-gradient(130deg,#314a2a,#1c2c20);border-color:#66854c
+}
+:global(html[data-os-theme="dark"]) .moneyKpiHero>span,
+:global(html[data-os-theme="dark"]) .moneyKpiHero>strong{color:#e7f9d8}
+:global(html[data-os-theme="dark"]) :is(.subscriptionTotal,.forecastDetail,.panelMiniTotal,.moneyPanelBottom,.moneyPanelTop,.forecastBarTrack,.templatePills>button,.catalogPrompt,.catalogSelected,.cultureSummary>span,.cultureTypes button){
+ background:#263228;border-color:#3c4d3d;color:#eaf1e5
+}
+:global(html[data-os-theme="dark"]) .forecastColumn.forecastSelected{background:#345034;border-color:#779d68;box-shadow:inset 0 0 0 1px #89af6e}
+:global(html[data-os-theme="dark"]) .forecastMonth,
+:global(html[data-os-theme="dark"]) .forecastNumber>small{color:#acbfa6}
+:global(html[data-os-theme="dark"]) .moneyPanelTop{background:#1d261e}
+:global(html[data-os-theme="dark"]) .moneyPanelBottom{background:#202c22;border-color:#384a3a}
+:global(html[data-os-theme="dark"]) .moneyPanelScroll{scrollbar-color:#53664d transparent}
+:global(html[data-os-theme="dark"]) .moneyKpi>span,
+:global(html[data-os-theme="dark"]) .moneyEyebrow,
+:global(html[data-os-theme="dark"]) .panelMiniTotal>span,
+:global(html[data-os-theme="dark"]) .forecastDisclaimer{color:#acbea7}
+:global(html[data-os-theme="dark"]) .ratioTrack,
+:global(html[data-os-theme="dark"]) .categoryTrack,
+:global(html[data-os-theme="dark"]) .stackBar{background:#344333}
+:global(html[data-os-theme="dark"]) .ratioTrack i{background:#b7ff4a}
+:global(html[data-os-theme="dark"]) .editor{
+ background:#202a22;border-color:#465448;color:#edf4e8
+}
+:global(html[data-os-theme="dark"]) .editorHead,
+:global(html[data-os-theme="dark"]) .editorFooter{border-color:#405042}
+:global(html[data-os-theme="dark"]) .editorHead h2{color:#e7f2e2}
+:global(html[data-os-theme="dark"]) .editorHead>button,
+:global(html[data-os-theme="dark"]) .editorFooter>button:not(.primary),
+:global(html[data-os-theme="dark"]) .editorBody input,
+:global(html[data-os-theme="dark"]) .editorBody select,
+:global(html[data-os-theme="dark"]) .editorBody textarea{
+ background:#2d382f;color:#e7f1e4;border-color:#526452
+}
+:global(html[data-os-theme="dark"]) .editorBody label{color:#bdd0b7}
+:global(html[data-os-theme="dark"]) .editorFooter>button.primary{background:#b7ff4a;color:#1b2a16}
+:global(html[data-os-theme="dark"]) .editorFooter>.deleteButton{background:#443034;color:#f5b2b8;border-color:#69464c}
+:global(html[data-os-theme="dark"]) .selectedJournal>p{color:#c3d2c0}
+:global(html[data-os-theme="dark"]) .moodTag{background:#354936;color:#d0efbf}
+:global(html[data-os-theme="dark"]) .cultureEmpty{
+ background:linear-gradient(145deg,#1b281e,#263327);border-color:#41533e
+}
+:global(html[data-os-theme="dark"]) .cultureEmpty>h2{color:#e5f1df}
+:global(html[data-os-theme="dark"]) .cultureTypes button.cultureTypeActive{background:#b7ff4a;color:#1e281a}
+:global(html[data-os-theme="dark"]) .cultureSummary>span{color:#b2c2ad}
+:global(html[data-os-theme="dark"]) .cultureSummary b{color:#e8f4e4}
+:global(html[data-os-theme="dark"]) .catalogSelected a{color:#b1f07b}
+:global(html[data-os-theme="dark"]) .catalogSelected button,
+:global(html[data-os-theme="dark"]) .catalogPrompt button{background:#364637;color:#d1f6b1;border-color:#536a4f}
+:global(html[data-os-theme="dark"]) .cultureItem{border-color:#435445}
+:global(html[data-os-theme="dark"]) .cultureCoverShade{background:linear-gradient(to bottom,transparent,#0f1a1290 28%,#0a130de5)}
+:global(html[data-os-theme="dark"]) .cultureItemInfo>strong,
+:global(html[data-os-theme="dark"]) .cultureItemInfo>small{color:#fff}
+:global(html[data-os-theme="dark"]) .cultureStatus{background:#121b13df}
+:global(html[data-os-theme="dark"]) .cultureRating{background:#b7ff4a;color:#1a2913}
+:global(html[data-os-theme="dark"]) .softAction,
+:global(html[data-os-theme="dark"]) .filterActive,
+:global(html[data-os-theme="dark"]) .primary{color:#e7f0e4}
+:global(html[data-os-theme="dark"]) .primary{background:#b7ff4a;color:#1b2a17;border-color:#b7ff4a}
+:global(html[data-os-theme="dark"]) .positive{color:#b2e3b5}
+:global(html[data-os-theme="dark"]) .negative{color:#f1a8b1}
+@media(max-width:650px){
+ :global(html[data-os-theme="dark"]) .sidebar{background:#1b251f;border-color:#405042}
+}
