@@ -164,7 +164,7 @@ a.dockApp:focus-visible{outline:2px solid #648f3f;outline-offset:5px;border-radi
 
 /* WorkOS persistent OS theme (the default Home remains the original light design). */
 :global(html[data-os-theme="dark"]) .shell{
- --ink:#353538;--muted:#262629;--line:#353538;
+ --ink:#ededf0;--muted:#a6a6ac;--line:#36363b;
  background:#0c0c0e;
  color:#eeeeef;
 }
