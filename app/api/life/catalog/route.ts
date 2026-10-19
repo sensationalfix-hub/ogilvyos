@@ -150,10 +150,27 @@ function dedupe(all:MediaResult[]){
   if(used.has(key))return false;used.add(key);return true;
  });
 }
+async function steamDetail(id:string){
+ const data=await get("https://store.steampowered.com/api/appdetails?appids="+id+"&l=spanish&cc=ES");
+ const item=record(data[id]);
+ if(item.success!==true)return {};
+ const details=record(item.data);
+ const date=string(record(details.release_date).date);
+ const year=date.match(/(?:19|20)\d{2}/)?.[0]||null;
+ const genres=array(details.genres).map(x=>string(record(x).description)).filter(Boolean).slice(0,8);
+ const platforms=record(details.platforms);
+ const os=["windows","mac","linux"].filter(k=>platforms[k]===true).map(k=>k==="windows"?"PC":k==="mac"?"Mac":"Linux");
+ return {year,description:strip(string(details.short_description)||string(details.detailed_description)).slice(0,1050),genres,platforms:os};
+}
 export async function GET(request:Request){
  const session=await lifeSession(request);
  if(!session)return NextResponse.json({error:"No autorizado"},{status:401});
  const params=new URL(request.url).searchParams;
+ const detail=params.get("detail")||"";
+ if(/^steam:[0-9]{1,12}$/.test(detail)){
+  const details=await steamDetail(detail.slice(6));
+  return NextResponse.json({details},{headers:{"Cache-Control":"private, max-age=0"}});
+ }
  const q=(params.get("q")||"").trim().slice(0,75);
  const type=params.get("type") as MediaType;
  if(!["videojuego","película","serie"].includes(type))return NextResponse.json({error:"Tipo no válido"},{status:400});
