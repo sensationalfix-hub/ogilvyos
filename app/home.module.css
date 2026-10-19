@@ -161,3 +161,45 @@ a.dockApp:focus-visible{outline:2px solid #648f3f;outline-offset:5px;border-radi
 @media(prefers-reduced-motion:reduce){
  .dockApp,.dockIcon,.dockIconGlyph img,.continueCard,.continueArrow{transition:none}
 }
+
+/* WorkOS persistent OS theme (the default Home remains the original light design). */
+:global(html[data-os-theme="dark"]) .shell{
+ --ink:#ecf3e8;--muted:#a2b09f;--line:#3a493b;
+ background:radial-gradient(ellipse 50% 47% at 86% -12%,#304a2d38,transparent 70%),#101712;
+ color:#edf4e8;
+}
+:global(html[data-os-theme="dark"]) .welcome{
+ background:linear-gradient(120deg,#202b21,#273525 75%,#263023);
+ border-color:#425141;
+ box-shadow:0 22px 48px #0003,inset 0 1px #ffffff08;
+}
+:global(html[data-os-theme="dark"]) .welcome:before{background:radial-gradient(circle,#8cc86224,#45653c0f 48%,transparent 70%)}
+:global(html[data-os-theme="dark"]) :is(.headline,.summaryHeading,.sectionTitle,.continueTitle,.logoText){color:#eaf3e5}
+:global(html[data-os-theme="dark"]) :is(.intro,.summaryDescription,.summaryTop,.eyebrow,.logoSub,.sectionKicker,.sectionMeta,.continueSubtitle,.continueMeta,.privateTag,.bottom,.summaryStats span){color:#a1afa0}
+:global(html[data-os-theme="dark"]) .headline span{color:#abd783}
+:global(html[data-os-theme="dark"]) .summary:before{background:linear-gradient(transparent,#556451 10%,#556451 85%,transparent)}
+:global(html[data-os-theme="dark"]) .metric{
+ background:#2c3a2ccc;
+ border-color:#3c4c3a;
+ color:#e9f3e3;
+}
+:global(html[data-os-theme="dark"]) .todayPill{
+ background:#2e3b2b;border-color:#455340;color:#c5d5be;
+}
+:global(html[data-os-theme="dark"]) .appDock{
+ background:linear-gradient(145deg,#243124e8,#1c271dd9);
+ border-color:#4a5948;
+ box-shadow:0 12px 38px #0004,inset 0 1px #ffffff0b;
+}
+:global(html[data-os-theme="dark"]) .dockApp{color:#ebf3e7}
+:global(html[data-os-theme="dark"]) .dockName{color:#d8e8d4}
+:global(html[data-os-theme="dark"]) .continueCard{
+ color:#e9f2e6;background:#1f2921;border-color:#394939;box-shadow:0 8px 26px #0002;
+}
+:global(html[data-os-theme="dark"]) .continueCard:hover{background:#283728;box-shadow:0 14px 30px #0003}
+:global(html[data-os-theme="dark"]) .continueIcon{background:#30462e;color:#b4e98e}
+:global(html[data-os-theme="dark"]) .continueCard:nth-child(2) .continueIcon{background:#3e3451;color:#c5b5ed}
+:global(html[data-os-theme="dark"]) .continueCard:nth-child(3) .continueIcon{background:#303f51;color:#afc8e8}
+:global(html[data-os-theme="dark"]) .logout{background:#283629;border-color:#425042;color:#aabbab}
+:global(html[data-os-theme="dark"]) .logout:hover{color:#eaf4e6;background:#344435}
+:global(html[data-os-theme="dark"]) .bottom{border-color:#344433}
