@@ -52,25 +52,25 @@
 .foot{padding:12px 15px}.foot>span{display:none}
 }
 
-:global(html[data-os-theme="dark"]) .dialog{background:#202922;color:#eaf2e8;border-color:#465449}
+:global(html[data-os-theme="dark"]) .dialog{background:#202922;color:#eaf2e8;border-color:#36363b}
 :global(html[data-os-theme="dark"]) .top,
-:global(html[data-os-theme="dark"]) .foot{border-color:#3c4b3e;background:#202922}
+:global(html[data-os-theme="dark"]) .foot{border-color:#36363b;background:#202922}
 :global(html[data-os-theme="dark"]) .top h2{color:#eff6eb}
 :global(html[data-os-theme="dark"]) .top>button,
 :global(html[data-os-theme="dark"]) .foot button,
 :global(html[data-os-theme="dark"]) .typeTabs button,
 :global(html[data-os-theme="dark"]) .searchBox,
 :global(html[data-os-theme="dark"]) .result{
- background:#2a362d;color:#e5efe1;border-color:#465848
+ background:#2a362d;color:#e5efe1;border-color:#36363b
 }
 :global(html[data-os-theme="dark"]) .searchBox input{color:#eff6e9}
 :global(html[data-os-theme="dark"]) .typeTabs button.selected{background:#b7ff4a;color:#1b2815;border-color:#b7ff4a}
-:global(html[data-os-theme="dark"]) .result:hover{background:#354735;border-color:#78a964}
+:global(html[data-os-theme="dark"]) .result:hover{background:#354735;border-color:#36363b}
 :global(html[data-os-theme="dark"]) .resultCopy h3,
 :global(html[data-os-theme="dark"]) .blank h3{color:#edf4e7}
 :global(html[data-os-theme="dark"]) .blank,
 :global(html[data-os-theme="dark"]) .meta,
 :global(html[data-os-theme="dark"]) .resultCopy p{color:#abbfa8}
-:global(html[data-os-theme="dark"]) .poster{background:linear-gradient(150deg,#334435,#223023);border-color:#455a46}
+:global(html[data-os-theme="dark"]) .poster{background:linear-gradient(150deg,#334435,#223023);border-color:#36363b}
 :global(html[data-os-theme="dark"]) .source{color:#a0b89b}
 :global(html[data-os-theme="dark"]) .saved{color:#bbeba4;background:#365336}
