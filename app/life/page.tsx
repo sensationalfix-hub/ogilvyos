@@ -6,17 +6,18 @@ import {
   ChevronLeft, ChevronRight, CircleDollarSign, Clapperboard, Dumbbell, FolderKanban,
   Gamepad2, HeartPulse, House, LayoutDashboard, ListTodo, Pencil, Plus, Sparkles,
   Target, Trash2, WalletCards, X, User, Bike, Film, NotebookPen,
+  Landmark, ShieldCheck, TrendingUp, HomeIcon, ReceiptText, SlidersHorizontal, Info,
 } from "lucide-react";
 import { ModeLogo } from "@/components/os/mode-logo";
 import styles from "./life.module.css";
 
-type Kind = "journal" | "finance" | "subscription" | "salary" | "media" | "health" | "plan";
+type Kind = "journal" | "finance" | "subscription" | "salary" | "fixed" | "media" | "health" | "plan";
 type Section = "today" | "journal" | "money" | "culture" | "health" | "agenda" | "areas" | "tasks";
 type Entry = { id:string; kind:Kind; title:string; note:string; entry_date:string; amount:number|null; category:string|null; status:string|null; billing_day:number|null; metadata:Record<string,unknown>; created_at:string };
 type Area = {id:string; name:string;slug:string;accent:string|null;icon:string|null;position:number};
 type Task = {id:string;title:string;area_id:string|null;status:string;due_date:string|null;starts_at:string|null;priority:string};
 type LifeState = {areas:Area[];tasks:Task[];goals:unknown[];projects:unknown[]};
-type Draft = {id?:string;kind:Kind;title:string;note:string;entry_date:string;amount:string;category:string;status:string;billing_day:string;progress:string;mood:string;metric:string};
+type Draft = {id?:string;kind:Kind;title:string;note:string;entry_date:string;amount:string;category:string;status:string;billing_day:string;progress:string;mood:string;metric:string;periodicity:string;essential:boolean};
 const nav:{id:Section;label:string;icon:typeof LayoutDashboard}[] = [
   {id:"today",label:"Hoy",icon:LayoutDashboard},
   {id:"journal",label:"Diario",icon:BookOpen},
@@ -27,7 +28,7 @@ const nav:{id:Section;label:string;icon:typeof LayoutDashboard}[] = [
   {id:"areas",label:"Áreas",icon:Sparkles},
   {id:"tasks",label:"Tareas",icon:ListTodo},
 ];
-const kinds:Record<Kind,string>={journal:"Entrada de diario",finance:"Movimiento",subscription:"Suscripción",salary:"Nómina recurrente",media:"Título de cultura",health:"Registro de salud",plan:"Plan personal"};
+const kinds:Record<Kind,string>={journal:"Entrada de diario",finance:"Movimiento",subscription:"Suscripción",salary:"Nómina recurrente",fixed:"Gasto fijo",media:"Título de cultura",health:"Registro de salud",plan:"Plan personal"};
 const areaIcons:Record<string,typeof User>={User,WalletCards,Activity,House,Bike,Sparkles,Gamepad2};
 const areaColors:Record<string,string>={personal:"#e7ff3f",dinero:"#dfe6dc",salud:"#f5d3d7",casa:"#e9dfcf",moto:"#d8d7ef",creatividad:"#f3e5a9",ocio:"#d7eadf"};
 const localDay=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
@@ -38,11 +39,48 @@ const monthKey=(s:string)=>s.slice(0,7);
 const short=(value:string,limit=95)=>value.length>limit?value.slice(0,limit).trimEnd()+"…":value;
 const metaString=(entry:Entry,key:string)=>String(entry.metadata?.[key]??"");
 const capital=(s:string)=>s?s.slice(0,1).toUpperCase()+s.slice(1):s;
+
+type Periodicity = "monthly" | "quarterly" | "yearly";
+const periods:Record<Periodicity,{months:number;label:string;short:string}> = {
+ monthly:{months:1,label:"Mensual",short:"mes"},
+ quarterly:{months:3,label:"Trimestral",short:"trimestre"},
+ yearly:{months:12,label:"Anual",short:"año"},
+};
+const fixedCategories:{value:string;label:string;color:string}[] = [
+ {value:"vivienda",label:"Vivienda",color:"#c7d4f2"},
+ {value:"prestamos",label:"Préstamos",color:"#d7c9ef"},
+ {value:"seguros",label:"Seguros",color:"#f6ccd4"},
+ {value:"suministros",label:"Suministros",color:"#f6dfa9"},
+ {value:"transporte",label:"Transporte",color:"#bfe5d7"},
+ {value:"impuestos",label:"Impuestos",color:"#f0c2a7"},
+ {value:"otros",label:"Otros",color:"#dbe4da"},
+];
+const amountOf=(e:Entry)=>Math.max(0,Number(e.amount)||0);
+const periodOf=(e:Entry):Periodicity=>{
+ const p=e.metadata?.periodicity;
+ return p==="quarterly"||p==="yearly"?p:"monthly";
+};
+const monthDiff=(start:string,month:string)=>{
+ const [sy,sm]=start.slice(0,7).split("-").map(Number);
+ const [y,m]=month.slice(0,7).split("-").map(Number);
+ return (y-sy)*12+m-sm;
+};
+const monthOffset=(month:string,diff:number)=>{
+ const [y,m]=month.split("-").map(Number);
+ return localDay(new Date(y,m-1+diff,1)).slice(0,7);
+};
+const isRecurringDue=(e:Entry,month:string)=>{
+ const diff=monthDiff(e.entry_date,month);
+ return e.status==="active"&&diff>=0&&diff%((e.kind==="fixed")?periods[periodOf(e)].months:1)===0;
+};
+const monthlyEquivalent=(e:Entry)=>amountOf(e)/periods[periodOf(e)].months;
+const fixedLabel=(value:string)=>fixedCategories.find(c=>c.value===value)?.label||"Otros";
+const periodLabel=(e:Entry)=>periods[periodOf(e)].label.toLowerCase();
 function blank(kind:Kind,date=localDay()):Draft {
- return {kind,title:"",note:"",entry_date:date,amount:"",category:kind==="media"?"videojuego":kind==="health"?"entreno":"general",status:kind==="media"?"now":kind==="finance"?"expense":"active",billing_day:String(new Date().getDate()),progress:"0",mood:"normal",metric:""};
+ return {kind,title:"",note:"",entry_date:date,amount:"",category:kind==="media"?"videojuego":kind==="health"?"entreno":kind==="fixed"?"vivienda":"general",status:kind==="media"?"now":kind==="finance"?"expense":"active",billing_day:String(new Date().getDate()),progress:"0",mood:"normal",metric:"",periodicity:"monthly",essential:true};
 }
 function fromEntry(e:Entry):Draft {
- return {id:e.id,kind:e.kind,title:e.title,note:e.note,entry_date:e.entry_date,amount:e.amount===null?"":String(Math.abs(Number(e.amount))),category:e.category||"",status:e.status||(e.kind==="finance"?"expense":"active"),billing_day:e.billing_day?String(e.billing_day):"",progress:metaString(e,"progress")||"0",mood:metaString(e,"mood")||"normal",metric:metaString(e,"metric")};
+ return {id:e.id,kind:e.kind,title:e.title,note:e.note,entry_date:e.entry_date,amount:e.amount===null?"":String(Math.abs(Number(e.amount))),category:e.category||"",status:e.status||(e.kind==="finance"?"expense":"active"),billing_day:e.billing_day?String(e.billing_day):"",progress:metaString(e,"progress")||"0",mood:metaString(e,"mood")||"normal",metric:metaString(e,"metric"),periodicity:metaString(e,"periodicity")||"monthly",essential:e.metadata?.essential!==false};
 }
 function PanelHead({title,action,click}:{title:string;action?:string;click?:()=>void}){
  return <div className={styles.panelHead}><h2>{title}</h2>{action&&click&&<button type="button" onClick={click}>{action}<ArrowUpRight size={16}/></button>}</div>;
@@ -60,6 +98,7 @@ export default function LifePage(){
  const [saving,setSaving]=useState(false);
  const [activeDate,setActiveDate]=useState(localDay());
  const [filter,setFilter]=useState("all");
+ const [forecastMonth,setForecastMonth]=useState(monthKey(localDay()));
  const today=localDay();
  const thisMonth=monthKey(today);
  const go=useCallback((id:Section)=>{
@@ -94,6 +133,7 @@ export default function LifePage(){
  },[draft,saving]);
  const start=(kind:Kind,entry?:Entry,date?:string)=>{setError("");setDraft(entry?fromEntry(entry):blank(kind,date));};
  const put=(field:keyof Draft,value:string)=>setDraft(d=>d?{...d,[field]:value}:d);
+ const fixedTemplate=(title:string,category:string)=>setDraft({...blank("fixed"),title,category,amount:"",billing_day:"1"});
  async function submit(e:FormEvent){
    e.preventDefault();if(!draft||saving)return;setSaving(true);setError("");
    try{
@@ -105,8 +145,8 @@ export default function LifePage(){
        note:draft.note,entry_date:draft.entry_date,
        amount:amt===null?null:draft.kind==="finance"&&draft.status==="expense"?-amt:amt,
        category:draft.category,status:draft.status,
-       billing_day:(draft.kind==="subscription"||draft.kind==="salary")?Number(draft.billing_day)||null:null,
-       metadata:{...(draft.kind==="media"?{progress:Number(draft.progress)||0}:{}),...(draft.kind==="journal"?{mood:draft.mood}:{}),...(draft.kind==="health"?{metric:draft.metric}: {})},
+       billing_day:(draft.kind==="subscription"||draft.kind==="salary"||draft.kind==="fixed")?Number(draft.billing_day)||null:null,
+       metadata:{...(draft.kind==="media"?{progress:Number(draft.progress)||0}:{}),...(draft.kind==="journal"?{mood:draft.mood}:{}),...(draft.kind==="health"?{metric:draft.metric}: {}),...(draft.kind==="fixed"?{periodicity:draft.periodicity,essential:draft.essential}: {})},
      };
      const r=await fetch("/api/life/entries",{method:draft.id?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
      const result=await r.json().catch(()=>({}));
@@ -136,6 +176,7 @@ export default function LifePage(){
  const finance=entries.filter(e=>e.kind==="finance");
  const subscriptions=entries.filter(e=>e.kind==="subscription"&&e.status!=="cancelled");
  const salaries=entries.filter(e=>e.kind==="salary"&&e.status!=="cancelled");
+ const fixed=entries.filter(e=>e.kind==="fixed"&&e.status!=="cancelled");
  const media=entries.filter(e=>e.kind==="media");
  const wellness=entries.filter(e=>e.kind==="health");
  const plans=entries.filter(e=>e.kind==="plan");
@@ -143,6 +184,27 @@ export default function LifePage(){
  const earned=finance.filter(e=>monthKey(e.entry_date)===thisMonth&&Number(e.amount)>0).reduce((s,e)=>s+Number(e.amount),0);
  const recurring=subscriptions.filter(e=>e.status!=="paused").reduce((s,e)=>s+Number(e.amount||0),0);
  const recurringSalary=salaries.filter(e=>e.status!=="paused").reduce((s,e)=>s+Number(e.amount||0),0);
+ const fixedMonthly=fixed.filter(e=>e.status==="active").reduce((total,e)=>total+monthlyEquivalent(e),0);
+ const fixedCategoriesMonthly=fixedCategories.map(cat=>({
+   ...cat,amount:fixed.filter(e=>e.status==="active"&&e.category===cat.value).reduce((sum,e)=>sum+monthlyEquivalent(e),0),
+ })).filter(cat=>cat.amount>0).sort((a,b)=>b.amount-a.amount);
+ const baseAvailable=recurringSalary-recurring-fixedMonthly;
+ const variableMonth=(month:string)=>{
+  const records=finance.filter(e=>monthKey(e.entry_date)===month);
+  return {out:records.filter(e=>Number(e.amount)<0).reduce((sum,e)=>sum-Math.min(0,Number(e.amount)),0),
+   inc:records.filter(e=>Number(e.amount)>0).reduce((sum,e)=>sum+Math.max(0,Number(e.amount)),0)};
+ };
+ const projection=(month:string)=>{
+  const salary=salaries.filter(e=>isRecurringDue(e,month)).reduce((sum,e)=>sum+amountOf(e),0);
+  const fixedCharges=fixed.filter(e=>isRecurringDue(e,month)).reduce((sum,e)=>sum+amountOf(e),0);
+  const subscriptionsDue=subscriptions.filter(e=>isRecurringDue(e,month)).reduce((sum,e)=>sum+amountOf(e),0);
+  const variable=variableMonth(month);
+  return {month,salary,fixedCharges,subscriptionsDue,variable,net:salary-fixedCharges-subscriptionsDue+variable.inc-variable.out};
+ };
+ const forecast=Array.from({length:6},(_,i)=>projection(monthOffset(thisMonth,i)));
+ const shownForecast=forecast.find(p=>p.month===forecastMonth)||forecast[0];
+ const maxForecast=Math.max(1,...forecast.map(p=>Math.abs(p.net)));
+ const fixedRatio=recurringSalary>0?Math.round(100*(fixedMonthly+recurring)/recurringSalary):null;
  const activeMedia=media.filter(e=>e.status==="now");
  const nextPlans=plans.filter(e=>e.entry_date>=today).sort((a,b)=>a.entry_date.localeCompare(b.entry_date));
  const todayJournal=journals.find(e=>e.entry_date===today);
@@ -192,8 +254,8 @@ export default function LifePage(){
           <div className={styles.metricCaption}>BALANCE REGISTRADO · {prettyDay(today,{month:"long",year:"numeric"}).toUpperCase()}</div>
           <div className={styles.bigMoney}>{euro(earned-spent)}</div>
           <div className={styles.moneyColumns}><div><ArrowDownLeft size={17}/><span>Ingresos</span><strong>{euro(earned)}</strong></div><div><ArrowUpRight size={17}/><span>Gastos</span><strong>{euro(spent)}</strong></div></div>
-          <div className={styles.nextBilling}><span>Suscripciones / mes</span><strong>{euro(recurring)}</strong></div><div className={styles.nextBilling}><span>Nómina recurrente / mes</span><strong>{euro(recurringSalary)}</strong></div>
-          <div className={styles.actionRow}><button onClick={()=>start("finance")}><Plus size={15}/> Movimiento</button><button onClick={()=>start("subscription")}><Plus size={15}/> Suscripción</button><button onClick={()=>start("salary")}><Plus size={15}/> Nómina</button></div>
+          <div className={styles.nextBilling}><span>Gastos fijos / mes</span><strong>{euro(fixedMonthly)}</strong></div><div className={styles.nextBilling}><span>Suscripciones / mes</span><strong>{euro(recurring)}</strong></div><div className={styles.nextBilling}><span>Nómina recurrente / mes</span><strong>{euro(recurringSalary)}</strong></div>
+          <div className={styles.actionRow}><button onClick={()=>start("finance")}><Plus size={15}/> Movimiento</button><button onClick={()=>start("subscription")}><Plus size={15}/> Suscripción</button><button onClick={()=>start("salary")}><Plus size={15}/> Nómina</button><button onClick={()=>start("fixed")}><Plus size={15}/> Gasto fijo</button></div>
          </section>
          <section className={styles.card+" "+styles.cultureCard} style={{"--accent":areaColors.ocio} as CSSProperties}>
           <PanelHead title="Cultura" action="Mi biblioteca" click={()=>go("culture")}/>
@@ -239,20 +301,120 @@ export default function LifePage(){
        </div>
        <section className={styles.card}><PanelHead title="Lo que pasó ese día"/><EntryRows items={entries.filter(e=>e.entry_date===activeDate&&e.kind!=="journal")} empty="Los planes, entrenamientos, comidas y otros registros de esta fecha aparecerán aquí automáticamente."/></section><section className={styles.card}><PanelHead title="Últimas páginas"/><EntryRows items={journals.slice(0,12)} empty="Todavía no has escrito ninguna página."/></section>
       </div>}
-     {section==="money"&&<div className={styles.contentLayout}>
-       <div className={styles.sectionActions}><div><small>CONTROL PERSONAL</small><h1>Dinero</h1></div><div className={styles.actionRow}><button className={styles.primary} onClick={()=>start("finance")}><Plus size={16}/> Movimiento</button><button onClick={()=>start("subscription")}><Plus size={16}/> Suscripción</button><button onClick={()=>start("salary")}><Plus size={16}/> Nómina</button></div></div>
-       <div className={styles.financeStats}>
-        <div className={styles.card} style={{"--accent":areaColors.dinero} as CSSProperties}><small>INGRESOS · ESTE MES</small><strong>{euro(earned)}</strong></div>
-        <div className={styles.card} style={{"--accent":areaColors.salud} as CSSProperties}><small>GASTOS REGISTRADOS</small><strong>{euro(spent)}</strong></div>
-        <div className={styles.card} style={{"--accent":areaColors.personal} as CSSProperties}><small>BALANCE REGISTRADO</small><strong>{euro(earned-spent)}</strong></div>
+     {section==="money"&&<div className={styles.contentLayout+" "+styles.moneyScreen}>
+       <div className={styles.sectionActions}>
+        <div><small>CONTROL PERSONAL · PREVISIÓN</small><h1>Dinero</h1></div>
+        <div className={styles.actionRow}>
+          <button className={styles.primary} onClick={()=>start("fixed")}><Plus size={16}/> Gasto fijo</button>
+          <button onClick={()=>start("finance")}><Plus size={16}/> Movimiento</button>
+          <button onClick={()=>start("subscription")}><Plus size={16}/> Suscripción</button>
+          <button onClick={()=>start("salary")}><Plus size={16}/> Nómina</button>
+        </div>
        </div>
-       <div className={styles.forecastStrip}><span>PREVISIÓN FIJA MENSUAL</span><strong>{euro(recurringSalary-recurring)}</strong><small>Nóminas recurrentes menos suscripciones activas. No incluye otros gastos, ni equivale al saldo bancario.</small></div>
-       <div className={styles.twoColumns}>
-        <section className={styles.card}><PanelHead title="Movimientos"/><div className={styles.filterRow}><button className={filter==="all"?styles.filterActive:""} onClick={()=>setFilter("all")}>Todos</button><button className={filter==="month"?styles.filterActive:""} onClick={()=>setFilter("month")}>Este mes</button></div><EntryRows items={finance.filter(e=>filter!=="month"||monthKey(e.entry_date)===thisMonth)} empty="Añade tu primer ingreso o gasto para empezar a calcular."/></section>
-        <section className={styles.card}><PanelHead title="Suscripciones" action="Añadir" click={()=>start("subscription")}/><div className={styles.subscriptionTotal}><small>IMPORTE MENSUAL ACTIVO</small><strong>{euro(recurring)}</strong></div><div className={styles.entryRows}>{subscriptions.length?subscriptions.sort((a,b)=>(a.billing_day||0)-(b.billing_day||0)).map(e=><button key={e.id} className={styles.subscriptionRow} onClick={()=>start("subscription",e)}><span className={styles.billDay}>{e.billing_day||"·"}<small>día</small></span><span><strong>{e.title}</strong><small>{e.status==="paused"?"Pausada":e.category||"Mensual"}</small></span><b>{e.amount!==null?euro(Number(e.amount)):"—"}</b><ChevronRight size={15}/></button>):<Placeholder>Añade tus suscripciones y su día de cobro.</Placeholder>}</div><p className={styles.footnote}>Las suscripciones son previsiones. No se descuentan dos veces del balance registrado.</p></section>
+       <div className={styles.moneyKpis}>
+         <article className={styles.card+" "+styles.moneyKpi} style={{"--accent":"#c8e9d8"} as CSSProperties}>
+           <span><ArrowDownLeft size={16}/> INGRESOS RECURRENTES</span><strong>{euro(recurringSalary)}</strong><small>Nóminas mensuales activas</small>
+         </article>
+         <article className={styles.card+" "+styles.moneyKpi} style={{"--accent":"#e9dfcf"} as CSSProperties}>
+           <span><Landmark size={16}/> GASTOS FIJOS</span><strong>{euro(fixedMonthly)}</strong><small>Equivalente mensual · {fixed.filter(e=>e.status==="active").length} activos</small>
+         </article>
+         <article className={styles.card+" "+styles.moneyKpi} style={{"--accent":"#f5d3d7"} as CSSProperties}>
+           <span><ReceiptText size={16}/> SUSCRIPCIONES</span><strong>{euro(recurring)}</strong><small>Cuotas mensuales activas</small>
+         </article>
+         <article className={styles.card+" "+styles.moneyKpi+" "+styles.moneyKpiHero} style={{"--accent":"#e7ff3f"} as CSSProperties}>
+           <span><TrendingUp size={16}/> DISPONIBLE BASE</span><strong>{euro(baseAvailable)}</strong><small>Media mensual antes de variables</small>
+         </article>
        </div>
-       <section className={styles.card}><PanelHead title="Nóminas e ingresos recurrentes" action="Añadir nómina" click={()=>start("salary")}/><div className={styles.entryRows}>{salaries.length?salaries.map(e=><button key={e.id} className={styles.subscriptionRow} onClick={()=>start("salary",e)}><span className={styles.billDay}>{e.billing_day||"·"}<small>día</small></span><span><strong>{e.title}</strong><small>{e.status==="paused"?"Pausada":"Ingreso mensual"}</small></span><b>{euro(Number(e.amount||0))}</b><ChevronRight size={15}/></button>):<Placeholder>Configura tu nómina mensual con importe y día de pago.</Placeholder>}</div></section>
-      </div>}
+       <section className={styles.card+" "+styles.forecastPanel}>
+         <div className={styles.forecastPanelHead}>
+           <div><span className={styles.moneyEyebrow}>PROYECCIÓN · PRÓXIMOS SEIS MESES</span><h2>Lo que te quedaría cada mes</h2></div>
+           <div className={styles.forecastLegend}><span><i className={styles.legendIn}/>Ingresos</span><span><i className={styles.legendOut}/>Compromisos</span></div>
+         </div>
+         <div className={styles.forecastGraph}>
+          {forecast.map(f=>{
+           const obligations=f.fixedCharges+f.subscriptionsDue;
+           const total=Math.max(1,f.salary,obligations,maxForecast);
+           const signedHeight=Math.max(4,Math.min(100,Math.round(Math.abs(f.net)/maxForecast*100)));
+           return <button key={f.month} type="button" onClick={()=>setForecastMonth(f.month)} className={styles.forecastColumn+" "+(shownForecast.month===f.month?styles.forecastSelected:"")} aria-pressed={shownForecast.month===f.month} aria-label={capital(prettyDay(f.month+"-01",{month:"long",year:"numeric"}))+" · disponible "+euro(f.net)}>
+             <span className={styles.forecastValue}>{euro(f.net)}</span>
+             <span className={styles.forecastBarTrack}>
+               <span className={styles.forecastBarOut} style={{height:(obligations/total*100)+"%"}}/>
+               <span className={styles.forecastBarIn} style={{height:(f.salary/total*100)+"%"}}/>
+               <span className={f.net<0?styles.forecastBarNetNegative:styles.forecastBarNet} style={{height:signedHeight+"%"}}/>
+             </span>
+             <span className={styles.forecastMonth}>{capital(prettyDay(f.month+"-01",{month:"short"}))}</span>
+           </button>;
+          })}
+         </div>
+         <div className={styles.forecastDetail}>
+           <div className={styles.forecastNumber}><small>{capital(prettyDay(shownForecast.month+"-01",{month:"long",year:"numeric"}))}</small><strong className={shownForecast.net<0?styles.negative:""}>{euro(shownForecast.net)}</strong><span>Margen estimado del mes seleccionado</span></div>
+           <div className={styles.forecastMath}>
+             <div><span>Ingresos recurrentes</span><strong>{euro(shownForecast.salary)}</strong></div>
+             <div><span>Gastos fijos que vencen</span><strong>− {euro(shownForecast.fixedCharges)}</strong></div>
+             <div><span>Suscripciones</span><strong>− {euro(shownForecast.subscriptionsDue)}</strong></div>
+             <div><span>Movimientos variables netos registrados</span><strong>{euro(shownForecast.variable.inc-shownForecast.variable.out)}</strong></div>
+           </div>
+         </div>
+         <p className={styles.forecastDisclaimer}><Info size={14}/> Previsión orientativa: usa los importes recurrentes activos y los movimientos variables registrados. Los cargos anuales y trimestrales se descuentan solo en su mes de vencimiento. No es el saldo de tu banco ni confirma que un cargo se haya cobrado.</p>
+       </section>
+       <div className={styles.moneyPanels}>
+         <section className={styles.card+" "+styles.moneyPanel}>
+           <div className={styles.moneyPanelTop}><PanelHead title="Movimientos"/><div className={styles.filterRow}><button className={filter==="all"?styles.filterActive:""} onClick={()=>setFilter("all")}>Todos</button><button className={filter==="month"?styles.filterActive:""} onClick={()=>setFilter("month")}>Este mes</button></div></div>
+           <div className={styles.moneyPanelScroll}><EntryRows items={finance.filter(e=>filter!=="month"||monthKey(e.entry_date)===thisMonth)} empty="Registra tus ingresos y gastos variables. Aquí aparecerán ordenados por fecha."/></div>
+           <div className={styles.moneyPanelBottom}><span>{euro(spent)} variables gastados este mes</span><button onClick={()=>start("finance")}><Plus size={14}/> Añadir</button></div>
+         </section>
+         <section className={styles.card+" "+styles.moneyPanel}>
+           <div className={styles.moneyPanelTop}><PanelHead title="Gastos fijos" action="Añadir" click={()=>start("fixed")}/><div className={styles.panelMiniTotal}><span>MEDIA MENSUAL</span><strong>{euro(fixedMonthly)}</strong></div></div>
+           <div className={styles.moneyPanelScroll}>{fixed.length?fixed.slice().sort((a,b)=>(a.billing_day||0)-(b.billing_day||0)).map(e=>
+            <button key={e.id} type="button" className={styles.recurringRow} onClick={()=>start("fixed",e)}>
+              <span className={styles.dueDay}>{e.billing_day||"·"}<small>día</small></span>
+              <span className={styles.recurringText}><strong>{e.title}</strong><small>{fixedLabel(e.category||"otros")} · {periodLabel(e)} {e.status==="paused"?"· pausado":""}</small></span>
+              <span className={styles.recurringAmount}><strong>{euro(amountOf(e))}</strong><small>{periods[periodOf(e)].short}</small></span><ChevronRight size={15}/>
+            </button>
+           ):<div className={styles.panelEmpty}><p>Todavía no hay gastos fijos.</p><span>Puedes empezar con estas categorías:</span><div className={styles.templatePills}>{[{name:"Hipoteca",cat:"vivienda"},{name:"Comunidad",cat:"vivienda"},{name:"Seguros",cat:"seguros"},{name:"Préstamo",cat:"prestamos"}].map(x=><button key={x.name} onClick={()=>fixedTemplate(x.name,x.cat)}><Plus size={13}/>{x.name}</button>)}</div></div>}</div>
+           <div className={styles.moneyPanelBottom}><span>{fixed.filter(e=>e.status==="active").length} activos · mensual, trimestral o anual</span><button onClick={()=>start("fixed")}><Plus size={14}/> Añadir</button></div>
+         </section>
+         <section className={styles.card+" "+styles.moneyPanel}>
+           <div className={styles.moneyPanelTop}><PanelHead title="Suscripciones" action="Añadir" click={()=>start("subscription")}/><div className={styles.panelMiniTotal}><span>IMPORTE MENSUAL ACTIVO</span><strong>{euro(recurring)}</strong></div></div>
+           <div className={styles.moneyPanelScroll}>{subscriptions.length?subscriptions.slice().sort((a,b)=>(a.billing_day||0)-(b.billing_day||0)).map(e=>
+             <button key={e.id} type="button" className={styles.recurringRow} onClick={()=>start("subscription",e)}><span className={styles.dueDay}>{e.billing_day||"·"}<small>día</small></span><span className={styles.recurringText}><strong>{e.title}</strong><small>{e.status==="paused"?"Pausada":"Suscripción mensual"}</small></span><span className={styles.recurringAmount}><strong>{euro(amountOf(e))}</strong><small>mes</small></span><ChevronRight size={15}/></button>
+           ):<Placeholder>Registra tus plataformas y servicios con fecha de cargo.</Placeholder>}</div>
+           <div className={styles.moneyPanelBottom}><span>Previsiones, no cargos bancarios</span><button onClick={()=>start("subscription")}><Plus size={14}/> Añadir</button></div>
+         </section>
+         <section className={styles.card+" "+styles.moneyPanel}>
+           <div className={styles.moneyPanelTop}><PanelHead title="Ingresos recurrentes" action="Añadir" click={()=>start("salary")}/><div className={styles.panelMiniTotal}><span>INGRESO MENSUAL ACTIVO</span><strong>{euro(recurringSalary)}</strong></div></div>
+           <div className={styles.moneyPanelScroll}>{salaries.length?salaries.slice().sort((a,b)=>(a.billing_day||0)-(b.billing_day||0)).map(e=>
+            <button key={e.id} type="button" className={styles.recurringRow} onClick={()=>start("salary",e)}><span className={styles.dueDay}>{e.billing_day||"·"}<small>día</small></span><span className={styles.recurringText}><strong>{e.title}</strong><small>{e.status==="paused"?"Pausada":"Nómina mensual"}</small></span><span className={styles.recurringAmount}><strong>{euro(amountOf(e))}</strong><small>mes</small></span><ChevronRight size={15}/></button>
+           ):<Placeholder>Configura tu nómina mensual y su día de ingreso.</Placeholder>}</div>
+           <div className={styles.moneyPanelBottom}><span>Importes previstos, no confirmados</span><button onClick={()=>start("salary")}><Plus size={14}/> Añadir</button></div>
+         </section>
+       </div>
+       <div className={styles.moneyInsights}>
+         <section className={styles.card+" "+styles.moneyBreakdown}>
+           <PanelHead title="Dónde se va el dinero"/>
+           <p className={styles.insightSub}>Peso mensual de tus compromisos recurrentes</p>
+           <div className={styles.stackBar} role="img" aria-label="Distribución de los gastos fijos y suscripciones">
+            {fixedCategoriesMonthly.map(c=><span key={c.value} style={{width:((c.amount/(fixedMonthly+recurring||1))*100)+"%",background:c.color}} title={c.label+" · "+euro(c.amount)}/>)}
+            {recurring>0&&<span style={{width:(recurring/(fixedMonthly+recurring||1)*100)+"%",background:"#a2b5a4"}} title={"Suscripciones · "+euro(recurring)}/>}
+           </div>
+           <div className={styles.categoryScroll}>
+            {[...fixedCategoriesMonthly,{value:"subs",label:"Suscripciones",amount:recurring,color:"#a2b5a4"}].filter(c=>c.amount>0).map(c=><div key={c.value} className={styles.categoryRow}><i style={{background:c.color}}/><span>{c.label}</span><div className={styles.categoryTrack}><i style={{width:(c.amount/(fixedMonthly+recurring||1)*100)+"%",background:c.color}}/></div><strong>{euro(c.amount)}</strong></div>)}
+            {fixedMonthly+recurring===0&&<Placeholder>Sin compromisos recurrentes registrados.</Placeholder>}
+           </div>
+         </section>
+         <section className={styles.card+" "+styles.moneySignals}>
+           <PanelHead title="Lectura del mes"/>
+           <div className={styles.ratioFigure}><strong>{fixedRatio===null?"—":fixedRatio+"%"}</strong><span>de tus ingresos recurrentes comprometidos en gastos fijos y suscripciones</span></div>
+           <div className={styles.ratioTrack}><i style={{width:Math.max(0,Math.min(100,fixedRatio||0))+"%"}}/></div>
+           <div className={styles.signalRows}>
+            <div><ShieldCheck size={16}/><span>Compromiso fijo medio</span><strong>{euro(fixedMonthly+recurring)}</strong></div>
+            <div><WalletCards size={16}/><span>Variables registrados este mes</span><strong>{euro(spent)}</strong></div>
+            <div><TrendingUp size={16}/><span>Margen mensual base</span><strong>{euro(baseAvailable)}</strong></div>
+           </div>
+           <p className={styles.insightFoot}>{recurringSalary===0?"Añade una nómina para calcular qué parte de tus ingresos comprometen los gastos.":baseAvailable<0?"Los gastos recurrentes superan los ingresos configurados. Revisa importes y periodicidades.":fixed.length===0?"Añade la hipoteca, comunidad, seguros y demás gastos fijos para obtener una previsión más realista.":"Los importes anuales y trimestrales se prorratean aquí para comparar su peso; el gráfico superior los cobra cuando toca."}</p>
+         </section>
+       </div>
+     </div>}
      {section==="culture"&&<div className={styles.contentLayout}>
        <div className={styles.sectionActions}><div><small>JUEGOS · CINE · SERIES</small><h1>Cultura</h1></div><button className={styles.primary} onClick={()=>start("media")}><Plus size={16}/> Añadir título</button></div>
        <div className={styles.filterRow}>{[{id:"all",label:"Todo"},{id:"now",label:"En curso"},{id:"backlog",label:"Backlog"},{id:"wishlist",label:"Wishlist"},{id:"completed",label:"Terminados"}].map(x=><button key={x.id} className={filter===x.id?styles.filterActive:""} onClick={()=>setFilter(x.id)}>{x.label}</button>)}</div>
@@ -281,13 +443,14 @@ export default function LifePage(){
        <label>Fecha<input required type="date" value={draft.entry_date} onChange={e=>put("entry_date",e.target.value)}/></label>
        {draft.kind==="journal"&&<label>¿Cómo fue el día?<select value={draft.mood} onChange={e=>put("mood",e.target.value)}><option value="bien">Bien</option><option value="normal">Normal</option><option value="regular">Regular</option><option value="difícil">Difícil</option><option value="increíble">Increíble</option></select></label>}
        {draft.kind==="finance"&&<label>Tipo<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="expense">Gasto</option><option value="income">Ingreso</option></select></label>}
-       {(draft.kind==="subscription"||draft.kind==="salary")&&<label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="active">Activa</option><option value="paused">Pausada</option><option value="cancelled">Cancelada</option></select></label>}
+       {(draft.kind==="subscription"||draft.kind==="salary"||draft.kind==="fixed")&&<label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="active">Activa</option><option value="paused">Pausada</option><option value="cancelled">Cancelada</option></select></label>}
        {draft.kind==="media"&&<><label>Medio<select value={draft.category} onChange={e=>put("category",e.target.value)}><option value="videojuego">Videojuego</option><option value="película">Película</option><option value="serie">Serie</option></select></label><label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="now">En curso</option><option value="backlog">Backlog</option><option value="wishlist">Wishlist</option><option value="completed">Terminado</option></select></label><label>Progreso (%)<input type="number" min="0" max="100" value={draft.progress} onChange={e=>put("progress",e.target.value)}/></label></>}
        {draft.kind==="health"&&<><label>Tipo<select value={draft.category} onChange={e=>put("category",e.target.value)}><option value="entreno">Entrenamiento</option><option value="comida">Comida</option><option value="peso">Peso</option><option value="otro">Otro</option></select></label>{draft.category==="peso"&&<label>Peso (kg)<input type="number" min="0" max="400" step=".1" value={draft.metric} onChange={e=>put("metric",e.target.value)}/></label>}</>}
-       {draft.kind!=="journal"&&<label>Título<input required maxLength={180} placeholder={{finance:"Ej. Compra semanal",subscription:"Ej. Spotify",salary:"Ej. Nómina",media:"Ej. Resident Evil 4",health:"Ej. Entreno de fuerza",plan:"Ej. Cine el sábado"}[draft.kind]||"Título"} value={draft.title} onChange={e=>put("title",e.target.value)}/></label>}
+       {draft.kind!=="journal"&&<label>Título<input required maxLength={180} placeholder={{finance:"Ej. Compra semanal",subscription:"Ej. Spotify",salary:"Ej. Nómina",fixed:"Ej. Hipoteca, comunidad, seguro…",media:"Ej. Resident Evil 4",health:"Ej. Entreno de fuerza",plan:"Ej. Cine el sábado"}[draft.kind]||"Título"} value={draft.title} onChange={e=>put("title",e.target.value)}/></label>}
        {draft.kind==="journal"&&<label>Título (opcional)<input maxLength={180} placeholder="Una pequeña victoria, un día normal…" value={draft.title} onChange={e=>put("title",e.target.value)}/></label>}
-       {(draft.kind==="finance"||draft.kind==="subscription"||draft.kind==="salary")&&<label>Importe (€)<input type="number" min="0" step=".01" required placeholder="0,00" value={draft.amount} onChange={e=>put("amount",e.target.value)}/></label>}
-       {(draft.kind==="subscription"||draft.kind==="salary")&&<label>Día de cobro o pago (1–31)<input type="number" min="1" max="31" required value={draft.billing_day} onChange={e=>put("billing_day",e.target.value)}/></label>}
+       {(draft.kind==="finance"||draft.kind==="subscription"||draft.kind==="salary"||draft.kind==="fixed")&&<label>Importe (€)<input type="number" min="0" step=".01" required placeholder="0,00" value={draft.amount} onChange={e=>put("amount",e.target.value)}/></label>}
+       {(draft.kind==="subscription"||draft.kind==="salary"||draft.kind==="fixed")&&<label>Día de cobro o pago (1–31)<input type="number" min="1" max="31" required value={draft.billing_day} onChange={e=>put("billing_day",e.target.value)}/></label>}
+       {draft.kind==="fixed"&&<><label>Categoría<select value={draft.category} onChange={e=>put("category",e.target.value)}>{fixedCategories.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}</select></label><label>Periodicidad<select value={draft.periodicity} onChange={e=>put("periodicity",e.target.value)}><option value="monthly">Mensual</option><option value="quarterly">Trimestral</option><option value="yearly">Anual</option></select></label><label className={styles.checkField}><input type="checkbox" checked={draft.essential} onChange={e=>setDraft(d=>d?{...d,essential:e.target.checked}:d)}/> Gasto esencial</label><div className={styles.editorHint}>El importe es lo que pagas en cada vencimiento. Para un seguro anual, introduce el total anual, no su equivalente mensual.</div></>}
        {draft.kind==="finance"&&<label>Categoría<input maxLength={60} placeholder="Alimentación, ocio, vivienda…" value={draft.category} onChange={e=>put("category",e.target.value)}/></label>}
        <label className={styles.fullField}>{draft.kind==="journal"?"Tu página":"Notas"}<textarea rows={draft.kind==="journal"?9:4} placeholder={draft.kind==="journal"?"Escribe lo que quieras recordar…":"Detalles, comentarios…"} value={draft.note} onChange={e=>put("note",e.target.value)} /></label>
       </div>
