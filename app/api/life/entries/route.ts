@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { lifeInsert, lifeSelect, lifeSession } from "@/app/lib/life-store";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/app/lib/supabase-auth";
 
-const kinds = new Set(["journal", "finance", "subscription", "media", "health", "plan"]);
+const kinds = new Set(["journal", "finance", "subscription", "salary", "media", "health", "plan"]);
 type Entry = {
   id: string; kind: string; title: string; note: string; entry_date: string;
   amount: number | null; category: string | null; status: string | null;
