@@ -10,7 +10,7 @@ import {
 import { ModeLogo } from "@/components/os/mode-logo";
 import styles from "./life.module.css";
 
-type Kind = "journal" | "finance" | "subscription" | "media" | "health" | "plan";
+type Kind = "journal" | "finance" | "subscription" | "salary" | "media" | "health" | "plan";
 type Section = "today" | "journal" | "money" | "culture" | "health" | "agenda" | "areas" | "tasks";
 type Entry = { id:string; kind:Kind; title:string; note:string; entry_date:string; amount:number|null; category:string|null; status:string|null; billing_day:number|null; metadata:Record<string,unknown>; created_at:string };
 type Area = {id:string; name:string;slug:string;accent:string|null;icon:string|null;position:number};
@@ -27,7 +27,7 @@ const nav:{id:Section;label:string;icon:typeof LayoutDashboard}[] = [
   {id:"areas",label:"Áreas",icon:Sparkles},
   {id:"tasks",label:"Tareas",icon:ListTodo},
 ];
-const kinds:Record<Kind,string>={journal:"Entrada de diario",finance:"Movimiento",subscription:"Suscripción",media:"Título de cultura",health:"Registro de salud",plan:"Plan personal"};
+const kinds:Record<Kind,string>={journal:"Entrada de diario",finance:"Movimiento",subscription:"Suscripción",salary:"Nómina recurrente",media:"Título de cultura",health:"Registro de salud",plan:"Plan personal"};
 const areaIcons:Record<string,typeof User>={User,WalletCards,Activity,House,Bike,Sparkles,Gamepad2};
 const areaColors:Record<string,string>={personal:"#e7ff3f",dinero:"#dfe6dc",salud:"#f5d3d7",casa:"#e9dfcf",moto:"#d8d7ef",creatividad:"#f3e5a9",ocio:"#d7eadf"};
 const localDay=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
@@ -105,7 +105,7 @@ export default function LifePage(){
        note:draft.note,entry_date:draft.entry_date,
        amount:amt===null?null:draft.kind==="finance"&&draft.status==="expense"?-amt:amt,
        category:draft.category,status:draft.status,
-       billing_day:draft.kind==="subscription"?Number(draft.billing_day)||null:null,
+       billing_day:(draft.kind==="subscription"||draft.kind==="salary")?Number(draft.billing_day)||null:null,
        metadata:{...(draft.kind==="media"?{progress:Number(draft.progress)||0}:{}),...(draft.kind==="journal"?{mood:draft.mood}:{}),...(draft.kind==="health"?{metric:draft.metric}: {})},
      };
      const r=await fetch("/api/life/entries",{method:draft.id?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
@@ -135,12 +135,14 @@ export default function LifePage(){
  const journals=entries.filter(e=>e.kind==="journal");
  const finance=entries.filter(e=>e.kind==="finance");
  const subscriptions=entries.filter(e=>e.kind==="subscription"&&e.status!=="cancelled");
+ const salaries=entries.filter(e=>e.kind==="salary"&&e.status!=="cancelled");
  const media=entries.filter(e=>e.kind==="media");
  const wellness=entries.filter(e=>e.kind==="health");
  const plans=entries.filter(e=>e.kind==="plan");
  const spent=finance.filter(e=>monthKey(e.entry_date)===thisMonth&&Number(e.amount)<0).reduce((s,e)=>s+Math.abs(Number(e.amount)),0);
  const earned=finance.filter(e=>monthKey(e.entry_date)===thisMonth&&Number(e.amount)>0).reduce((s,e)=>s+Number(e.amount),0);
  const recurring=subscriptions.filter(e=>e.status!=="paused").reduce((s,e)=>s+Number(e.amount||0),0);
+ const recurringSalary=salaries.filter(e=>e.status!=="paused").reduce((s,e)=>s+Number(e.amount||0),0);
  const activeMedia=media.filter(e=>e.status==="now");
  const nextPlans=plans.filter(e=>e.entry_date>=today).sort((a,b)=>a.entry_date.localeCompare(b.entry_date));
  const todayJournal=journals.find(e=>e.entry_date===today);
@@ -190,8 +192,8 @@ export default function LifePage(){
           <div className={styles.metricCaption}>BALANCE REGISTRADO · {prettyDay(today,{month:"long",year:"numeric"}).toUpperCase()}</div>
           <div className={styles.bigMoney}>{euro(earned-spent)}</div>
           <div className={styles.moneyColumns}><div><ArrowDownLeft size={17}/><span>Ingresos</span><strong>{euro(earned)}</strong></div><div><ArrowUpRight size={17}/><span>Gastos</span><strong>{euro(spent)}</strong></div></div>
-          <div className={styles.nextBilling}><span>Suscripciones previstas / mes</span><strong>{euro(recurring)}</strong></div>
-          <div className={styles.actionRow}><button onClick={()=>start("finance")}><Plus size={15}/> Movimiento</button><button onClick={()=>start("subscription")}><Plus size={15}/> Suscripción</button></div>
+          <div className={styles.nextBilling}><span>Suscripciones / mes</span><strong>{euro(recurring)}</strong></div><div className={styles.nextBilling}><span>Nómina recurrente / mes</span><strong>{euro(recurringSalary)}</strong></div>
+          <div className={styles.actionRow}><button onClick={()=>start("finance")}><Plus size={15}/> Movimiento</button><button onClick={()=>start("subscription")}><Plus size={15}/> Suscripción</button><button onClick={()=>start("salary")}><Plus size={15}/> Nómina</button></div>
          </section>
          <section className={styles.card+" "+styles.cultureCard} style={{"--accent":areaColors.ocio} as CSSProperties}>
           <PanelHead title="Cultura" action="Mi biblioteca" click={()=>go("culture")}/>
@@ -235,19 +237,21 @@ export default function LifePage(){
           {selectedJournal?<><div className={styles.moodTag}>{capital(metaString(selectedJournal,"mood")||"normal")}</div><h2>{selectedJournal.title}</h2><p>{selectedJournal.note||"Sin notas añadidas."}</p><button className={styles.softAction} onClick={()=>start("journal",selectedJournal)}><Pencil size={15}/> Editar entrada</button></>:<div className={styles.emptyJournal}><NotebookPen size={34}/><h2>Página en blanco</h2><p>Un día no necesita ser extraordinario para merecer unas líneas.</p><button className={styles.primary} onClick={()=>start("journal",undefined,activeDate)}><Plus size={16}/> Escribir este día</button></div>}
          </section>
        </div>
-       <section className={styles.card}><PanelHead title="Últimas páginas"/><EntryRows items={journals.slice(0,12)} empty="Todavía no has escrito ninguna página."/></section>
+       <section className={styles.card}><PanelHead title="Lo que pasó ese día"/><EntryRows items={entries.filter(e=>e.entry_date===activeDate&&e.kind!=="journal")} empty="Los planes, entrenamientos, comidas y otros registros de esta fecha aparecerán aquí automáticamente."/></section><section className={styles.card}><PanelHead title="Últimas páginas"/><EntryRows items={journals.slice(0,12)} empty="Todavía no has escrito ninguna página."/></section>
       </div>}
      {section==="money"&&<div className={styles.contentLayout}>
-       <div className={styles.sectionActions}><div><small>CONTROL PERSONAL</small><h1>Dinero</h1></div><div className={styles.actionRow}><button className={styles.primary} onClick={()=>start("finance")}><Plus size={16}/> Movimiento</button><button onClick={()=>start("subscription")}><Plus size={16}/> Suscripción</button></div></div>
+       <div className={styles.sectionActions}><div><small>CONTROL PERSONAL</small><h1>Dinero</h1></div><div className={styles.actionRow}><button className={styles.primary} onClick={()=>start("finance")}><Plus size={16}/> Movimiento</button><button onClick={()=>start("subscription")}><Plus size={16}/> Suscripción</button><button onClick={()=>start("salary")}><Plus size={16}/> Nómina</button></div></div>
        <div className={styles.financeStats}>
         <div className={styles.card} style={{"--accent":areaColors.dinero} as CSSProperties}><small>INGRESOS · ESTE MES</small><strong>{euro(earned)}</strong></div>
         <div className={styles.card} style={{"--accent":areaColors.salud} as CSSProperties}><small>GASTOS REGISTRADOS</small><strong>{euro(spent)}</strong></div>
         <div className={styles.card} style={{"--accent":areaColors.personal} as CSSProperties}><small>BALANCE REGISTRADO</small><strong>{euro(earned-spent)}</strong></div>
        </div>
+       <div className={styles.forecastStrip}><span>PREVISIÓN FIJA MENSUAL</span><strong>{euro(recurringSalary-recurring)}</strong><small>Nóminas recurrentes menos suscripciones activas. No incluye otros gastos, ni equivale al saldo bancario.</small></div>
        <div className={styles.twoColumns}>
         <section className={styles.card}><PanelHead title="Movimientos"/><div className={styles.filterRow}><button className={filter==="all"?styles.filterActive:""} onClick={()=>setFilter("all")}>Todos</button><button className={filter==="month"?styles.filterActive:""} onClick={()=>setFilter("month")}>Este mes</button></div><EntryRows items={finance.filter(e=>filter!=="month"||monthKey(e.entry_date)===thisMonth)} empty="Añade tu primer ingreso o gasto para empezar a calcular."/></section>
         <section className={styles.card}><PanelHead title="Suscripciones" action="Añadir" click={()=>start("subscription")}/><div className={styles.subscriptionTotal}><small>IMPORTE MENSUAL ACTIVO</small><strong>{euro(recurring)}</strong></div><div className={styles.entryRows}>{subscriptions.length?subscriptions.sort((a,b)=>(a.billing_day||0)-(b.billing_day||0)).map(e=><button key={e.id} className={styles.subscriptionRow} onClick={()=>start("subscription",e)}><span className={styles.billDay}>{e.billing_day||"·"}<small>día</small></span><span><strong>{e.title}</strong><small>{e.status==="paused"?"Pausada":e.category||"Mensual"}</small></span><b>{e.amount!==null?euro(Number(e.amount)):"—"}</b><ChevronRight size={15}/></button>):<Placeholder>Añade tus suscripciones y su día de cobro.</Placeholder>}</div><p className={styles.footnote}>Las suscripciones son previsiones. No se descuentan dos veces del balance registrado.</p></section>
        </div>
+       <section className={styles.card}><PanelHead title="Nóminas e ingresos recurrentes" action="Añadir nómina" click={()=>start("salary")}/><div className={styles.entryRows}>{salaries.length?salaries.map(e=><button key={e.id} className={styles.subscriptionRow} onClick={()=>start("salary",e)}><span className={styles.billDay}>{e.billing_day||"·"}<small>día</small></span><span><strong>{e.title}</strong><small>{e.status==="paused"?"Pausada":"Ingreso mensual"}</small></span><b>{euro(Number(e.amount||0))}</b><ChevronRight size={15}/></button>):<Placeholder>Configura tu nómina mensual con importe y día de pago.</Placeholder>}</div></section>
       </div>}
      {section==="culture"&&<div className={styles.contentLayout}>
        <div className={styles.sectionActions}><div><small>JUEGOS · CINE · SERIES</small><h1>Cultura</h1></div><button className={styles.primary} onClick={()=>start("media")}><Plus size={16}/> Añadir título</button></div>
@@ -277,13 +281,13 @@ export default function LifePage(){
        <label>Fecha<input required type="date" value={draft.entry_date} onChange={e=>put("entry_date",e.target.value)}/></label>
        {draft.kind==="journal"&&<label>¿Cómo fue el día?<select value={draft.mood} onChange={e=>put("mood",e.target.value)}><option value="bien">Bien</option><option value="normal">Normal</option><option value="regular">Regular</option><option value="difícil">Difícil</option><option value="increíble">Increíble</option></select></label>}
        {draft.kind==="finance"&&<label>Tipo<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="expense">Gasto</option><option value="income">Ingreso</option></select></label>}
-       {draft.kind==="subscription"&&<label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="active">Activa</option><option value="paused">Pausada</option><option value="cancelled">Cancelada</option></select></label>}
+       {(draft.kind==="subscription"||draft.kind==="salary")&&<label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="active">Activa</option><option value="paused">Pausada</option><option value="cancelled">Cancelada</option></select></label>}
        {draft.kind==="media"&&<><label>Medio<select value={draft.category} onChange={e=>put("category",e.target.value)}><option value="videojuego">Videojuego</option><option value="película">Película</option><option value="serie">Serie</option></select></label><label>Estado<select value={draft.status} onChange={e=>put("status",e.target.value)}><option value="now">En curso</option><option value="backlog">Backlog</option><option value="wishlist">Wishlist</option><option value="completed">Terminado</option></select></label><label>Progreso (%)<input type="number" min="0" max="100" value={draft.progress} onChange={e=>put("progress",e.target.value)}/></label></>}
        {draft.kind==="health"&&<><label>Tipo<select value={draft.category} onChange={e=>put("category",e.target.value)}><option value="entreno">Entrenamiento</option><option value="comida">Comida</option><option value="peso">Peso</option><option value="otro">Otro</option></select></label>{draft.category==="peso"&&<label>Peso (kg)<input type="number" min="0" max="400" step=".1" value={draft.metric} onChange={e=>put("metric",e.target.value)}/></label>}</>}
-       {draft.kind!=="journal"&&<label>Título<input required maxLength={180} placeholder={{finance:"Ej. Compra semanal",subscription:"Ej. Spotify",media:"Ej. Resident Evil 4",health:"Ej. Entreno de fuerza",plan:"Ej. Cine el sábado"}[draft.kind]||"Título"} value={draft.title} onChange={e=>put("title",e.target.value)}/></label>}
+       {draft.kind!=="journal"&&<label>Título<input required maxLength={180} placeholder={{finance:"Ej. Compra semanal",subscription:"Ej. Spotify",salary:"Ej. Nómina",media:"Ej. Resident Evil 4",health:"Ej. Entreno de fuerza",plan:"Ej. Cine el sábado"}[draft.kind]||"Título"} value={draft.title} onChange={e=>put("title",e.target.value)}/></label>}
        {draft.kind==="journal"&&<label>Título (opcional)<input maxLength={180} placeholder="Una pequeña victoria, un día normal…" value={draft.title} onChange={e=>put("title",e.target.value)}/></label>}
-       {(draft.kind==="finance"||draft.kind==="subscription")&&<label>Importe (€)<input type="number" min="0" step=".01" required placeholder="0,00" value={draft.amount} onChange={e=>put("amount",e.target.value)}/></label>}
-       {draft.kind==="subscription"&&<label>Día de cobro (1–31)<input type="number" min="1" max="31" required value={draft.billing_day} onChange={e=>put("billing_day",e.target.value)}/></label>}
+       {(draft.kind==="finance"||draft.kind==="subscription"||draft.kind==="salary")&&<label>Importe (€)<input type="number" min="0" step=".01" required placeholder="0,00" value={draft.amount} onChange={e=>put("amount",e.target.value)}/></label>}
+       {(draft.kind==="subscription"||draft.kind==="salary")&&<label>Día de cobro o pago (1–31)<input type="number" min="1" max="31" required value={draft.billing_day} onChange={e=>put("billing_day",e.target.value)}/></label>}
        {draft.kind==="finance"&&<label>Categoría<input maxLength={60} placeholder="Alimentación, ocio, vivienda…" value={draft.category} onChange={e=>put("category",e.target.value)}/></label>}
        <label className={styles.fullField}>{draft.kind==="journal"?"Tu página":"Notas"}<textarea rows={draft.kind==="journal"?9:4} placeholder={draft.kind==="journal"?"Escribe lo que quieras recordar…":"Detalles, comentarios…"} value={draft.note} onChange={e=>put("note",e.target.value)} /></label>
       </div>
