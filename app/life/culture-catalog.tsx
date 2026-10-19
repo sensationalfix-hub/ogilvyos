@@ -8,7 +8,7 @@ export type MediaType = "videojuego" | "película" | "serie";
 export type MediaMatch = {
  id:string;type:MediaType;title:string;year:string|null;image:string|null;
  fallbackImage:string|null;description:string;genres:string[];platforms:string[];
- rating:number|null;ratingLabel:string|null;source:string;sourceUrl:string;
+ rating:number|null;ratingLabel:string|null;source:string;sourceUrl:string;posterSource?:string|null;
 };
 const types:{id:MediaType;label:string;icon:typeof Gamepad2}[]=[
  {id:"videojuego",label:"Videojuegos",icon:Gamepad2},
@@ -19,10 +19,10 @@ const trustedImage=(value:string|null):string|null=>{
  if(!value)return null;
  try{
   const u=new URL(value);
-  return u.protocol==="https:"&&[
+  return u.protocol==="https:"&&([
    "upload.wikimedia.org","image.tmdb.org","static.tvmaze.com",
    "media.rawg.io","shared.fastly.steamstatic.com","cdn.cloudflare.steamstatic.com",
-   "steamcdn-a.akamaihd.net"].includes(u.hostname)?u.href:null;
+   "steamcdn-a.akamaihd.net"].includes(u.hostname)||/^is\d+(?:-ssl)?\.mzstatic\.com$/.test(u.hostname))?u.href:null;
  }catch{return null;}
 };
 export function readMediaMatch(value:unknown):MediaMatch|null {
@@ -41,6 +41,7 @@ export function readMediaMatch(value:unknown):MediaMatch|null {
   rating:typeof item.rating==="number"&&Number.isFinite(item.rating)?item.rating:null,
   ratingLabel:typeof item.ratingLabel==="string"?item.ratingLabel:null,
   source:typeof item.source==="string"?item.source:"",
+  posterSource:typeof item.posterSource==="string"?item.posterSource:null,
   sourceUrl:typeof item.sourceUrl==="string"&&item.sourceUrl.startsWith("https://")?item.sourceUrl:"",
  };
 }
@@ -96,8 +97,8 @@ export function CultureCatalog({open,onClose,onSelect,onManual,existing}:Props){
  const selectResult=async(item:MediaMatch)=>{
   if(selecting)return;setSelecting(item.id);
   try {
-   if(item.source==="Steam"&&item.id.startsWith("steam:")){
-    const r=await fetch("/api/life/catalog?detail="+encodeURIComponent(item.id),{cache:"no-store"});
+   if(item.source==="Steam"||!item.image){
+    const r=await fetch("/api/life/catalog?detail="+encodeURIComponent(item.id)+(item.image?"":"&type="+encodeURIComponent(item.type)+"&title="+encodeURIComponent(item.title)+"&year="+encodeURIComponent(item.year||"")),{cache:"no-store"});
     if(r.ok){
      const data=await r.json() as {details?:Partial<MediaMatch>};
      if(data.details){
