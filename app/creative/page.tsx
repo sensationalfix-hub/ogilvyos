@@ -1,12 +1,13 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan, LibraryBig } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CirclePlus, GitBranch, Lightbulb, Link2, Loader2, GripVertical, Plus, Save, Trash2, X, MoveDiagonal2, Hand, MousePointer2, CheckSquare2, Scan, LibraryBig, Film, Upload } from "lucide-react";
+import { readLocalVideo, storeLocalVideo } from "@/lib/creative-local-video";
 import { LibraryPicker, type LibraryReference } from "@/components/creative/library-picker";
 import "./library-picker.css";
 import "./board-controls.css";
 
 type Kind="briefing"|"tension"|"insight"|"idea"|"camino"|"concepto"|"racional"|"draft"|"referencia"|"ejecucion";
-type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number;library_ref_id?:string;image_url?:string;media_path?:string;media_kind?:string};
+type Node={id:string;kind:Kind;title:string;body:string;x:number;y:number;url?:string;width?:number;height?:number;library_ref_id?:string;image_url?:string;media_path?:string;media_kind?:string;local_video_id?:string;local_video_name?:string;local_video_type?:string;local_video_size?:number;local_video_added_at?:string};
 type Port="top"|"right"|"bottom"|"left";
 type Edge={id:string;source:string;target:string;label:string;sourcePort?:Port;targetPort?:Port};
 type ProjectOption={id:string;name:string;account?:string};
@@ -69,6 +70,40 @@ function DirectVideoPreview({url,title}:{url:string;title:string}){
   <video ref={videoRef} key={url} className="cl-media-video" src={url} preload="metadata" playsInline controls={playing} onLoadedMetadata={e=>{const video=e.currentTarget;if(video.duration>.15)video.currentTime=.1}} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onError={()=>setFailed(true)} onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}/>
   {!playing&&<><div className="cl-media-veil" aria-hidden="true"/><button type="button" data-no-card-drag className="cl-media-play" aria-label={"Reproducir vídeo: "+title} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();videoRef.current?.play().catch(()=>setFailed(true))}}><span aria-hidden="true">▶</span></button></>}
   <a className="cl-media-source" href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}><span>Vídeo</span><ArrowRight size={12}/></a>
+ </div>;
+}
+/** Video files never leave the current browser. */
+function LocalVideoPreview({videoId,title,revision,active}:{videoId:string;title:string;revision:number;active:boolean}){
+ const videoRef=useRef<HTMLVideoElement>(null);
+ const [source,setSource]=useState<string|null>(null);
+ const [status,setStatus]=useState<"loading"|"ready"|"missing"|"unsupported">("loading");
+ const [playing,setPlaying]=useState(false);
+ useEffect(()=>{
+  let active=true;let objectUrl:string|null=null;
+  setStatus("loading");setSource(null);setPlaying(false);
+  readLocalVideo(videoId).then(blob=>{
+   if(!active)return;
+   if(!blob){setStatus("missing");return;}
+   objectUrl=URL.createObjectURL(blob);setSource(objectUrl);setStatus("ready");
+  }).catch(()=>{if(active)setStatus("missing")});
+  return()=>{active=false;if(objectUrl)URL.revokeObjectURL(objectUrl)};
+ },[videoId,revision]);
+ useEffect(()=>{
+  const video=videoRef.current;
+  if(!video||!source||status!=="ready")return;
+  video.muted=true;
+  if(active){void video.play().catch(()=>{});}
+  else {video.pause();try{video.currentTime=0}catch{}setPlaying(false);}
+ },[active,source,status]);
+ if(status==="missing"||status==="unsupported")return <div className="cl-media-cover cl-local-video cl-local-missing" role="status">
+  <Film size={27}/><strong>{status==="missing"?"Vídeo disponible solo en el navegador de origen":"Formato no compatible con este navegador"}</strong>
+  <small>{status==="missing"?"El texto y las conexiones siguen guardados. Recupera el archivo desde la tarjeta.":"Prueba con MP4 (H.264) o WebM."}</small>
+ </div>;
+ return <div className={"cl-media-cover cl-local-video"+(playing?" cl-media-playing":"")} aria-label={"Vídeo local sin sonido: "+title}>
+  {source&&<video ref={videoRef} key={source} className="cl-media-video" src={source} preload="metadata" muted playsInline loop onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onError={()=>setStatus("unsupported")}/>}
+  <div className="cl-media-veil" aria-hidden="true"/>
+  <span className="cl-media-source cl-local-label"><span>LOCAL · SIN AUDIO</span></span>
+  {!playing&&status==="ready"&&<button type="button" data-no-card-drag className="cl-media-play cl-local-play" title="Reproducir sin sonido" aria-label={"Reproducir "+title+" sin audio"} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();const video=videoRef.current;if(video){video.muted=true;void video.play().catch(()=>{})}}}><span aria-hidden="true">▶</span></button>}
  </div>;
 }
 type RichPreview={image:string;title:string;site:string;kind:"video"|"image"|"audio"};
@@ -137,6 +172,12 @@ export default function CreativeLab(){
  const [saved,setSaved]=useState(true);
  const [librarySaved,setLibrarySaved]=useState("");
  const [libraryPickerOpen,setLibraryPickerOpen]=useState(false);
+ const localVideoInput=useRef<HTMLInputElement>(null);
+ const relinkVideoNode=useRef<string|null>(null);
+ const [uploadingVideo,setUploadingVideo]=useState(false);
+ const [localVideoRevisions,setLocalVideoRevisions]=useState<Record<string,number>>({});
+ const [hoveredLocalVideo,setHoveredLocalVideo]=useState<string|null>(null);
+ const [localDropActive,setLocalDropActive]=useState(false);
  const [deletingBoardId,setDeletingBoardId]=useState<string|null>(null);
  const [revealedBoardId,setRevealedBoardId]=useState<string|null>(null);
  const boardSwipeStart=useRef<{id:string;x:number;y:number}|null>(null);
@@ -323,6 +364,48 @@ export default function CreativeLab(){
   if(!board)return;
   const node:Node={id:id(),kind,title:typeOf(kind).name+" sin título",body:"",x:Math.round(((workspaceSize.width*.5-pan.x)/zoom+(Math.random()-.5)*120)/20)*20,y:Math.round(((workspaceSize.height*.4-pan.y)/zoom+(Math.random()-.5)*100)/20)*20};
   update(b=>({...b,nodes:[...b.nodes,node]}));setSelected(node.id);setSelectedIds([node.id]);setEdgeSelected(null);setShowBoards(false);
+ };
+ const importLocalVideos=async(files:File[],drop?:{x:number;y:number})=>{
+  if(!board||showBoards||uploadingVideo)return;
+  const videos=files.filter(file=>file.type.startsWith("video/")||/\\.(?:mp4|m4v|mov|webm|ogv|ogg)$/i.test(file.name));
+  if(!videos.length){setError("Selecciona clips MP4, MOV o WebM.");return;}
+  const relinkId=relinkVideoNode.current;relinkVideoNode.current=null;
+  setUploadingVideo(true);setError("");
+  try{
+   if(relinkId){
+    const existing=board.nodes.find(n=>n.id===relinkId);
+    if(!existing?.local_video_id)throw Error("Esta tarjeta no tiene un vídeo local vinculado.");
+    const file=videos[0];
+    await storeLocalVideo(existing.local_video_id,file);
+    update(b=>({...b,nodes:b.nodes.map(n=>n.id===relinkId?{...n,local_video_name:file.name,local_video_type:file.type,local_video_size:file.size,local_video_added_at:new Date().toISOString()}:n)}));
+    setLocalVideoRevisions(previous=>({...previous,[existing.local_video_id!]: (previous[existing.local_video_id!]||0)+1}));
+    setSelected(relinkId);setSelectedIds([relinkId]);
+   }else{
+    const capacity=Math.min(12,Math.max(0,400-board.nodes.length));
+    if(!capacity)throw Error("Este mapa ha alcanzado el límite de 400 tarjetas.");
+    const additions:Node[]=[];
+    for(const [i,file] of videos.slice(0,capacity).entries()){
+     const videoId=id();
+     try{await storeLocalVideo(videoId,file)}catch(error){
+      if(additions.length){
+       update(b=>({...b,nodes:[...b.nodes,...additions]}));
+       setSelected(additions[additions.length-1].id);setSelectedIds(additions.map(n=>n.id));
+      }
+      throw error;
+     }
+     const originX=drop?.x??(workspaceSize.width*.40-pan.x)/zoom;
+     const originY=drop?.y??(workspaceSize.height*.38-pan.y)/zoom;
+     additions.push({id:id(),kind:"referencia",title:file.name.replace(/\\.[^.]+$/,"").replace(/[_-]+/g," "),body:"",local_video_id:videoId,local_video_name:file.name,local_video_type:file.type,local_video_size:file.size,local_video_added_at:new Date().toISOString(),x:Math.round((originX+(i%3)*268)/20)*20,y:Math.round((originY+Math.floor(i/3)*190)/20)*20});
+    }
+    if(additions.length){
+     update(b=>({...b,nodes:[...b.nodes,...additions]}));
+     setSelected(additions[additions.length-1].id);setSelectedIds(additions.map(n=>n.id));setEdgeSelected(null);setTool("hand");
+    }
+   }
+  }catch(error){
+   const message=error instanceof Error?error.message:"No se pudo guardar el vídeo.";
+   setError(/quota|espacio|storage|disk/i.test(message)?"El navegador no tiene espacio suficiente para guardar el clip. Prueba con un archivo más pequeño.":message);
+  }finally{setUploadingVideo(false);}
  };
  const onNodeClick=(nodeId:string,e:React.MouseEvent)=>{
   if(Date.now()<ignoreCardClickUntil.current)return;
@@ -646,7 +729,26 @@ export default function CreativeLab(){
   .cl-workspace.cl-select-tool .cl-card:hover .cl-port{opacity:1}
   @media(max-width:700px){.cl-footer{left:10px;bottom:10px}.cl-select-count{display:none}}
 
-  /* Floating board controls: the workspace now uses the full viewport height. */
+  /* Browser-local videos and drop affordance. */
+   .cl-local-video .cl-media-video{pointer-events:none}
+   .cl-local-video .cl-media-veil{pointer-events:none}
+   .cl-local-video.cl-media-playing .cl-media-veil{opacity:0}
+   .cl-local-label{pointer-events:none!important;max-width:146px;font-size:9px;letter-spacing:.035em}
+   .cl-local-label span{max-width:none}
+   .cl-local-play{pointer-events:auto}
+   .cl-local-missing{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:36px 18px 20px;text-align:center;color:#f1f2ed}
+   .cl-local-missing strong{font-size:12px;font-weight:750;max-width:220px}
+   .cl-local-missing small{font-size:10px;color:#c1cbc3;max-width:210px;line-height:1.45}
+   .cl-file-drop{outline:3px solid #a4e34a;outline-offset:-5px}
+   .cl-local-drop-hint{position:absolute;inset:24px;z-index:80;pointer-events:none;border:2px dashed #a6dc55;border-radius:24px;background:rgba(18,31,20,.8);color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;backdrop-filter:blur(8px)}
+   .cl-local-drop-hint strong{font-size:22px;letter-spacing:-.04em}
+   .cl-local-drop-hint small{font-size:12px;color:#d6e8cf}
+   .cl-local-inspector{margin-top:17px;padding:15px;border:1px solid #dae0d5;border-radius:13px;background:rgba(232,237,229,.55)}
+   .cl-local-inspector strong{display:flex;align-items:center;gap:7px;font-size:12px}
+   .cl-local-inspector p{font-size:12px;overflow-wrap:anywhere;margin:9px 0}
+   .cl-local-inspector small{display:block;font-size:11px;line-height:1.5;color:#666f68}
+   .cl-local-inspector .cl-button{margin-top:12px;width:100%;justify-content:center}
+   /* Floating board controls: the workspace now uses the full viewport height. */
   .cl-root{position:relative}
   .cl-top{position:absolute;left:252px;right:20px;top:15px;height:auto;min-height:46px;z-index:90;display:flex;align-items:center;gap:10px;padding:0;background:transparent!important;border:0;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none}
   .cl-top>*{pointer-events:auto}
@@ -665,11 +767,13 @@ export default function CreativeLab(){
    <button className="cl-button" onClick={()=>setShowBoards(v=>!v)}><GitBranch/> Mapas</button>
    {board?<input className="cl-title" aria-label="Nombre del mapa" value={board.title} onChange={e=>update(b=>({...b,title:e.target.value}))}/>:<strong>Creative Lab</strong>}
    <div className="cl-grow"/>
+   {board&&!showBoards&&<button type="button" className="cl-button" disabled={uploadingVideo} title="Clips en este navegador, datos de las tarjetas en Supabase" onClick={()=>{relinkVideoNode.current=null;localVideoInput.current?.click()}}>{uploadingVideo?<Loader2 size={14}/>:<Upload size={14}/>} Vídeo local</button>}
    {board&&!showBoards&&<button type="button" className="cl-button cl-from-library" onClick={()=>setLibraryPickerOpen(true)}><LibraryBig/> Desde Library</button>}
    {board&&!showBoards&&<div style={{position:"relative"}}><button className="cl-button" onClick={()=>setShareOpen(v=>!v)}><Link2/> Compartir {share?.enabled?"●":""}</button>{shareOpen&&<div style={{position:"absolute",right:0,top:"calc(100% + 10px)",width:275,zIndex:200,padding:17,border:"1px solid #DADFD7",borderRadius:14,boxShadow:"0 15px 50px #0002",background:"white"}}><strong style={{fontSize:14}}>Compartir este mapa</strong><p style={{fontSize:12,color:"#777",lineHeight:1.5}}>Enlace exclusivo, acceso con nombre y navegación de solo lectura.</p>{share?.enabled?<><button className="cl-button dark" style={{width:"100%",justifyContent:"center"}} onClick={()=>navigator.clipboard.writeText(window.location.origin+"/creative/share/"+share.token)}>Copiar enlace</button><button className="cl-button" disabled={shareBusy} onClick={deactivateShare} style={{width:"100%",justifyContent:"center",marginTop:8}}>Desactivar enlace</button><p style={{fontSize:11,color:"#777"}}>{livePeople.length} participantes conectados. Los punteros aparecen en el mapa.</p></>:<button className="cl-button dark" disabled={shareBusy} style={{width:"100%",justifyContent:"center"}} onClick={activateShare}>Crear enlace y copiar</button>}</div>}</div>}
    <span className="cl-state">{saving?<><Loader2 size={14}/> Guardando</>:saved?<><Check size={14}/> Guardado</>:<><Save size={14}/> Sin guardar</>}</span>
    <button className="cl-button dark" onClick={createBoard}><Plus/> Nuevo mapa</button>
   </header>
+  <input ref={localVideoInput} type="file" accept="video/*,.mp4,.m4v,.mov,.webm,.ogv,.ogg" multiple hidden aria-label="Importar vídeos locales" onChange={e=>{const files=Array.from(e.currentTarget.files||[]);e.currentTarget.value="";void importLocalVideos(files)}}/>
   <div className="cl-main">
    <aside className="cl-sidebar">
     <div className="cl-small">Biblioteca de ideas</div>
@@ -679,8 +783,9 @@ export default function CreativeLab(){
     <div className="cl-hint"><strong>Mano (H):</strong> mueve el lienzo. <strong>Puntero (V):</strong> selecciona varias tarjetas con un recuadro. <strong>⌘:</strong> selección temporal. <strong>⌘A:</strong> selecciona todo. Arrastra una de las seleccionadas para moverlas juntas.</div>
     {board&&<div style={{marginTop:30}}><label className="cl-label" htmlFor="cl-project">Proyecto vinculado</label><select id="cl-project" className="cl-field" value={board.project_id||""} onChange={e=>update(b=>({...b,project_id:e.target.value||null}))}><option value="">Sin vincular</option>{board.project_id&&!projects.some(p=>p.id===board.project_id)&&<option value={board.project_id}>Proyecto actual</option>}{projects.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=><option key={p.id} value={p.id}>{p.name}{p.account?" · "+p.account:""}</option>)}</select>{projectError&&<small style={{color:"#b44"}}>{projectError}</small>}</div>}
    </aside>
-   <div ref={workspaceRef} className={"cl-workspace"+(panning?" cl-panning":"")+(currentTool==="select"?" cl-select-tool":"")} style={{backgroundSize:`${24*zoom}px ${24*zoom}px`,backgroundPosition:`${pan.x}px ${pan.y}px`}} onPointerDown={beginPan} onPointerMove={e=>{onPointerMove(e);const r=workspaceRef.current?.getBoundingClientRect();if(r)liveMouse.current={x:(e.clientX-r.left-pan.x)/zoom,y:(e.clientY-r.top-pan.y)/zoom}}} onPointerLeave={()=>{liveMouse.current={x:null,y:null}}} onPointerUp={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onPointerCancel={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onClick={e=>{if(e.target===e.currentTarget&&Date.now()>skipCanvasClickUntil.current&&currentTool==="hand")clearSelection()}}>
-    {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
+   <div ref={workspaceRef} className={"cl-workspace"+(localDropActive?" cl-file-drop":"")+(panning?" cl-panning":"")+(currentTool==="select"?" cl-select-tool":"")} style={{backgroundSize:`${24*zoom}px ${24*zoom}px`,backgroundPosition:`${pan.x}px ${pan.y}px`}} onDragOver={e=>{if(e.dataTransfer.types.includes("Files")){e.preventDefault();e.dataTransfer.dropEffect="copy";setLocalDropActive(true)}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as HTMLElement))setLocalDropActive(false)}} onDrop={e=>{if(!e.dataTransfer.files.length)return;e.preventDefault();e.stopPropagation();setLocalDropActive(false);const rect=e.currentTarget.getBoundingClientRect();void importLocalVideos(Array.from(e.dataTransfer.files),{x:(e.clientX-rect.left-pan.x)/zoom,y:(e.clientY-rect.top-pan.y)/zoom})}} onPointerDown={beginPan} onPointerMove={e=>{onPointerMove(e);const r=workspaceRef.current?.getBoundingClientRect();if(r)liveMouse.current={x:(e.clientX-r.left-pan.x)/zoom,y:(e.clientY-r.top-pan.y)/zoom}}} onPointerLeave={()=>{liveMouse.current={x:null,y:null}}} onPointerUp={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onPointerCancel={e=>{finishResize(e);finishCardDrag(e);finishBackgroundAction(e)}} onClick={e=>{if(e.target===e.currentTarget&&Date.now()>skipCanvasClickUntil.current&&currentTool==="hand")clearSelection()}}>
+    {localDropActive&&board&&!showBoards&&<div className="cl-local-drop-hint"><Upload size={24}/><strong>Suelta tus clips aquí</strong><small>Vídeo en este navegador · datos en Supabase</small></div>}
+     {error&&<div role="alert" style={{position:"sticky",top:10,left:20,zIndex:20,margin:15,background:"#fee",padding:12,borderRadius:10,maxWidth:550}}>{error}</div>}
     {loading?<div className="cl-empty"><Loader2/> Cargando mapas...</div>:showBoards||!board?<div className="cl-empty" style={{position:"sticky",top:90,left:100,transform:"none",textAlign:"left",maxWidth:470}}>
      <h2 style={{letterSpacing:"-.05em"}}>Tus mapas creativos</h2><p style={{fontSize:13,color:"#777",lineHeight:1.5}}>Un lienzo para relacionar pensamientos, desarrollar racionales y dar forma a tus campañas.</p>
      <div className="cl-list">{boards.map(b=><div key={b.id} className={"cl-board-entry"+(revealedBoardId===b.id?" is-revealed":"")} onTouchStart={e=>onBoardTouchStart(e,b.id)} onTouchEnd={e=>onBoardTouchEnd(e,b.id)}>
@@ -698,10 +803,10 @@ export default function CreativeLab(){
        <text x={geometry.mid.x} y={geometry.mid.y+3.5} textAnchor="middle" fontSize="10" fontWeight="650" fill="#515b52">{label}</text></g>})}
       {connecting&&wireEnd&&board.nodes.some(n=>n.id===connecting)&&<path className="cl-selected-wire" d={curve(anchor(board.nodes.find(n=>n.id===connecting)!,sourcePort),wireEnd,sourcePort)} stroke="#293a2e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>}
      </svg>
-     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(typeOf(n.kind).ink==="#FFFFFF"?" is-dark":"")+(selected===n.id?"chosen":"")+(selectedIds.includes(n.id)?" cl-multi-selected":"")+(marqueeIds.includes(n.id)?" cl-marquee-preview":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+(mediaPreview(n.url)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color,"--card-ink":typeOf(n.kind).ink,"--card-muted":typeOf(n.kind).muted} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onDragStart={e=>e.preventDefault()} onClick={e=>onNodeClick(n.id,e)}>
+     {board.nodes.map(n=><div key={n.id} className={"cl-card "+(typeOf(n.kind).ink==="#FFFFFF"?" is-dark":"")+(selected===n.id?"chosen":"")+(selectedIds.includes(n.id)?" cl-multi-selected":"")+(marqueeIds.includes(n.id)?" cl-marquee-preview":"")+(draggingId===n.id?" is-dragging":"")+(resizingId===n.id?" is-resizing":"")+((mediaPreview(n.url)||n.local_video_id)?" has-preview":"")} style={{left:n.x,top:n.y,width:dimensions(n).width,height:dimensions(n).height,"--card-color":typeOf(n.kind).color,"--card-ink":typeOf(n.kind).ink,"--card-muted":typeOf(n.kind).muted} as React.CSSProperties} onPointerDown={e=>beginCardDrag(e,n)} onMouseEnter={()=>{if(n.local_video_id)setHoveredLocalVideo(n.id)}} onMouseLeave={()=>{if(n.local_video_id)setHoveredLocalVideo(current=>current===n.id?null:current)}} onDragStart={e=>e.preventDefault()} onClick={e=>onNodeClick(n.id,e)}>
       <div className="cl-card-head" title="Arrastra para mover la tarjeta"><span className="cl-card-type">{typeOf(n.kind).name}</span><span className="cl-drag-indicator" title="Arrastra para mover"><GripVertical size={16} strokeWidth={2.5}/></span></div>
       <div className="cl-card-body"><h3>{n.title}</h3><p>{n.body||"Haz clic para desarrollar esta idea."}</p></div>
-      <ReferencePreview url={n.url} title={n.title} imageUrl={n.image_url} mediaPath={n.media_path} mediaKind={n.media_kind}/>
+      {n.local_video_id?<LocalVideoPreview videoId={n.local_video_id} title={n.title} revision={localVideoRevisions[n.local_video_id]||0} active={hoveredLocalVideo===n.id}/>:<ReferencePreview url={n.url} title={n.title} imageUrl={n.image_url} mediaPath={n.media_path} mediaKind={n.media_kind}/>}
       {PORTS.map(port=><button key={port} className={"cl-port cl-port-"+port} title="Arrastra para conectar" aria-label={"Conectar "+port} onPointerDown={e=>beginWire(e,n.id,port)} onPointerMove={e=>{if(wireDrag.current){e.stopPropagation();setWireEnd(world(e))}}} onPointerUp={e=>{e.stopPropagation();endWire(e)}} onClick={e=>e.stopPropagation()}/>)}
       <button type="button" data-no-card-drag className="cl-resize-handle" title="Arrastra la esquina para cambiar el tamaño" aria-label={"Cambiar tamaño de "+n.title} onPointerDown={e=>beginResize(e,n)} onClick={e=>e.stopPropagation()}><MoveDiagonal2 size={14} strokeWidth={2.5}/></button>
      </div>)}
@@ -728,6 +833,7 @@ export default function CreativeLab(){
      <div className="cl-kind-control"><span className="cl-kind-swatch" style={{backgroundColor:typeOf(selectedNode.kind).color}} aria-hidden="true"/><select id="cl-kind-select" className="cl-field cl-kind-select" value={selectedNode.kind} onChange={e=>changeNodeKind(e.target.value as Kind)}>{types.map(type=><option key={type.key} value={type.key}>{type.name}</option>)}</select></div>
      <label className="cl-label">Título</label><input className="cl-field" value={selectedNode.title} onChange={e=>nodeChange("title",e.target.value)}/>
      <label className="cl-label">Racional / desarrollo</label><textarea className="cl-field" value={selectedNode.body} onChange={e=>nodeChange("body",e.target.value)} placeholder="Escribe tu argumento, hipótesis o desarrollo creativo..."/>
+     {selectedNode.local_video_id&&<div className="cl-local-inspector"><strong><Film size={15}/> Vídeo guardado localmente</strong><p>{selectedNode.local_video_name||"Clip"}{typeof selectedNode.local_video_size==="number"?" · "+(selectedNode.local_video_size/1048576).toFixed(1)+" MB":""}</p><small>El archivo vive solo en este navegador. Título, texto y conexiones se guardan en Supabase. Si cambias de dispositivo, tendrás que volver a vincularlo.</small><button type="button" className="cl-button" disabled={uploadingVideo} onClick={()=>{relinkVideoNode.current=selectedNode.id;localVideoInput.current?.click()}}><Upload size={14}/> Recuperar / sustituir archivo</button></div>}
      <label className="cl-label">Enlace de referencia</label><input className="cl-field" value={selectedNode.url||""} onChange={e=>nodeChange("url",e.target.value)} placeholder="https://..."/>
      {selectedNode.url&&/^https?:\/\//i.test(selectedNode.url)&&<a href={selectedNode.url} target="_blank" rel="noopener noreferrer" style={{display:"block",fontSize:12,marginTop:9}}>Abrir referencia ↗</a>}
      {selectedNode.url?.startsWith("https://")&&<button className="cl-button" style={{width:"100%",justifyContent:"center",marginTop:13}} onClick={()=>saveNodeToLibrary(selectedNode)}><Plus/> Guardar en Reference Lib</button>}
