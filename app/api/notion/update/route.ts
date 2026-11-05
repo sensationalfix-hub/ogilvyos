@@ -73,6 +73,15 @@ async function projectProperties(changes: Record<string, unknown>) {
   if ("type" in changes) properties["Tipo de Proyecto"] = select(changes.type);
   if ("complexity" in changes) properties["Complejidad"] = select(changes.complexity);
   if ("rating" in changes) properties["Rating"] = select(changes.rating);
+  if ("budget" in changes) {
+    const amount = changes.budget;
+    if (amount !== null && (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0)) throw new Error("Presupuesto no válido");
+    properties["Presupuesto"] = { number: amount };
+  }
+  if ("productionCompanies" in changes) {
+    if (!Array.isArray(changes.productionCompanies) || changes.productionCompanies.length > 30 || changes.productionCompanies.some((name) => typeof name !== "string" || !name.trim() || name.length > 100)) throw new Error("Productoras no válidas");
+    properties["Productoras"] = { multi_select: [...new Set(changes.productionCompanies.map((name: string) => name.trim()))].map((name) => ({ name })) };
+  }
   if ("timingStart" in changes || "timingEnd" in changes) properties["Timming"] = date(changes.timingStart, changes.timingEnd);
 
   if ("account" in changes) {
