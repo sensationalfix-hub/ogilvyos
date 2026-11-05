@@ -4,6 +4,7 @@ import { localDateKey } from "@/app/lib/local-date";
 import { HolidayEditor, type HolidayDraft } from "@/components/workos/holiday-editor";
 import "./holidays.css";
 import "./employee-editor.css";
+import "./project-cockpit.css";
 import { EmployeeProfileEditor, employeeEditDraft, employeeEditChanges, type EmployeeEditDraft } from "@/components/workos/employee-profile-editor";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +18,9 @@ import { toast } from "sonner";
 
 import { ModeLogo } from "@/components/os/mode-logo";
 import { PageContent } from "@/components/workos/page-content";
+import { ProjectChecklist } from "@/components/workos/project-checklist";
+import { ProjectDocumentation } from "@/components/workos/project-documentation";
+import { ProjectProductionFields } from "@/components/workos/project-production-fields";
 import { Timesheet } from "@/components/workos/timesheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +66,7 @@ type Project = {
   id: string; name: string; status: ProjectStatus; account: string; timing: string;
   timingStart?: string | null; timingEnd?: string | null;
   type: string; people: string[]; priority: Priority; url: string;
+  budget?: number | null; productionCompanies?: string[];
 };
 type Detail = ({ kind: "task" } & Task) | ({ kind: "project" } & Project) | null;
 type Evaluation = { kind: "task" | "project"; id: string; name: string; people: string[] };
@@ -442,7 +447,6 @@ export default function WorkPage() {
   const [accountTaskFilter, setAccountTaskFilter] = useState<TaskLane | "all">("all");
   const [accountProjectFilter, setAccountProjectFilter] = useState<string | "all">("all");
   const [selectedProjectPage, setSelectedProjectPage] = useState<Project | null>(null);
-  const [activeProjectSection, setActiveProjectSection] = useState("project-summary");
   const [timelineWeeks, setTimelineWeeks] = useState(8);
   const [weekOffset, setWeekOffset] = useState(0);
   const [projectTaskName, setProjectTaskName] = useState("");
@@ -1614,13 +1618,6 @@ export default function WorkPage() {
       workosLane: workosLaneForLane(lane),
     });
   }
-  function scrollProjectSection(id: string) {
-    setActiveProjectSection(id);
-    const target = document.getElementById(id);
-    if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   async function updateProjectWorkspace(changes: Record<string, unknown>) {
 
     if (!selectedProjectPage) return;
@@ -3112,7 +3109,6 @@ export default function WorkPage() {
       const projectTasks = allTasks.filter((task) => task.project === selectedProjectPage.name);
       const datedTasks = projectTasks.filter((task) => task.dateStart).sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart)));
       const completedTasks = projectTasks.filter((task) => task.status === "Terminado").length;
-      const cancelledTasks = projectTasks.filter((task) => task.status === "Cancelado").length;
       const activeProjectTasks = projectTasks.filter((task) => !["Terminado", "Cancelado"].includes(task.status));
       const dateValues = datedTasks.map((task) => new Date(task.dateStart + "T00:00:00").getTime());
       const start = selectedProjectPage.timingStart
@@ -3165,16 +3161,10 @@ export default function WorkPage() {
             </div>
           </header>
 
-          <nav className="project-workspace-tabs" aria-label="Secciones del proyecto">
-            <button type="button" className={activeProjectSection === "project-summary" ? "active" : ""} onClick={() => scrollProjectSection("project-summary")}>Resumen</button>
-            <button type="button" className={activeProjectSection === "project-tasks" ? "active" : ""} onClick={() => scrollProjectSection("project-tasks")}>Tareas</button>
-            <button type="button" className={activeProjectSection === "project-timeline" ? "active" : ""} onClick={() => scrollProjectSection("project-timeline")}>Timeline</button>
-            <button type="button" className={activeProjectSection === "project-briefing" ? "active" : ""} onClick={() => scrollProjectSection("project-briefing")}>Briefing</button>
-            <button type="button" className={activeProjectSection === "project-details" ? "active" : ""} onClick={() => scrollProjectSection("project-details")}>Detalles</button>
-          </nav>
         </div>
 
         <div className="project-workspace-scroll">
+          <div className="project-workspace-dashboard">
           <section id="project-summary" className="project-workspace-metrics">
             <article className="project-progress-card">
               <span>PROGRESO</span>
@@ -3212,16 +3202,16 @@ export default function WorkPage() {
           </section>
 
           <section className="project-overview-grid">
-            <article id="project-details" className="project-control-panel">
-              <div className="workspace-section-head module-head"><span>PROYECTO</span><h2>Detalles</h2><small>Todo editable</small></div>
+            <article id="project-details" className="project-control-panel project-widget">
+              <div className="workspace-section-head module-head"><div><span>PROYECTO</span><h2>Detalles</h2></div><small>Editable</small></div>
+              <div className="project-details-body project-widget-scroll">
               <div className="project-control-grid">
-                <label><span>Estado</span><select value={selectedProjectPage.status} onChange={(event) => updateProjectWorkspace({ status: event.target.value })}>{projectStatusOptions.map((status) => <option key={status}>{status}</option>)}</select></label>
-                <label><span>Prioridad</span><select value={selectedProjectPage.priority} onChange={(event) => updateProjectWorkspace({ priority: event.target.value })}>{projectPriorityOptions.map((priority) => <option key={priority}>{priority}</option>)}</select></label>
                 <label><span>Tipo</span><select value={selectedProjectPage.type} onChange={(event) => updateProjectWorkspace({ type: event.target.value })}>{projectTypeOptions.map((type) => <option key={type}>{type}</option>)}</select></label>
                 <label><span>Cuenta</span><select value={selectedProjectPage.account} onChange={(event) => updateProjectWorkspace({ account: event.target.value })}>{accountOptions.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
                 <label><span>Inicio</span><input type="date" value={selectedProjectPage.timingStart || ""} onChange={(event) => updateProjectWorkspace({ timingStart: event.target.value || null, timingEnd: selectedProjectPage.timingEnd })} /></label>
                 <label><span>Fin</span><input type="date" min={selectedProjectPage.timingStart || undefined} value={selectedProjectPage.timingEnd || ""} onChange={(event) => updateProjectWorkspace({ timingStart: selectedProjectPage.timingStart, timingEnd: event.target.value || null })} /></label>
               </div>
+              <ProjectProductionFields projectId={selectedProjectPage.id} budget={selectedProjectPage.budget} companies={selectedProjectPage.productionCompanies || []} onSave={updateProjectWorkspace} />
               <div className="workspace-team-editor">
                 <span>EQUIPO</span>
                 <div>{projectPeople.map((name) => {
@@ -3230,12 +3220,13 @@ export default function WorkPage() {
                 })}</div>
                 <select value="" onChange={(event) => { const name = event.target.value; if (!name) return; const current = selectedProjectPage.people.filter((person) => person !== "Por asignar"); if (!current.includes(name)) updateProjectWorkspace({ people: [...current, name] }); event.currentTarget.value = ""; }}><option value="">Añadir persona…</option>{team.filter((person) => !selectedProjectPage.people.includes(person.name)).map((person) => <option key={person.id} value={person.name}>{person.name} · {person.role}</option>)}</select>
               </div>
+              </div>
             </article>
 
-            <article id="project-tasks" className="project-task-workspace">
-              <div className="workspace-section-head module-head"><span>TAREAS</span><h2>Tareas del proyecto</h2><small>{projectTasks.length} en total</small></div>
+            <article id="project-tasks" className="project-task-workspace project-widget">
+              <div className="workspace-section-head module-head"><div><span>TAREAS</span><h2>Tareas del proyecto</h2></div><small>{projectTasks.length} en total</small></div>
               <div className="project-task-create"><input value={projectTaskName} onChange={(event) => setProjectTaskName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") createTaskForSelectedProject(); }} placeholder="Nueva tarea dentro de este proyecto…" /><button onClick={createTaskForSelectedProject}><Plus /> Crear</button></div>
-              <div className="project-task-table">
+              <div className="project-task-table project-widget-scroll">
                 {projectTasks.map((task) => <div key={task.id} className="project-task-row">
                   <button className="project-task-name" onClick={() => setDetail({ kind: "task", ...task })}><span className={"project-task-check status-" + task.status.toLowerCase().replaceAll(" ", "-")}>{task.status === "Terminado" ? <Check /> : null}</span><span><strong>{task.name}</strong><small>{task.people.filter((name) => name !== "Por asignar").join(", ") || "Sin asignar"}</small></span></button>
                   <select value={taskLane(task)} onChange={(event) => updateWorkspaceTaskLane(task, event.target.value as TaskLane)}>{TASK_LANES.map((status) => <option key={status}>{status}</option>)}</select>
@@ -3248,10 +3239,10 @@ export default function WorkPage() {
             </article>
 
             <aside className="project-side-stack">
-              <article id="project-timeline" className="project-timeline-panel">
-                <div className="workspace-section-head module-head"><span>TIMELINE</span><h2>Hitos y tareas</h2><small>{start.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {end.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small></div>
+              <article id="project-timeline" className="project-timeline-panel project-widget">
+                <div className="workspace-section-head module-head"><div><span>TIMELINE</span><h2>Hitos y tareas</h2></div><small>{start.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} — {end.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small></div>
                 <div className="project-timeline-scale"><span>INICIO</span><i /><span>FIN</span></div>
-                <div className="project-timeline-rows">
+                <div className="project-timeline-rows project-widget-scroll">
                   {datedTasks.map((task) => {
                     const pos = timelinePercent(task.dateStart, start, end) ?? 0;
                     return <button key={task.id} className={"project-timeline-row status-" + task.status.toLowerCase().replaceAll(" ", "-")} onClick={() => setDetail({ kind: "task", ...task })}>
@@ -3264,20 +3255,12 @@ export default function WorkPage() {
                 </div>
               </article>
 
-              <article className="project-glance-card">
-                <div className="workspace-section-head module-head"><span>VISTA RÁPIDA</span><h2>Estado operativo</h2></div>
-                <div className="project-glance-stats">
-                  <span><b>{activeProjectTasks.length}</b><small>Activas</small></span>
-                  <span><b>{completedTasks}</b><small>Terminadas</small></span>
-                  <span><b>{cancelledTasks}</b><small>Canceladas</small></span>
-                </div>
-                <p>{completion >= 75 ? "El proyecto está en fase final. Conviene cerrar flecos, no inventar nuevas reuniones porque la humanidad ya tiene suficientes." : completion >= 35 ? "El proyecto está avanzando. El foco debería estar en desbloquear las tareas activas." : "El proyecto está arrancando. Fechas, responsables y primeras entregas mandan."}</p>
-              </article>
+              <ProjectChecklist key={selectedProjectPage.id} pageId={selectedProjectPage.id} />
             </aside>
           </section>
+          </div>
           <section id="project-briefing" className="project-briefing-section">
-            <div className="workspace-section-head module-head"><span>DOCUMENTACIÓN</span><h2>Briefing</h2><small>Sincronizado con Notion</small></div>
-            <PageContent key={selectedProjectPage.id} pageId={selectedProjectPage.id} heading="Notas, decisiones y referencias" showProperties={false} />
+            <ProjectDocumentation key={selectedProjectPage.id} pageId={selectedProjectPage.id} pageUrl={selectedProjectPage.url} />
           </section>
         </div>
       </div>

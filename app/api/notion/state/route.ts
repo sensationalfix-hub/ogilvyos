@@ -231,6 +231,8 @@ export async function GET(request: Request) {
         type: select(page, "Tipo de Proyecto") || "Proyecto",
         people: relationNames(relation(page, "Personas"), teamNames),
         priority: select(page, "Prioridad") || "Sin prioridad",
+        budget: numeric(page, "Presupuesto"),
+        productionCompanies: multiSelect(page, "Productoras"),
         url: page.url || `https://www.notion.so/${compactId(page.id)}`,
         rating: starNumber(select(page, "Rating")),
         complexity: select(page, "Complejidad"),
