@@ -4,13 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Activity, ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3,
-  Dumbbell, LoaderCircle, Minus, Pause, Play, Plus, RotateCcw, TrendingUp,
+  Dumbbell, ExternalLink, Image as ImageIcon, LoaderCircle, Minus, Pause, Play,
+  Plus, RotateCcw, TrendingUp,
 } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   getRoutine, nextRoutine, ROUTINES, sessionVolume, setCount, visibleExercises,
   type GymExercise, type GymLog, type GymMode, type LoggedSet, type RoutineCode,
 } from "./plan";
+import { commonsFileUrl, commonsImageUrl, GYM_GUIDES, type GymVisual } from "./guide";
 import styles from "./gym.module.css";
 
 type GymEntry = {
@@ -55,6 +57,19 @@ function initialLog(code: RoutineCode, mode: GymMode, entries: GymEntry[]): GymL
   return { version: 1, routine: code, mode, startedAt: new Date().toISOString(), sets };
 }
 
+function GuidePhoto({ visual, label }: { visual: GymVisual; label: string }) {
+  return <figure className={styles.guidePhoto}>
+    <div className={styles.guidePhotoFrame}>
+      {/* Commons images are external, licensed references: keep their source linked below. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className={visual.kind === "diagram" ? styles.guideDiagram : ""} src={commonsImageUrl(visual)} alt={visual.alt} loading="lazy"/>
+    </div>
+    <figcaption><span>{label}</span><a href={commonsFileUrl(visual)} target="_blank" rel="noreferrer" title="Ver autor y licencia de la imagen en Wikimedia Commons">
+      {visual.author} · {visual.license} <ExternalLink size={11}/>
+    </a></figcaption>
+  </figure>;
+}
+
 export default function LifeGymPage() {
   const [entries, setEntries] = useState<GymEntry[]>([]);
   const [active, setActive] = useState<(GymEntry & { metadata: { gym: GymLog } }) | null>(null);
@@ -63,6 +78,7 @@ export default function LifeGymPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [mode, setMode] = useState<GymMode>("express");
+  const [openGuideId, setOpenGuideId] = useState<string | null>(null);
   const [selectedExercise, setSelectedExercise] = useState("chest_press");
   const [rest, setRest] = useState(0);
   const [restRunning, setRestRunning] = useState(false);
@@ -249,16 +265,43 @@ export default function LifeGymPage() {
             </section>
 
             <div className={styles.sectionLabel}><span>{active ? "REGISTRA CADA SERIE" : "QUÉ TOCA HOY"}</span><small>{sessionExercises.length} ejercicios</small></div>
+            <p className={styles.visualNote}><ImageIcon size={14}/> Toca la foto para identificar la máquina y ver cómo se usa. Referencias orientativas: el modelo de Forus puede ser distinto.</p>
             <div className={styles.exerciseList}>
               {sessionExercises.map((exercise, index) => {
                 const sets = gymLog?.sets[exercise.id] ?? [];
                 const marked = sets.filter(set => set.done).length;
+                const guide = GYM_GUIDES[exercise.id];
+                const guideOpen = openGuideId === exercise.id;
+                const machine = !guide?.equipment.includes("sin máquina") && !guide?.equipment.includes("Esterilla");
                 return <article key={exercise.id} className={styles.exerciseCard}>
                   <div className={styles.exerciseHeader}>
                     <span className={styles.exerciseNumber}>{String(index + 1).padStart(2, "0")}</span>
-                    <div className={styles.exerciseName}><small>{exercise.group.toUpperCase()}</small><h3>{exercise.name}</h3><p>{exercise.sets} series · {exercise.reps} reps · Referencia {exercise.range}</p></div>
-                    {active && <span className={styles.exerciseCount}>{marked}/{exercise.sets}</span>}
+                    <div className={styles.exerciseName}>
+                      <div className={styles.exerciseMeta}><small>{exercise.group.toUpperCase()}</small>{active && <span className={styles.exerciseCount}>{marked}/{exercise.sets}</span>}</div>
+                      <h3>{exercise.name}</h3><p>{exercise.sets} series · {exercise.reps} reps · Referencia {exercise.range}</p>
+                    </div>
+                    <button type="button" className={styles.guideTrigger} aria-expanded={guideOpen} aria-controls={`gym-guide-${exercise.id}`}
+                      onClick={() => setOpenGuideId(guideOpen ? null : exercise.id)}>
+                      <span className={styles.guideThumbFrame}>
+                        {guide?.photo ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={commonsImageUrl(guide.photo)} alt="" loading="lazy"/> : <ImageIcon size={26}/>}
+                      </span>
+                      <span>{guideOpen ? "OCULTAR" : machine ? "VER MÁQUINA" : "VER TÉCNICA"}<ChevronDown size={12}/></span>
+                    </button>
                   </div>
+                  {guideOpen && guide && <div id={`gym-guide-${exercise.id}`} className={styles.guidePanel}>
+                    <div className={styles.guideHeading}><span>GUÍA VISUAL</span><strong>{guide.equipment}</strong></div>
+                    {guide.photo || guide.demo ? <div className={styles.guidePhotos}>
+                      {guide.photo && <GuidePhoto visual={guide.photo} label={guide.photo.kind === "diagram" ? "POSICIÓN / MOVIMIENTO" : "REFERENCIA VISUAL"}/>}
+                      {guide.demo && <GuidePhoto visual={guide.demo} label={guide.demo.kind === "diagram" ? "POSICIÓN / MOVIMIENTO" : "ASÍ SE HACE"}/>}
+                    </div> : <div className={styles.guideNoPhoto}><Activity size={20}/> Ejercicio de suelo: sigue los pasos de colocación y movimiento.</div>}
+                    <div className={styles.guideHow}>
+                      <div><span>01 · RECONÓCELA</span><p>{guide.identify}</p></div>
+                      <div><span>02 · COLÓCATE</span><p>{guide.setup}</p></div>
+                      <div><span>03 · EJECUTA</span><p>{guide.movement}</p></div>
+                    </div>
+                    <div className={styles.guideWarning}><strong>OJO CON ESTO</strong><p>{guide.caution}</p></div>
+                    <p className={styles.guideCreditNote}>Fotos orientativas de Wikimedia Commons, con autoría y licencia enlazadas. Si no reconoces la máquina o sus ajustes, pide al monitor que te la enseñe antes de cargar peso.</p>
+                  </div>}
                   {active ? <>
                     <div className={styles.setHead}><span>SERIE</span><span>PESO (KG)</span><span>REPS / SEG</span><span>HECHO</span></div>
                     <div className={styles.setList}>{sets.map((set, i) => <div key={i} className={styles.setRow + (set.done ? " " + styles.setDone : "")}>
