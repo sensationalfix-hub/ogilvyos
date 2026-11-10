@@ -1,6 +1,7 @@
 "use client";
 
 import { localDateKey } from "@/app/lib/local-date";
+import { calendarDateKey, calendarIndexFromShortMonth, calendarMonthIndex, calendarMonthInfo } from "@/app/lib/calendar-month";
 import { HolidayEditor, type HolidayDraft } from "@/components/workos/holiday-editor";
 import "./holidays.css";
 import "./employee-editor.css";
@@ -144,12 +145,6 @@ const viewCopy: Record<View, { eyebrow: string; title: string; description: stri
   holidays: { eyebrow: "AUSENCIAS", title: "Vacaciones", description: "Solapes, puentes y planes B sin montar un comité de crisis." },
 };
 
-const calendarMonths = [
-  { name: "Agosto", short: "AGO", year: 2026, days: 31, offset: 5 },
-  { name: "Septiembre", short: "SEP", year: 2026, days: 30, offset: 1 },
-  { name: "Octubre", short: "OCT", year: 2026, days: 31, offset: 3 },
-] as const;
-const monthIndexByCode: Record<string, number> = { AGO: 0, SEP: 1, OCT: 2 };
 const positiveSignals = ["Ideas", "Craft", "Autonomía", "Velocidad", "Presentación", "Implicación"];
 const frictionSignals = ["Brief confuso", "Retrasos", "Falta de foco", "Poco craft", "Dependencia", "Mala coordinación"];
 const dimensionLabels: Record<DimensionKey, { label: string; hint: string }> = {
@@ -421,9 +416,9 @@ export default function WorkPage() {
   const [mobileTaskLane, setMobileTaskLane] = useState<TaskLane>("En progreso");
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
-    const currentIndex = calendarMonths.findIndex((month) => month.year === now.getFullYear() && monthIndexByCode[month.short] === now.getMonth() - 7);
-    return currentIndex >= 0 ? currentIndex : Math.max(0, calendarMonths.length - 1);
+    return calendarMonthIndex(now.getFullYear(), now.getMonth());
   });
+  const currentCalendarMonth = calendarMonthInfo(calendarMonth);
   const [calendarFilter, setCalendarFilter] = useState<CalendarFilter>("all");
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
   const [calendarTaskDate, setCalendarTaskDate] = useState<string | null>(null);
@@ -938,8 +933,7 @@ export default function WorkPage() {
       const year = Number(match[1]);
       const monthNumber = Number(match[2]);
       const day = Number(match[3]);
-      const month = calendarMonths.findIndex((item) => item.year === year && (monthIndexByCode[item.short] + 8) === monthNumber);
-      return month >= 0 ? { month, day } : null;
+      return { month: calendarMonthIndex(year, monthNumber - 1), day };
     };
 
     const taskEvents: CalendarEvent[] = allTasks.flatMap((task) => {
@@ -963,11 +957,13 @@ export default function WorkPage() {
         time,
         status: task.status,
       }];
-      const match = task.date.match(/^(\d{1,2})\s+(AGO|SEP|OCT)$/i);
+      const match = task.date.match(/^(\d{1,2})\s+([A-Z]{3})(?:\s+(\d{4}))?$/i);
       if (!match) return [];
+      const month = calendarIndexFromShortMonth(match[2], match[3] ? Number(match[3]) : 2026);
+      if (month == null) return [];
       return [{
         key: `task-${task.id}`,
-        month: monthIndexByCode[match[2].toUpperCase()],
+        month,
         day: Number(match[1]),
         kind: "task" as const,
         title: task.name,
@@ -982,9 +978,11 @@ export default function WorkPage() {
     const projectEvents: CalendarEvent[] = projects.flatMap((project) => {
       const dated = eventFromIso(project.timingStart);
       if (dated) return [{ key: `project-${project.id}`, ...dated, kind: "project" as const, title: project.name, meta: "Inicio de proyecto", account: project.account, id: project.id }];
-      const match = project.timing.match(/(\d{1,2})\s+(AGO|SEP|OCT)/i);
+      const match = project.timing.match(/(\d{1,2})\s+([A-Z]{3})(?:\s+(\d{4}))?/i);
       if (!match) return [];
-      return [{ key: `project-${project.id}`, month: monthIndexByCode[match[2].toUpperCase()], day: Number(match[1]), kind: "project" as const, title: project.name, meta: "Inicio de proyecto", account: project.account, id: project.id }];
+      const month = calendarIndexFromShortMonth(match[2], match[3] ? Number(match[3]) : 2026);
+      if (month == null) return [];
+      return [{ key: `project-${project.id}`, month, day: Number(match[1]), kind: "project" as const, title: project.name, meta: "Inicio de proyecto", account: project.account, id: project.id }];
     });
 
     const holidayEvents: CalendarEvent[] = holidays.flatMap((holiday) => {
@@ -1010,12 +1008,12 @@ export default function WorkPage() {
   const visibleEventDays = Array.from(new Set(visibleCalendarEvents.map((event) => event.day))).sort((a, b) => a - b);
   const selectedCalendarDayEvents = selectedCalendarDay == null
     ? []
-    : monthCalendarEvents.filter((event) => event.day === selectedCalendarDay);
+    : visibleCalendarEvents.filter((event) => event.day === selectedCalendarDay);
 
   const calendarInsights = useMemo(() => {
-    const month = calendarMonths[calendarMonth];
+    const month = currentCalendarMonth;
     const now = new Date();
-    const isCurrentMonth = month.year === now.getFullYear() && (monthIndexByCode[month.short] + 7) === now.getMonth();
+    const isCurrentMonth = month.year === now.getFullYear() && month.monthIndex === now.getMonth();
     const thresholdDay = isCurrentMonth ? now.getDate() : 1;
     const upcoming = monthCalendarEvents
       .filter((event) => event.day >= thresholdDay)
@@ -1738,8 +1736,7 @@ export default function WorkPage() {
     }
   }
   function calendarIsoDate(day: number) {
-    const month = calendarMonths[calendarMonth];
-    return `${month.year}-${String(calendarMonth + 8).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return calendarDateKey(calendarMonth, day);
   }
   async function createCalendarTask() {
 
@@ -2386,16 +2383,13 @@ export default function WorkPage() {
         <section className="calendar-shell calendar-shell-v2">
           <header className="calendar-toolbar">
             <div className="month-switcher">
-              <button aria-label="Mes anterior" disabled={calendarMonth === 0} onClick={() => { setSelectedCalendarDay(null); setCalendarMonth((month) => Math.max(0, month - 1)); }}><ChevronLeft /></button>
-              <div><span>CRONOLOGÍA</span><strong>{calendarMonths[calendarMonth].name} {calendarMonths[calendarMonth].year}</strong></div>
-              <button aria-label="Mes siguiente" disabled={calendarMonth === calendarMonths.length - 1} onClick={() => { setSelectedCalendarDay(null); setCalendarMonth((month) => Math.min(calendarMonths.length - 1, month + 1)); }}><ChevronRight /></button>
+              <button type="button" aria-label="Mes anterior" onClick={() => { setSelectedCalendarDay(null); setCalendarMonth((month) => month - 1); }}><ChevronLeft /></button>
+              <div><span>CRONOLOGÍA</span><strong>{currentCalendarMonth.name} {currentCalendarMonth.year}</strong></div>
+              <button type="button" aria-label="Mes siguiente" onClick={() => { setSelectedCalendarDay(null); setCalendarMonth((month) => month + 1); }}><ChevronRight /></button>
               <button className="today-button" onClick={() => {
                 const now = new Date();
-                const index = calendarMonths.findIndex((month) => month.year === now.getFullYear() && (monthIndexByCode[month.short] + 7) === now.getMonth());
-                if (index >= 0) {
-                  setCalendarMonth(index);
-                  setSelectedCalendarDay(now.getDate());
-                }
+                setCalendarMonth(calendarMonthIndex(now.getFullYear(), now.getMonth()));
+                setSelectedCalendarDay(now.getDate());
               }}>Hoy</button>
             </div>
             <div className="calendar-filters" aria-label="Filtrar calendario">
@@ -2413,7 +2407,7 @@ export default function WorkPage() {
               <div className="calendar-card-kicker"><span>PRÓXIMO HITO</span><Target /></div>
               {calendarInsights.nextEvent ? <>
                 <strong>{calendarInsights.nextEvent.title}</strong>
-                <p>{String(calendarInsights.nextEvent.day).padStart(2, "0")} {calendarMonths[calendarMonth].short} · {calendarInsights.nextEvent.account || calendarInsights.nextEvent.meta}</p>
+                <p>{String(calendarInsights.nextEvent.day).padStart(2, "0")} {currentCalendarMonth.short} · {calendarInsights.nextEvent.account || calendarInsights.nextEvent.meta}</p>
                 <small>{Math.max(0, monthCalendarEvents.filter((event) => event.day >= calendarInsights.nextEvent!.day).length - 1)} hitos después</small>
               </> : <>
                 <strong>Mes despejado</strong>
@@ -2431,7 +2425,7 @@ export default function WorkPage() {
               </div>
               <footer>
                 <span>{monthCalendarEvents.length} eventos</span>
-                <strong>{calendarInsights.busiestWeek ? `${calendarInsights.busiestWeek.startDay}–${calendarInsights.busiestWeek.endDay} ${calendarMonths[calendarMonth].short}` : "Sin carga"}</strong>
+                <strong>{calendarInsights.busiestWeek ? `${calendarInsights.busiestWeek.startDay}–${calendarInsights.busiestWeek.endDay} ${currentCalendarMonth.short}` : "Sin carga"}</strong>
               </footer>
             </article>
 
@@ -2440,7 +2434,7 @@ export default function WorkPage() {
               <strong>{calendarInsights.crossings.length ? `${calendarInsights.crossings.length} día${calendarInsights.crossings.length === 1 ? "" : "s"} a vigilar` : "Todo encaja"}</strong>
               <div className="calendar-cross-list">
                 {calendarInsights.crossings.map((crossing) => <button key={crossing.day} type="button" onClick={() => { setCalendarFilter("all"); setSelectedCalendarDay(crossing.day); }}>
-                  <span>{String(crossing.day).padStart(2, "0")} {calendarMonths[calendarMonth].short}</span>
+                  <span>{String(crossing.day).padStart(2, "0")} {currentCalendarMonth.short}</span>
                   <small>{crossing.holidayCount && crossing.workCount ? "ausencia + trabajo" : `${crossing.events.length} hitos`}</small>
                 </button>)}
                 {!calendarInsights.crossings.length && <p>Sin concentraciones relevantes este mes.</p>}
@@ -2451,18 +2445,18 @@ export default function WorkPage() {
           <div className="calendar-layout calendar-layout-v2">
             <section className="calendar-month-board">
               <div className="calendar-month-head module-head">
-                <div><span>MES</span><h2>{calendarMonths[calendarMonth].name}</h2></div>
+                <div><span>MES</span><h2>{currentCalendarMonth.name}</h2></div>
                 <div className="calendar-legend"><span><i className="dot-task" />Tarea</span><span><i className="dot-project" />Proyecto</span><span><i className="dot-holiday" />Ausencia</span></div>
               </div>
               <div className="calendar-weekdays">{["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"].map((day) => <span key={day}>{day}</span>)}</div>
               <div className="calendar-month-grid">
-                {Array.from({ length: calendarMonths[calendarMonth].offset }).map((_, index) => <div className="calendar-day blank" key={"blank-" + index} />)}
-                {Array.from({ length: calendarMonths[calendarMonth].days }, (_, index) => index + 1).map((day) => {
+                {Array.from({ length: currentCalendarMonth.offset }).map((_, index) => <div className="calendar-day blank" key={"blank-" + index} />)}
+                {Array.from({ length: currentCalendarMonth.days }, (_, index) => index + 1).map((day) => {
                   const allDayEvents = calendarEvents.filter((event) => event.month === calendarMonth && event.day === day);
                   const dayEvents = allDayEvents.filter((event) => calendarFilter === "all" || event.kind === calendarFilter);
                   const now = new Date();
-                  const isToday = calendarMonths[calendarMonth].year === now.getFullYear()
-                    && (monthIndexByCode[calendarMonths[calendarMonth].short] + 7) === now.getMonth()
+                  const isToday = currentCalendarMonth.year === now.getFullYear()
+                    && currentCalendarMonth.monthIndex === now.getMonth()
                     && day === now.getDate();
                   const visibleDayItems = dayEvents.slice(0, 2);
                   const hiddenDayItems = dayEvents.slice(2);
@@ -2474,7 +2468,16 @@ export default function WorkPage() {
                   return <div
                     key={day}
                     className={"calendar-day" + (isToday ? " today" : "") + (dayEvents.length ? " has-events" : "") + (selectedCalendarDay === day ? " selected" : "")}
-                    onClick={() => setSelectedCalendarDay(day)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${day} de ${currentCalendarMonth.name} de ${currentCalendarMonth.year}`}
+                    aria-pressed={selectedCalendarDay === day}
+                    onClick={() => setSelectedCalendarDay((selected) => selected === day ? null : day)}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+                      event.preventDefault();
+                      setSelectedCalendarDay((selected) => selected === day ? null : day);
+                    }}
                   >
                     <div className="calendar-day-head">
                       <span>{day}</span>
@@ -2518,7 +2521,7 @@ export default function WorkPage() {
                 <div className="chronology-head module-head">
                   <div>
                     <span>{selectedCalendarDay != null ? "DÍA" : "AGENDA"}</span>
-                    <h2>{selectedCalendarDay != null ? `${String(selectedCalendarDay).padStart(2, "0")} ${calendarMonths[calendarMonth].short}` : "Fechas clave"}</h2>
+                    <h2>{selectedCalendarDay != null ? `${String(selectedCalendarDay).padStart(2, "0")} ${currentCalendarMonth.short}` : "Fechas clave"}</h2>
                   </div>
                   <strong>{selectedCalendarDay != null ? selectedCalendarDayEvents.length : visibleCalendarEvents.length}</strong>
                 </div>
@@ -2543,7 +2546,7 @@ export default function WorkPage() {
                   {selectedCalendarDayEvents.length === 0 && <div className="calendar-empty compact"><CalendarDays /><strong>Sin ítems este día</strong><span>El calendario, por una vez, no tiene nada que objetar.</span></div>}
                 </div> : <div className="chronology-list">
                   {visibleEventDays.slice(0, 8).map((day) => <button className="chronology-day calendar-agenda-day" key={day} onClick={() => setSelectedCalendarDay(day)}>
-                    <div className="date-stamp"><strong>{day.toString().padStart(2, "0")}</strong><span>{calendarMonths[calendarMonth].short}</span></div>
+                    <div className="date-stamp"><strong>{day.toString().padStart(2, "0")}</strong><span>{currentCalendarMonth.short}</span></div>
                     <div className="day-events">
                       {visibleCalendarEvents.filter((event) => event.day === day).slice(0, 2).map((event) => <span key={event.key} className={"calendar-event-preview event-" + event.kind}>
                         <i />
