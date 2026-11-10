@@ -262,7 +262,7 @@ export default function LifePage(){
  },[activeDate]);
  const moveMonth=(offset:number)=>{const d=parseDay(activeDate);setActiveDate(localDay(new Date(d.getFullYear(),d.getMonth()+offset,Math.min(d.getDate(),28))));};
  const EntryRows=({items,empty}:{items:Entry[];empty:string})=><div className={styles.entryRows}>{items.length?items.map(entry=>
-  <button key={entry.id} type="button" className={styles.entryRow} onClick={()=>entry.kind==="health"&&entry.metadata?.gym?window.location.assign("/life/gym"):start(entry.kind,entry)}>
+  <button key={entry.id} type="button" className={styles.entryRow} onClick={()=>start(entry.kind,entry)}>
    <span className={styles.entryDate}>{prettyDay(entry.entry_date,{day:"2-digit",month:"short"})}</span>
    <span className={styles.entryCopy}><strong>{entry.title}</strong><small>{entry.note?short(entry.note,100):entry.category||capital(entry.status||"")}</small></span>
    {entry.amount!==null&&<b className={Number(entry.amount)<0?styles.negative:styles.positive}>{euro(Number(entry.amount))}</b>}
@@ -312,9 +312,9 @@ export default function LifePage(){
          <section className={styles.card+" "+styles.healthCard} style={{"--accent":areaColors.salud} as CSSProperties}>
           <PanelHead title="Salud" action="Ver registros" click={()=>go("health")}/>
           <div className={styles.cardCounter}>{weekHealth.length.toString().padStart(2,"0")}<small>REGISTROS · 7 DÍAS</small></div>
-          <div className={styles.miniStack}>{wellness.slice(0,3).map(e=><button key={e.id} onClick={()=>e.metadata?.gym?window.location.assign("/life/gym"):start("health",e)}><HeartPulse size={16}/><span>{e.title}</span><small>{prettyDay(e.entry_date)}</small></button>)}
+          <div className={styles.miniStack}>{wellness.slice(0,3).map(e=><button key={e.id} onClick={()=>start("health",e)}><HeartPulse size={16}/><span>{e.title}</span><small>{prettyDay(e.entry_date)}</small></button>)}
           {!wellness.length&&<Placeholder>Registra un entrenamiento, una comida o tu peso.</Placeholder>}</div>
-          <a className={styles.gymActionLink} href="/life/gym"><Dumbbell size={15}/> Abrir Gym <ArrowRight size={15}/></a>
+          <a className={styles.gymActionLink} href="https://hevy.com/user/sensationalfix" target="_blank" rel="noopener noreferrer"><Dumbbell size={15}/> Abrir Hevy <ArrowRight size={15}/></a>
          </section>
          <section className={styles.card+" "+styles.agendaCard} style={{"--accent":areaColors.moto} as CSSProperties}>
           <PanelHead title="Próximos planes" action="Abrir agenda" click={()=>go("agenda")}/>
@@ -507,8 +507,8 @@ export default function LifePage(){
        <div className={styles.cultureAttribution}>Fuentes: Steam, Wikipedia y TVmaze. Se muestra el origen de cada ficha. Las puntuaciones son de sus respectivas fuentes, no valoraciones tuyas.</div>
       </div>}
      {section==="health"&&<div className={styles.contentLayout}>
-       <div className={styles.sectionActions}><div><small>CUERPO · HÁBITOS · COMIDAS</small><h1>Salud</h1></div><div className={styles.actionRow}><a className={styles.gymActionLink} href="/life/gym"><Dumbbell size={16}/> Entrenar ahora <ArrowRight size={15}/></a><button onClick={()=>start("health")}><Plus size={16}/> Registro manual</button></div></div>
-       <div className={styles.financeStats}><div className={styles.card} style={{"--accent":areaColors.salud} as CSSProperties}><small>ÚLTIMOS 7 DÍAS</small><strong>{weekHealth.length} <em>registros</em></strong></div><div className={styles.card} style={{"--accent":areaColors.personal} as CSSProperties}><small>ENTRENAMIENTOS · 7 DÍAS</small><strong>{weekHealth.filter(e=>e.category==="entreno").length}</strong></div><div className={styles.card} style={{"--accent":areaColors.dinero} as CSSProperties}><small>ÚLTIMO PESO REGISTRADO</small><strong>{wellness.find(e=>e.category==="peso")?.metadata?.metric ? String(wellness.find(e=>e.category==="peso")?.metadata.metric)+" kg":"—"}</strong></div></div>
+       <div className={styles.sectionActions}><div><small>CUERPO · HÁBITOS · COMIDAS</small><h1>Salud</h1></div><div className={styles.actionRow}><a className={styles.gymActionLink} href="https://hevy.com/user/sensationalfix" target="_blank" rel="noopener noreferrer"><Dumbbell size={16}/> Abrir Hevy <ArrowRight size={15}/></a><button onClick={()=>start("health")}><Plus size={16}/> Registro manual</button></div></div>
+       <div className={styles.financeStats}><div className={styles.card} style={{"--accent":areaColors.salud} as CSSProperties}><small>ÚLTIMOS 7 DÍAS</small><strong>{weekHealth.length} <em>registros</em></strong></div><div className={styles.card} style={{"--accent":areaColors.personal} as CSSProperties}><small>ENTRENOS EN LIFE OS · 7 DÍAS</small><strong>{weekHealth.filter(e=>e.category==="entreno").length}</strong></div><div className={styles.card} style={{"--accent":areaColors.dinero} as CSSProperties}><small>ÚLTIMO PESO REGISTRADO</small><strong>{wellness.find(e=>e.category==="peso")?.metadata?.metric ? String(wellness.find(e=>e.category==="peso")?.metadata.metric)+" kg":"—"}</strong></div></div>
        <section className={styles.card}><PanelHead title="Registro personal"/><div className={styles.filterRow}>{[{id:"all",label:"Todo"},{id:"entreno",label:"Entrenamientos"},{id:"comida",label:"Comidas"},{id:"peso",label:"Peso"},{id:"otro",label:"Otros"}].map(x=><button key={x.id} className={filter===x.id?styles.filterActive:""} onClick={()=>setFilter(x.id)}>{x.label}</button>)}</div><EntryRows items={wellness.filter(e=>filter==="all"||e.category===filter)} empty="Sin registros todavía. Empieza por el próximo entrenamiento o comida."/></section>
       </div>}
      {section==="agenda"&&<div className={styles.contentLayout}>
